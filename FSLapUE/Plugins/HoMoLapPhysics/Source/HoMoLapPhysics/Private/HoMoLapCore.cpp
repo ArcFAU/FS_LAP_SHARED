@@ -442,12 +442,12 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 	const double aGrip = 1.18, aPower = 1.75, aForce = 1.2, aVtop = 1.45, aGrass = 0.85;   // hotlap.setups arc
 	// FS Lap's own arcade braking, tuned with tools\physics_test\probe.bat; HoMo-LAP's web and MATLAB arcade use aBrake 1.35 without the rest
 	const double aBrake = 0.62, aLoad = 0.55, aBrakeFront = 0.9, aBrakeFrontTurn = 0.45, aBrakeRear = 0.7, aBrakeRearTurn = 0.35, aYawDamp = 8, aSlideDamp = 14;
-	const bool arc = In.arcade;
+	const bool arc = In.arcade && !external;   // another vehicle model gets the sim input handling, also in free roam
 	const int N = T.N;
 	double thrT = Clamp(In.thr, 0, 1), brkT = Clamp(In.brk, 0, 1);
 	// brake assist: never enter a bend faster than the planned corner speed
 	c.assistBrake = false;
-	if (In.assist && !arc && c.vx > 3)
+	if (In.assist && !arc && !isFree && c.vx > 3)   // free roam has no track to plan for (reached only with another vehicle model there)
 	{
 		const double vt = vPlanA[Idx(c.s + 2 + c.vx * 0.25, N)];
 		if (c.vx > vt + 0.2) { brkT = std::max(brkT, Clamp((c.vx - vt) / 0.8, 0, 1)); thrT = 0; c.assistBrake = true; }
@@ -496,7 +496,7 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 			dCmd = Clamp(dCmd + Clamp(Pick(drift, 0.45, 0.8) * bx, -0.35, 0.35), -C.delMax, C.delMax);
 		}
 	}
-	else if (In.assist && In.human && std::abs(c.vx) > 2.5)
+	else if (In.assist && In.human && !isFree && std::abs(c.vx) > 2.5)
 	{
 		// steering assist: into the bend gives the lock the bend needs plus a margin, otherwise a gentler lock
 		const double iA = std::floor(c.s + 1 + 0.12 * v);
@@ -511,6 +511,13 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 		else dCmd = c.st * dLim * 0.55;
 	}
 	c.delta = dCmd; c.dLim = dLim;
+	if (external)
+	{
+		c.Fdown = Fdown; c.Fdrag = Fdrag; c.ClAe = ClAe; c.beta = beta; c.capF = capF; c.capR = capR;   // FS Lap's estimates, for the HUD
+		external->Step(c, Dt, sf);
+		KeepInWorld(Dt);
+		return;
+	}
 
 	// longitudinal: 4 motors, torque split by axle load with traction control, brakes with wheel-slip control
 	double Fxf = 0, Fxr = 0, Pw = 0;
@@ -609,18 +616,23 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 
 	const double ch = std::cos(c.h), sh = std::sin(c.h);
 	c.x += (c.vx * ch - c.vy * sh) * Dt; c.y += (c.vx * sh + c.vy * ch) * Dt; c.h += c.r * Dt;
-	const double* w = isFree ? T.WORLD_F : T.WORLD_T;
-	if (c.x < w[0] || c.x > w[2] || c.y < w[1] || c.y > w[3])
-	{
-		c.x = Clamp(c.x, w[0], w[2]); c.y = Clamp(c.y, w[1], w[3]); c.vx *= 0.3; c.vy *= 0.3; c.outT += Dt; c.hitWall = true;
-	}
-	else { c.outT = 0; c.hitWall = false; }
+	KeepInWorld(Dt);
 	c.FyfP = Fyf; c.FyrP = Fyr;
 	c.ax = axb; c.ay = ayb;
 	c.Fdown = Fdown; c.Fdrag = Fdrag; c.ClAe = ClAe; c.beta = beta; c.capF = capF; c.capR = capR; c.power = Pw;
 	const bool lockF = capF > 0 && std::abs(Fxf) > 0.88 * capF && c.brk > 0.5, lockR = (capR > 0 && std::abs(Fxr) > 0.88 * capR && c.brk > 0.5) || In.hb;
 	c.slipF = std::abs(af) > C.ap * 1.25 || lockF;
 	c.slipR = std::abs(ar) > C.ap * 1.25 || lockR;
+}
+
+void Simulation::KeepInWorld(double Dt)
+{
+	const double* w = isFree ? T.WORLD_F : T.WORLD_T;
+	if (c.x < w[0] || c.x > w[2] || c.y < w[1] || c.y > w[3])
+	{
+		c.x = Clamp(c.x, w[0], w[2]); c.y = Clamp(c.y, w[1], w[3]); c.vx *= 0.3; c.vy *= 0.3; c.outT += Dt; c.hitWall = true;
+	}
+	else { c.outT = 0; c.hitWall = false; }
 }
 
 void Simulation::Step(const Input* Human)

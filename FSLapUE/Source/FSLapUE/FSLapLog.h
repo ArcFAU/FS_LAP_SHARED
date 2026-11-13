@@ -16,8 +16,8 @@ class FFSLapLog
 public:
 	static const TCHAR* const Columns;
 
-	// A new session folder for the next lap: mode name and the setup as a JSON object, written into every lap file.
-	void Begin(const FString& Mode, const FString& SetupJson, const FString& Reference);
+	// A new session folder for the next lap: mode name, the setup as a JSON object and the vehicle model, written into every lap file.
+	void Begin(const FString& Mode, const FString& SetupJson, const FString& Reference, const FString& Kernel);
 	void SetReference(const FString& Reference) { ReferenceJson = Reference; }   // the LTS lap the driver races against
 	// After every simulation step of a race; Human is the driver's input, nullptr when the AI drives.
 	void Sample(const HoMoLap::Simulation& Sim, const HoMoLap::Input* Human);
@@ -28,5 +28,5 @@ private:
 
 	TArray<double> Rows;   // NumColumns values per step
 	size_t SeenLaps = 0;
-	FString Session, ModeName, Setup, ReferenceJson, LastFile;
+	FString Session, ModeName, Setup, ReferenceJson, KernelName, LastFile;
 };

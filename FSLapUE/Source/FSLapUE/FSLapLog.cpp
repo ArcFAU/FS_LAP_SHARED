@@ -23,8 +23,9 @@ namespace
 	}
 }
 
-void FFSLapLog::Begin(const FString& Mode, const FString& SetupJson, const FString& Reference)
+void FFSLapLog::Begin(const FString& Mode, const FString& SetupJson, const FString& Reference, const FString& Kernel)
 {
+	KernelName = Kernel;
 	Rows.Reset();
 	Session = FDateTime::Now().ToString(TEXT("%Y-%m-%d_%H%M%S")) + TEXT("_") + Mode;
 	ModeName = Mode;
@@ -77,9 +78,9 @@ void FFSLapLog::Flush(const HoMoLap::Simulation& Sim, const HoMoLap::LapResult& 
 		Curvature.Add(T.N ? T.K[FMath::Clamp(static_cast<int32>(S / FMath::Max(T.LEN / T.N, 1e-6)), 0, T.N - 1)] : 0.0);
 	}
 	const double TrackLength = T.LEN;
-	const FString Header = FString::Printf(TEXT("{\"schema\": \"homo-lts.run.v1\", \"created\": \"%s\", \"model\": \"fslapDriven\", \"calculationKernel\": \"HoMoLapPhysics single track, 600 Hz\", ")
+	const FString Header = FString::Printf(TEXT("{\"schema\": \"homo-lts.run.v1\", \"created\": \"%s\", \"model\": \"fslapDriven\", \"calculationKernel\": \"%s\", ")
 		TEXT("\"vehicleName\": \"FAUmax tau (FS Lap)\", \"track\": {\"name\": \"%s\", \"length_m\": %.4f, \"isClosed\": true}, "),
-		*FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S")), T.ltsLap > 0 ? TEXT("A_FSGend_3.mat") : TEXT("FS Lap city circuit"), TrackLength);
+		*FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S")), *KernelName, T.ltsLap > 0 ? TEXT("A_FSGend_3.mat") : TEXT("FS Lap city circuit"), TrackLength);
 	const FString Result = FString::Printf(TEXT("{\"lap\": %d, \"time_s\": %.4f, \"rawTime_s\": %.4f, \"penalty_s\": %.1f, \"split1_s\": %.4f, \"split2_s\": %.4f, \"valid\": %s, \"cones\": %d, \"offCourse\": %d}"),
 		Lap.n, Lap.time, Lap.raw, Lap.pen, Lap.split1, Lap.split2, Lap.valid ? TEXT("true") : TEXT("false"), Lap.cones, Lap.offCourse);
 	const FString Mode = ModeName, SetupJson = Setup, Reference = ReferenceJson.IsEmpty() ? TEXT("null") : ReferenceJson;

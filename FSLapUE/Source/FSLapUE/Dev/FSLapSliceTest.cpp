@@ -140,6 +140,7 @@ void UFSLapSliceTest::Finish(AFSLapVehiclePawn* Car)
 	}
 	Text += FString::Printf(TEXT("best=%.3f\ntraffic=%d\n"), Car->GetBestLap(), Car->GetTrafficCount());
 	Text += FString::Printf(TEXT("reference=%s %.3f\nreference_status=%s\nlap_log=%s\n"), *Car->GetLtsLabel(), Car->GetSimulation()->T.ltsLap, *Car->Lts.Status(), *Car->Log.LastWritten());
+	Text += FString::Printf(TEXT("vehicle_model=%s\n"), *Car->KernelName(Car->GetRaceMode()));
 	Text += FString::Printf(TEXT("replay_keys=%d\n"), bReplayKeys ? 1 : 0);
 	FFileHelper::SaveStringToFile(Text, *(OutputDir() / TEXT("results.txt")));
 	Phase = EPhase::Done;
@@ -152,7 +153,7 @@ void UFSLapSliceTest::TickKeys(APlayerController* Player, AFSLapVehiclePawn* Car
 	const TArray<FKeyStep>& Steps = KeySteps();
 	if (KeyIndex >= Steps.Num())
 	{
-		KeyReport += FString::Printf(TEXT("%d steps, %d failed\n"), Steps.Num(), KeyFailures);
+		KeyReport += FString::Printf(TEXT("%d steps, %d failed\nvehicle_model=%s\n"), Steps.Num(), KeyFailures, *Car->KernelName(Car->GetRaceMode()));
 		FFileHelper::SaveStringToFile(KeyReport, *(OutputDir() / TEXT("results.txt")));
 		Phase = EPhase::Done;
 		RequestEngineExit(TEXT("FSLap key test finished"));
@@ -230,6 +231,11 @@ void UFSLapSliceTest::Tick(float DeltaTime)
 		{
 			PhaseStart = Now;   // hold the warm-up until the LTS lap is there (or failed, or 400 s passed)
 		}
+	}
+	// -FSLapMode=adtm: the hot lap with the team's ADTM as the vehicle model; -FSLapAdtm: any mode with it
+	if ((ModeName == TEXT("adtm") || FParse::Param(FCommandLine::Get(), TEXT("FSLapAdtm"))) && Phase == EPhase::Warmup)
+	{
+		Car->bAdtm = true;
 	}
 	const HoMoLap::Mode Mode = ModeName == TEXT("arcade") ? HoMoLap::Mode::Arcade : (ModeName == TEXT("free") ? HoMoLap::Mode::Free : (ModeName == TEXT("city") ? HoMoLap::Mode::City : HoMoLap::Mode::Sim));
 	bool bCompiling = false;

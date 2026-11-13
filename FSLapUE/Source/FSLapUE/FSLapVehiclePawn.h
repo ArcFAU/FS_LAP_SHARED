@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "HoMoLapCore.h"
+#include <memory>
 #include "FSLapLog.h"
 #include "FSLapLts.h"
 #include "FSLapWheel.h"
@@ -222,6 +223,11 @@ private:
 	std::vector<double> StoredLtsT, StoredLtsS;
 	double StoredLtsLap = 0, StoredLtsSplit[2] = { 0, 0 }, StoredLtsScale = 1;
 	FFSLapLog Log;                // every lap at 600 Hz to Saved/Runs
+	// the vehicle model: FS Lap's own, or the team's ADTM compiled in (HoMoLapAdtm.h) for hot lap and free roam; arcade and city stay FS Lap's
+	bool bAdtm = false;
+	std::unique_ptr<HoMoLap::Simulation::VehicleModel> Adtm;   // the Simulation points at it
+	bool UsesAdtm(HoMoLap::Mode Mode) const { return bAdtm && Mode != HoMoLap::Mode::Arcade && Mode != HoMoLap::Mode::City; }
+	FString KernelName(HoMoLap::Mode Mode) const;
 	void RequestLts();
 	void ApplyLts(const FFSLapLts::FLap& Lap);
 	TArray<TPair<FString, double>> LtsOverrides() const;

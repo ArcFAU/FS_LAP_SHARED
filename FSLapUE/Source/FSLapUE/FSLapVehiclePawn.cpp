@@ -11,6 +11,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "EngineUtils.h"
 #include "FSLapSave.h"
+#include "HoMoLapAdtm.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInterface.h"
 #include "Sound/SoundWave.h"
@@ -344,6 +345,8 @@ void AFSLapVehiclePawn::RestartSimulation(HoMoLap::Mode NewMode)
 {
 	RaceMode = NewMode;
 	Simulation = MakeUnique<HoMoLap::Simulation>(ActiveTrack(), Setup, RaceMode);
+	Adtm = UsesAdtm(RaceMode) ? HoMoLap::MakeAdtm(Setup) : nullptr;
+	Simulation->external = Adtm.get();
 	CurrentKey = MakeBestKey();
 	WheelRotation = 0;
 	FixedAccumulator = 0;
@@ -377,7 +380,7 @@ void AFSLapVehiclePawn::RestartSimulation(HoMoLap::Mode NewMode)
 void AFSLapVehiclePawn::StartRace(HoMoLap::Mode NewMode)
 {
 	static const TCHAR* const ModeNames[] = { TEXT("hotlap"), TEXT("arcade"), TEXT("free"), TEXT("city") };   // HoMoLap::Mode order
-	Log.Begin(ModeNames[static_cast<int32>(NewMode)], SetupJson(), ReferenceJson());
+	Log.Begin(ModeNames[static_cast<int32>(NewMode)], SetupJson(), ReferenceJson(), KernelName(NewMode));
 	RestartSimulation(NewMode);
 	CountdownTime = 0;
 	CountdownHold = FMath::FRandRange(0.5f, 1.3f);
@@ -723,7 +726,7 @@ void AFSLapVehiclePawn::UpdateEffects(float DeltaSeconds)
 
 int32 AFSLapVehiclePawn::GetSetupRowCount() const
 {
-	return 4 + UE_ARRAY_COUNT(SetupFields);   // the aero package, the fields, the LTS reference, the steering wheel, driver assist
+	return 5 + UE_ARRAY_COUNT(SetupFields);   // the aero package, the fields, the vehicle model, the LTS reference, the steering wheel, driver assist
 }
 
 FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
@@ -735,6 +738,14 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 	if (Row == GetSetupRowCount() - 1)
 	{
 		return FString::Printf(TEXT("Driver assist:  %s"), bDriverAssist ? TEXT("On") : TEXT("Off"));
+	}
+	if (Row == GetSetupRowCount() - 4)
+	{
+		if (!bAdtm)
+		{
+			return TEXT("Vehicle model:  FS Lap (single track)");
+		}
+		return *HoMoLap::AdtmSource() ? TEXT("Vehicle model:  ADTM (team, dual track)") : TEXT("Vehicle model:  ADTM not built yet");
 	}
 	if (Row == GetSetupRowCount() - 3)
 	{
@@ -756,6 +767,10 @@ void AFSLapVehiclePawn::ChangeSetup(int32 Direction)
 	if (SetupRow == GetSetupRowCount() - 1)
 	{
 		bDriverAssist = !bDriverAssist;
+	}
+	else if (SetupRow == GetSetupRowCount() - 4)
+	{
+		bAdtm = !bAdtm;   // without the generated code the row says so and the car stays FS Lap's (MakeAdtm gives null)
 	}
 	else if (SetupRow == GetSetupRowCount() - 3)
 	{
@@ -1239,6 +1254,11 @@ void AFSLapVehiclePawn::ApplyLts(const FFSLapLts::FLap& Lap)
 	Log.SetReference(ReferenceJson());
 }
 
+FString AFSLapVehiclePawn::KernelName(HoMoLap::Mode Mode) const
+{
+	return UsesAdtm(Mode) && *HoMoLap::AdtmSource() ? FString(TEXT("ADTM (MATLAB Coder), RK4 600 Hz: ")) + UTF8_TO_TCHAR(HoMoLap::AdtmSource()) : FString(TEXT("HoMoLapPhysics single track, 600 Hz"));
+}
+
 FString AFSLapVehiclePawn::SetupJson() const
 {
 	FString Json = FString::Printf(TEXT("{\"aeroPackage\": \"%s\", \"driverAssist\": %s"), PresetIndex < 0 ? TEXT("custom") : AeroPresets[PresetIndex].Name, bDriverAssist ? TEXT("true") : TEXT("false"));
@@ -1296,6 +1316,10 @@ FString AFSLapVehiclePawn::MakeBestKey() const
 	for (const FSetupField& Field : SetupFields)
 	{
 		Key += FString::Printf(TEXT("_%.4f"), Setup.*Field.Value);
+	}
+	if (UsesAdtm(RaceMode) && Adtm)
+	{
+		Key += TEXT("_adtm");   // laps with the team's model are kept apart
 	}
 	return bDriverAssist ? Key : Key + TEXT("_noassist");   // assisted laps keep the records they already have
 }

@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `9223021` on 2026-11-13.
+> Synced from development commit `9f0834e` on 2026-11-13.
 
 ---
 
@@ -15,6 +15,7 @@ This repository is the team's shared copy. It is updated from the development re
 3. [Driving](#3-driving)
 4. [The vehicle model](#4-the-vehicle-model)
    - [4a. The complete LTS and lap data](#4a-the-complete-lts-and-lap-data)
+   - [4b. Driving the team's ADTM](#4b-driving-the-teams-adtm)
 5. [The car model and the CAD](#5-the-car-model-and-the-cad)
 6. [Vehicle data in this repository](#6-vehicle-data-in-this-repository)
 7. [Project layout](#7-project-layout)
@@ -36,6 +37,7 @@ This repository is the team's shared copy. It is updated from the development re
 - **Replay:** watch your best lap from roadside cameras.
 - **The complete LTS as the reference:** the team's lap time simulation (MATLAB) computes the reference lap for your current setup, with the point-mass, single-track or dual-track model (section 4a).
 - **Lap data:** every completed lap is saved at 600 Hz (CSV) and in the LTS run format, and `tools/lts/compareLaps.m` compares it with an LTS lap or another driven lap (section 4a).
+- **The team's ADTM as the car:** drive the team's Advanced Dual Track Model live instead of FS Lap's own model, compiled into the game (section 4b).
 
 ## 2. Getting started
 
@@ -182,6 +184,52 @@ It compares both cars over distance:
 
 It stops if the car is more than 5 m off the path. For the stock AI lap: the ADTM takes 77.630 s against FS Lap's 77.400 s to the last logged point. It is at most 1.51 m off the path (in the fast section around 420–560 m), and it needs slightly more steering. The run takes about 1 minute. It does not write the ADTM input file, because the inputs depend on the ADTM's own response.
 
+### 4b. Driving the team's ADTM
+
+You can drive the team's Advanced Dual Track Model (ADTM) itself, live, with the wheel, instead of FS Lap's own model.
+
+**Using it:** Menu → **SETUP** → row **Vehicle model** → **Left / Right** switches between `FS Lap (single track)` and `ADTM (team, dual track)`.
+- **Modes:** it applies in hot lap and free roam. Arcade and city keep FS Lap's own model, because their handling layer belongs to FS Lap.
+- **Records:** laps on the ADTM keep their own best laps and ghosts.
+- **Lap files:** `calculationKernel` names the ADTM and its source.
+
+**How it works:**
+- **Compiled into the game:** the ADTM's MATLAB code (`f_vehicleModel`: 40 states, TMeasy tyres, double-wishbone kinematics) is turned into C++ by MATLAB Coder (`tools/adtm/adtm_codegen.m`, into `Plugins/HoMoLapPhysics/Source/HoMoLapPhysics/Private/ADTM`). The game steps it with the ADTM's own Runge-Kutta scheme at 600 Hz.
+- **No MATLAB needed while driving.** One step takes about 40–60 µs, about 4 % of one CPU core.
+- **What FS Lap still does:** it reads the wheel, pedals and keys exactly as before (pedal ramps, driver assists, steering lock), and it keeps the lap rules, cones, penalties, timing and the world.
+- **What the ADTM does:** it moves the car.
+- **Input conversion,** the same as in `adtmReplay.m` (section 4a):
+  - the road wheel angle becomes the ADTM steering wheel angle through the ADTM's own steering kinematics;
+  - the brake becomes front and rear pressures through `Fb` and `brakeFront`;
+  - the throttle is capped at the system power;
+  - grass sets the road friction to 0.62.
+- **Moving the car:** when the game moves the car (restart, back on track, a wall), the ADTM starts again from there, settled on its springs.
+
+**What comes from where:**
+- **From FS Lap's setup:** aero (ClA, CdA, balance), brake force and split, and system power.
+- **From the ADTM vehicle file baked in at generation:** everything else, including mass, tyres, suspension and motors. Today that is `FAUmaxTau.m` with `default_mu0.7`.
+- **Not used by the ADTM:** FS Lap's mass, tyre, roll and torque-vectoring rows.
+- **No handbrake:** the handbrake does nothing on the ADTM, as on the real car.
+
+**Results with the stock car:**
+
+| | FS Lap's own model | ADTM |
+|---|---|---|
+| AI hot lap | 77.405 s | 77.620 s, valid, 0.56 m at most off the centreline |
+| 0–100 km/h | 1.577 s (arcade free roam) | 2.19 s |
+| 75 m | 3.075 s | 3.54 s |
+| Top speed | | 118 km/h, the motor speed limit |
+| Frame rate in game | 74–75 fps | 73.7 fps |
+
+The ADTM's 77.620 s matches the offline closed-loop replay (77.630 s).
+
+**After the team changes the ADTM or its vehicle file:**
+1. In MATLAB (needs MATLAB Coder): `addpath('tools/adtm'); adtm_codegen` (options: `AdtmRoot`, `Vehicle`, `EnvConditions`).
+2. Check it against the MATLAB code: `adtm_codegen(Mex=true); adtm_check`. On the stock data, compiled and MATLAB agree to 1.9e-14.
+3. Build the game and run `tools\physics_test\adtm.bat`.
+
+Without the generated folder, FS Lap builds as before and the row says `ADTM not built yet`. The generated code carries MathWorks' sponsored-licence notice.
+
 ## 5. The car model and the CAD
 
 - **Bodywork, wings, undertray and wheels:** exported from the team's livery model in Blender (`tools/export_ue.py`, `tools/bake_livery_uv.py`) with the livery baked in.
@@ -209,11 +257,12 @@ FSLapUE/                          Unreal project
   FSLapUE.uproject
   Config/                         engine, input and packaging settings
   Source/FSLapUE/                 game flow, car presentation, HUD, wheel input (FSLapWheel), LTS jobs (FSLapLts), lap logging (FSLapLog), tests (Dev/)
-  Plugins/HoMoLapPhysics/         the vehicle model, track data, lap rules and AI driver (plain C++)
+  Plugins/HoMoLapPhysics/         the vehicle model, track data, lap rules and AI driver (plain C++); the ADTM wrapper (HoMoLapAdtm) and its generated code (Private/ADTM)
   Content/FS/Generated/           imported assets: car, CAD parts, track, city, sound, materials (Git LFS)
 tools/                            conversion, import and test scripts
   cad/                            NX Open and Blender scripts for the CAD export (README inside)
-  physics_test/                   stand-alone build and test of the vehicle model
+  physics_test/                   stand-alone build and test of the vehicle model (adtm.bat: the ADTM)
+  adtm/                           MATLAB Coder generation of the ADTM for the game (adtm_codegen.m) and its check (adtm_check.m)
   lts/                            MATLAB: compareLaps.m (driven laps against LTS laps), adtmReplay.m (driven laps through the ADTM)
 vehicle-data/                     suspension hardpoints and design table
 Play FS Lap.bat                   starts the game full screen
@@ -225,7 +274,8 @@ The main classes:
 - **`FFSLapWheel`:** reads DirectInput wheels. It searches for them on a worker thread.
 - **`FFSLapLts`:** sends LTS jobs to a MATLAB worker through a file queue and reads the results.
 - **`FFSLapLog`:** records each lap and writes the CSV and run files on a worker thread.
-- **`HoMoLap::Simulation`:** the vehicle model and lap rules.
+- **`HoMoLap::Simulation`:** the vehicle model and lap rules. `Simulation::external` lets another vehicle model move the car.
+- **`HoMoLap::MakeAdtm`:** the team's ADTM as that model.
 
 ## 8. Tests
 
@@ -238,6 +288,8 @@ All tests run from PowerShell in the repository root. Close the Unreal Editor fi
 | `tools\slice_test.ps1 -Mode sim` (or `arcade`, `city`, `free`) | Starts the real game, lets the AI drive a lap and takes photos from around the car. Results in `FSLapUE\Saved\SliceTest\<mode>\results.txt`: lap times, fps, average and 95th-percentile frame time, the longest frame and the number of frames over 100 ms (hitches). |
 | `tools\slice_test.ps1 -Mode keys` | Presses every key through the game and checks what each did (46 steps). Each line also reports the frame rate and the car's speed. |
 | `tools\slice_test.ps1 -Mode lts` | Has the real LTS compute the single-track reference for the stock car (needs MATLAB, section 4a), then lets the AI drive a hot lap against it. Checks the reference (`reference=LTS 1-track 74.952`) and the lap files (`lap_log=`). |
+| `tools\physics_test\adtm.bat` | The ADTM in the game's core without Unreal: the AI laps the FSG track (77.620 s), the car is moved and must carry on, and a free-roam standing start (0–100 km/h in 2.185 s, with the assists on). It must run faster than real time. Needs the generated code. |
+| `tools\slice_test.ps1 -Mode adtm` | The in-game hot lap with the ADTM as the vehicle model (`vehicle_model=ADTM ...`). Add `-Adtm` to any other mode to run it with the ADTM. |
 
 Add `-Engine <UE>` if your engine is not at `D:\UE\UE_5.8`.
 
@@ -261,9 +313,9 @@ The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_I
 **Not there yet:** force feedback, a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, real-car data overlays, the wheel's buttons, and a field of view set from the rig's screen size. The LTS reference covers the FSG endurance track only, and the lap files are not yet in .mat format.
 
 **Proposed next, in order, pending the team's answers:**
-1. **Live co-simulation:** the ADTM (or its Simulink version) running alongside the game while you drive.
-2. **Rig basics:** the real steering ratio from the CAD rack, and a field of view from the screen geometry.
-3. **Force feedback** on the Moza R3.
+1. **Force feedback** on the Moza R3, from the ADTM's steering torque output (`T_Steering`).
+2. **Rig basics:** the real steering ratio from the CAD rack, so the wheel turns the ADTM's steering directly instead of through FS Lap's speed-dependent lock, and a field of view from the screen geometry.
+3. **The ADTM's vehicle data from FS Lap's setup:** mass and tyres editable in the setup screen, not only at generation.
 4. **Better vehicle model:** a four-wheel model and the tyre model, or live co-simulation with the team's Simulink model.
 5. **VD tools:** standard test manoeuvres with automatic metrics, setup A/B blind tests, and real-car data overlays.
 
@@ -281,6 +333,7 @@ Ask the simulator's maintainer if you need any of these.
 
 Newest first.
 
+- **2026-11-13 (evening):** drive the team's ADTM (section 4b). It is compiled into the game with MATLAB Coder and chosen in the setup row **Vehicle model** (hot lap and free roam). New tests: `tools\physics_test\adtm.bat`, slice test mode `adtm` and the `-Adtm` switch.
 - **2026-11-13 (later):** the complete LTS and lap data (section 4a).
   - **LTS reference:** the setup row **LTS reference** has the team's LTS compute the reference lap for the current setup (point-mass, single-track or dual-track model).
   - **Lap logging:** every completed lap is saved as a 600 Hz CSV and an LTS run file.

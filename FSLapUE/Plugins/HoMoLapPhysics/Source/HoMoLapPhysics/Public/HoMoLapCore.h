@@ -90,6 +90,17 @@ namespace HoMoLap
 	public:
 		Simulation(const Track& InTrack, const Setup& V, Mode InMode);
 
+		// Another vehicle model doing the dynamics (the team's ADTM, HoMoLapAdtm.h), with the sim input handling in every
+		// mode (the arcade layer is FS Lap's own model). FS Lap still turns the inputs into
+		// the commands c.thr, c.brk, c.st and c.delta (road wheel angle); the model then moves the car. Grip: the road's
+		// friction factor (grass 0.62). It must follow when the game moves c itself (restart, back on track, walls).
+		struct VehicleModel
+		{
+			virtual ~VehicleModel() = default;
+			virtual void Step(Car& c, double Dt, double Grip) = 0;
+		};
+		VehicleModel* external = nullptr;   // not owned; null: FS Lap's own model
+
 		// One 1/600 s step. Human == nullptr lets the AI drive.
 		void Step(const Input* Human);
 		void PlaceAt(double s);
@@ -121,6 +132,7 @@ namespace HoMoLap
 		void PlaceFreeStart();
 		void UpdateFreeTiming();
 		void CollideWalls();
+		void KeepInWorld(double Dt);
 
 		std::vector<double> vPlan, vPlanA;
 		Input held;

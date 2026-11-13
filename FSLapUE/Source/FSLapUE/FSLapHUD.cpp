@@ -121,12 +121,12 @@ void AFSLapHUD::DrawSetup(const AFSLapVehiclePawn& Vehicle)
 	const int32 Rows = Vehicle.GetSetupRowCount();
 	for (int32 Row = 0; Row < Rows; ++Row)
 	{
-		const float Y = 118 + Row * 40;   // 22 rows above the key help
+		const float Y = 118 + Row * 38;   // 23 rows above the key help
 		const bool bSelected = Row == Vehicle.GetSetupRow();
 		if (bSelected)
 		{
-			Box(44, Y - 4, 780, 38, Chip);
-			Box(44, Y - 4, 4, 38, Signal);
+			Box(44, Y - 4, 780, 36, Chip);
+			Box(44, Y - 4, 4, 36, Signal);
 		}
 		Label(Vehicle.GetSetupRowText(Row), 64, Y, 24, bSelected ? Paper : Muted, bSelected);
 	}
