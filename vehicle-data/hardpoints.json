@@ -1,0 +1,280 @@
+{
+ "source": "S_0000_SUSPENSION/S_0000_SKEL.prt of 000_EV_CAD_Gesamtmodell (2026 car, FAUmax tau), read from a copy",
+ "frame": "mm; x forward from the rear axle, y left, z up from the ground; right side = y mirrored",
+ "points": {
+  "COG": {
+   "xyz": [
+    765.0,
+    0.0,
+    290.0
+   ],
+   "meaning": "centre of gravity"
+  },
+  "FWC": {
+   "xyz": [
+    1530.0,
+    620.0,
+    200.0
+   ],
+   "meaning": "front wheel centre"
+  },
+  "FCP": {
+   "xyz": [
+    1530.0,
+    620.0,
+    0.0
+   ],
+   "meaning": "front contact patch"
+  },
+  "RWC": {
+   "xyz": [
+    0.0,
+    600.0,
+    200.0
+   ],
+   "meaning": "rear wheel centre"
+  },
+  "RCP": {
+   "xyz": [
+    0.0,
+    600.0,
+    0.0
+   ],
+   "meaning": "rear contact patch"
+  },
+  "FUF": {
+   "xyz": [
+    1700.0,
+    234.58,
+    271.75
+   ],
+   "meaning": "front upper wishbone, inner front"
+  },
+  "FUR": {
+   "xyz": [
+    1380.0,
+    246.01,
+    275.41
+   ],
+   "meaning": "front upper wishbone, inner rear"
+  },
+  "FUO": {
+   "xyz": [
+    1520.21,
+    555.16,
+    282.25
+   ],
+   "meaning": "front upper wishbone, outer (ball joint)"
+  },
+  "FLF": {
+   "xyz": [
+    1680.0,
+    110.0,
+    131.31
+   ],
+   "meaning": "front lower wishbone, inner front"
+  },
+  "FLR": {
+   "xyz": [
+    1400.0,
+    140.0,
+    148.65
+   ],
+   "meaning": "front lower wishbone, inner rear"
+  },
+  "FLO": {
+   "xyz": [
+    1529.18,
+    585.38,
+    111.13
+   ],
+   "meaning": "front lower wishbone, outer (ball joint)"
+  },
+  "FTRI": {
+   "xyz": [
+    1590.04,
+    140.0,
+    160.0
+   ],
+   "meaning": "front tie rod, inner"
+  },
+  "FTRO": {
+   "xyz": [
+    1590.43,
+    582.38,
+    138.55
+   ],
+   "meaning": "front tie rod, outer"
+  },
+  "FPRI": {
+   "xyz": [
+    1520.21,
+    148.99,
+    613.0
+   ],
+   "meaning": "front pushrod, at the rocker"
+  },
+  "FPRO": {
+   "xyz": [
+    1520.21,
+    530.16,
+    281.58
+   ],
+   "meaning": "front pushrod, at the wishbone"
+  },
+  "FRP": {
+   "xyz": [
+    1520.21,
+    129.0,
+    585.5
+   ],
+   "meaning": "front rocker pivot"
+  },
+  "FDI": {
+   "xyz": [
+    1520.21,
+    -43.13,
+    620.0
+   ],
+   "meaning": "front damper, inner (across the centre line: the dampers lie across the car)"
+  },
+  "FDO": {
+   "xyz": [
+    1520.21,
+    133.95,
+    632.24
+   ],
+   "meaning": "front damper, at the rocker"
+  },
+  "RUF": {
+   "xyz": [
+    220.0,
+    171.0,
+    215.49
+   ],
+   "meaning": "rear upper wishbone, inner front"
+  },
+  "RUR": {
+   "xyz": [
+    -200.0,
+    171.0,
+    226.17
+   ],
+   "meaning": "rear upper wishbone, inner rear"
+  },
+  "RUO": {
+   "xyz": [
+    10.0,
+    468.97,
+    291.3
+   ],
+   "meaning": "rear upper wishbone, outer (ball joint)"
+  },
+  "RLF": {
+   "xyz": [
+    220.0,
+    171.0,
+    128.62
+   ],
+   "meaning": "rear lower wishbone, inner front"
+  },
+  "RLR": {
+   "xyz": [
+    -55.0,
+    171.0,
+    115.36
+   ],
+   "meaning": "rear lower wishbone, inner rear"
+  },
+  "RLO": {
+   "xyz": [
+    10.0,
+    537.38,
+    103.37
+   ],
+   "meaning": "rear lower wishbone, outer (ball joint)"
+  },
+  "RTRI": {
+   "xyz": [
+    -100.0,
+    171.0,
+    170.0
+   ],
+   "meaning": "rear toe link, inner"
+  },
+  "RTRO": {
+   "xyz": [
+    -100.0,
+    559.8,
+    205.49
+   ],
+   "meaning": "rear toe link, outer"
+  },
+  "RPRI": {
+   "xyz": [
+    10.0,
+    140.84,
+    512.46
+   ],
+   "meaning": "rear pushrod, at the rocker"
+  },
+  "RPRO": {
+   "xyz": [
+    10.0,
+    441.89,
+    308.34
+   ],
+   "meaning": "rear pushrod, at the wishbone"
+  },
+  "RRP": {
+   "xyz": [
+    10.0,
+    120.0,
+    470.0
+   ],
+   "meaning": "rear rocker pivot"
+  },
+  "RDI": {
+   "xyz": [
+    10.0,
+    -51.44,
+    510.0
+   ],
+   "meaning": "rear damper, inner (across the centre line)"
+  },
+  "RDO": {
+   "xyz": [
+    10.0,
+    125.69,
+    521.39
+   ],
+   "meaning": "rear damper, at the rocker"
+  },
+  "RRARB": {
+   "xyz": [
+    10.0,
+    88.28,
+    484.79
+   ],
+   "meaning": "rear anti-roll bar, at the rocker"
+  },
+  "RTARB": {
+   "xyz": [
+    80.0,
+    88.28,
+    560.0
+   ],
+   "meaning": "rear anti-roll bar, drop link top"
+  },
+  "RLARB": {
+   "xyz": [
+    10.0,
+    88.28,
+    560.0
+   ],
+   "meaning": "rear anti-roll bar, lever"
+  }
+ },
+ "not_found": [],
+ "design_table": "S_0000_SUSPENSION/TAU_SKEL_Import.xlsx (copied to out\\TAU_SKEL_Import.csv)"
+}

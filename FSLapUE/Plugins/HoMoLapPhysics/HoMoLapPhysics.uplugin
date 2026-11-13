@@ -1,0 +1,16 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "HoMo-LAP Physics",
+	"Description": "HoMo-LAP's single-track car model at 600 Hz, a C++ port of the MATLAB and web versions.",
+	"Category": "Simulation",
+	"CreatedBy": "High Voltage Motorsports",
+	"Modules": [
+		{
+			"Name": "HoMoLapPhysics",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

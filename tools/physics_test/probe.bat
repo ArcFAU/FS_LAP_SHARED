@@ -1,0 +1,12 @@
+@echo off
+rem Builds and runs the handling probe (no Unreal needed). Arguments go to probe: [sim|arcade] [v0 km/h] [trace.csv]
+setlocal
+for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set VS=%%i
+call "%VS%\VC\Auxiliary\Build\vcvars64.bat" >nul 2>nul
+set ROOT=%~dp0..\..
+set CORE=%ROOT%\FSLapUE\Plugins\HoMoLapPhysics\Source\HoMoLapPhysics
+set OUT=%ROOT%\data\physics_test
+if not exist "%OUT%" mkdir "%OUT%"
+cl /nologo /EHsc /O2 /W4 /std:c++17 /DHOMOLAPPHYSICS_API= /I"%CORE%\Public" "%~dp0probe.cpp" "%CORE%\Private\HoMoLapCore.cpp" /Fe"%OUT%\probe.exe" /Fo"%OUT%\\" >"%OUT%\probe_build.log"
+if errorlevel 1 (type "%OUT%\probe_build.log" & exit /b 1)
+"%OUT%\probe.exe" %*

@@ -1,0 +1,35 @@
+name,x_mm,y_mm,z_mm,meaning
+COG,765.0,0.0,290.0,centre of gravity
+FWC,1530.0,620.0,200.0,front wheel centre
+FCP,1530.0,620.0,0.0,front contact patch
+RWC,0.0,600.0,200.0,rear wheel centre
+RCP,0.0,600.0,0.0,rear contact patch
+FUF,1700.0,234.58,271.75,"front upper wishbone, inner front"
+FUR,1380.0,246.01,275.41,"front upper wishbone, inner rear"
+FUO,1520.21,555.16,282.25,"front upper wishbone, outer (ball joint)"
+FLF,1680.0,110.0,131.31,"front lower wishbone, inner front"
+FLR,1400.0,140.0,148.65,"front lower wishbone, inner rear"
+FLO,1529.18,585.38,111.13,"front lower wishbone, outer (ball joint)"
+FTRI,1590.04,140.0,160.0,"front tie rod, inner"
+FTRO,1590.43,582.38,138.55,"front tie rod, outer"
+FPRI,1520.21,148.99,613.0,"front pushrod, at the rocker"
+FPRO,1520.21,530.16,281.58,"front pushrod, at the wishbone"
+FRP,1520.21,129.0,585.5,front rocker pivot
+FDI,1520.21,-43.13,620.0,"front damper, inner (across the centre line: the dampers lie across the car)"
+FDO,1520.21,133.95,632.24,"front damper, at the rocker"
+RUF,220.0,171.0,215.49,"rear upper wishbone, inner front"
+RUR,-200.0,171.0,226.17,"rear upper wishbone, inner rear"
+RUO,10.0,468.97,291.3,"rear upper wishbone, outer (ball joint)"
+RLF,220.0,171.0,128.62,"rear lower wishbone, inner front"
+RLR,-55.0,171.0,115.36,"rear lower wishbone, inner rear"
+RLO,10.0,537.38,103.37,"rear lower wishbone, outer (ball joint)"
+RTRI,-100.0,171.0,170.0,"rear toe link, inner"
+RTRO,-100.0,559.8,205.49,"rear toe link, outer"
+RPRI,10.0,140.84,512.46,"rear pushrod, at the rocker"
+RPRO,10.0,441.89,308.34,"rear pushrod, at the wishbone"
+RRP,10.0,120.0,470.0,rear rocker pivot
+RDI,10.0,-51.44,510.0,"rear damper, inner (across the centre line)"
+RDO,10.0,125.69,521.39,"rear damper, at the rocker"
+RRARB,10.0,88.28,484.79,"rear anti-roll bar, at the rocker"
+RTARB,80.0,88.28,560.0,"rear anti-roll bar, drop link top"
+RLARB,10.0,88.28,560.0,"rear anti-roll bar, lever"

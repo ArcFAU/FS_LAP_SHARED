@@ -1,0 +1,10 @@
+# Python dependencies for the standalone generators and validators in tools/.
+#
+# Install in a normal Python environment with:
+#   py -m pip install -r requirements-tools.txt
+#
+# Blender-only scripts also require Blender's bundled bpy/aud modules.  Unreal
+# editor scripts run in Unreal's Python environment and do not use this file.
+numpy
+Pillow
+scipy
