@@ -541,7 +541,7 @@ void AFSLapHUD::DrawHUD()
 		Label(MessageTitle, ScreenW / 2, 238, bMessageSmall ? 46 : 86, MessageColor, true, true);
 		Label(MessageSub, ScreenW / 2, bMessageSmall ? 298 : 342, 24, Paper, true, true);
 	}
-	if (FMath::Abs(Sim->c.vx) < 2) Label(TEXT("WASD / ARROWS  drive     SPACE  handbrake     C  chase / onboard     R  back on track     ESC  pause"), ScreenW / 2, ScreenH - 36, 16, Muted, false, true);
+	if (FMath::Abs(Sim->c.vx) < 2) Label(TEXT("WASD / ARROWS  drive     SPACE  handbrake     C  chase / onboard     NUMPAD 4 6 8 (hold)  side / front     R  back on track     ESC  pause"), ScreenW / 2, ScreenH - 36, 16, Muted, false, true);
 
 	if (Vehicle->GetFlow() == EFSLapFlow::Countdown)
 	{

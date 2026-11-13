@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `52c0a31` on 2026-11-13.
+> Synced from development commit `80b4b84` on 2026-11-13.
 
 ---
 
@@ -90,6 +90,7 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 | Handbrake | Space | A |
 | Back on track (pause menu: restart) | R | |
 | Camera: chase / onboard | C | |
+| Look at the car from its left / right / front (while held; back to your camera on release; Num Lock on) | Numpad 4 / 6 / 8 | |
 | Pause | Esc or P | Start |
 | Replay of the best lap (in the pause menu) | B | Y |
 | Back to the menu (in the pause menu) | M | |
@@ -295,7 +296,7 @@ All tests run from PowerShell in the repository root. Close the Unreal Editor fi
 | `tools\validate.ps1` | Builds the vehicle model alone and runs the AI in sim, arcade, free roam and city mode. The lap times must match (sim 77.405 s, arcade 75.367 s, city 89.633 s) with no wall contacts. No Unreal needed. |
 | `tools\validate.ps1 -Game` | The above, plus the in-game tests below |
 | `tools\slice_test.ps1 -Mode sim` (or `arcade`, `city`, `free`) | Starts the real game, lets the AI drive a lap and takes photos from around the car. Results in `FSLapUE\Saved\SliceTest\<mode>\results.txt`: lap times, fps, average and 95th-percentile frame time, the longest frame and the number of frames over 100 ms (hitches). |
-| `tools\slice_test.ps1 -Mode keys` | Presses every key through the game and checks what each did (48 steps). Each line also reports the frame rate and the car's speed. |
+| `tools\slice_test.ps1 -Mode keys` | Presses every key through the game and checks what each did (52 steps). Each line also reports the frame rate and the car's speed. |
 | `tools\slice_test.ps1 -Mode lts` | Has the real LTS compute the single-track reference for the stock car (needs MATLAB, section 4a), then lets the AI drive a hot lap against it. Checks the reference (`reference=LTS 1-track 74.952`) and the lap files (`lap_log=`). |
 | `tools\physics_test\adtm.bat` | The ADTM in the game's core without Unreal: the AI laps the FSG track (77.620 s), the car is moved and must carry on, and a free-roam standing start (0–100 km/h in 2.185 s, with the assists on). The steering torque must pull back towards the centre most of the time. It must run faster than real time. Needs the generated code. |
 | `tools\slice_test.ps1 -Mode adtm` | The in-game hot lap with the ADTM as the vehicle model (`vehicle_model=ADTM ...`). Add `-Adtm` to any other mode to run it with the ADTM. |
@@ -342,6 +343,7 @@ Ask the simulator's maintainer if you need any of these.
 
 Newest first.
 
+- **2026-11-13 (night, view keys):** hold numpad 4, 6 or 8 to see the car from its left, right or front; letting go returns to the chase or onboard camera.
 - **2026-11-13 (night, fix):** the wheel setup no longer takes the steering as a pedal. A wheel without a centring spring stays turned after the steering step, and the pedal steps then picked the steering axis, so turning right braked. Setups saved that way count as not set up: do the wheel setup again.
 - **2026-11-13 (night, later):** the wheel setup accepts a wheel without pedals: Enter on the throttle and brake steps with nothing pressed, then the keys or a pad drive the pedals.
 - **2026-11-13 (night):** force feedback from the ADTM's steering torque, setup row **Force feedback** (section 3). Off by default; not yet tried on a force feedback wheel.

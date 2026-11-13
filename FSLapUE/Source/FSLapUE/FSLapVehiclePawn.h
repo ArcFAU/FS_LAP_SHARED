@@ -44,6 +44,7 @@ public:
 	void StartReplay();   // the best lap of this mode and setup, seen from roadside cameras
 	void StopReplay();
 	bool IsOnboard() const { return bOnboard; }
+	int32 GetHeldView() const { return HeldView; }   // numpad key held: 4 left, 6 right, 8 front; 0 none
 	int32 GetSetupRowCount() const;
 	int32 GetSetupRow() const { return SetupRow; }
 	FString GetSetupRowText(int32 Row) const;
@@ -251,6 +252,7 @@ private:
 	float WheelRotation = 0;
 	float BodyPitch = 0, BodyRoll = 0, BodyPitchRate = 0, BodyRollRate = 0;
 	bool bOnboard = false;
+	int32 HeldView = 0;   // while numpad 4, 6 or 8 is held: the car from its left, right or front
 	bool bCameraSnap = true;
 	double CameraYaw = 0;
 	FVector CameraPosition = FVector::ZeroVector;

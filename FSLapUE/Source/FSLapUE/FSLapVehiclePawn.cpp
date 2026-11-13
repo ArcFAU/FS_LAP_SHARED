@@ -11,6 +11,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "EngineUtils.h"
 #include "FSLapSave.h"
+#include "GameFramework/PlayerController.h"
 #include "HoMoLapAdtm.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInterface.h"
@@ -1186,7 +1187,23 @@ void AFSLapVehiclePawn::UpdateCamera(float DeltaSeconds)
 		bCameraSnap = true;   // the normal camera starts fresh after the replay
 		return;
 	}
-	if (bOnboard)
+	const APlayerController* Player = Cast<APlayerController>(GetController());
+	const int32 View = !Player ? 0 : Player->IsInputKeyDown(EKeys::NumPadFour) ? 4 : Player->IsInputKeyDown(EKeys::NumPadSix) ? 6 : Player->IsInputKeyDown(EKeys::NumPadEight) ? 8 : 0;
+	if (View != HeldView)
+	{
+		HeldView = View;
+		bCameraSnap = true;   // a cut to the side view, and back to the normal camera on release
+	}
+	if (HeldView)
+	{
+		// in the car's heading frame (x forward, y right): 4.8 m to the left or right, or 5.2 m ahead looking back
+		const FVector CarPoint(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, 0);
+		const FVector Offset = HeldView == 8 ? FVector(520, 0, 120) : FVector(0, HeldView == 4 ? -480 : 480, 110);
+		const FVector Position = CarPoint + FRotator(0, FMath::RadiansToDegrees(Car.h), 0).RotateVector(Offset);
+		ChaseCamera->SetWorldLocationAndRotation(Position, (CarPoint + FVector(0, 0, 50) - Position).Rotation());
+		VerticalFov = 50.0f;
+	}
+	else if (bOnboard)
 	{
 		// the driver's head: pushed around by the g-forces, and holding the horizon better than the car does
 		const FVector Eye = DriverEye + FVector(FMath::Clamp(-Car.axp * 0.25, -3.0, 6.0), FMath::Clamp(-Car.ayp * 0.3, -6.0, 6.0), 0);
