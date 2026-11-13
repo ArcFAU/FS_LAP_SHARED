@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `93d118a` on 2026-11-13.
+> Synced from development commit `95f9597` on 2026-11-13.
 
 ---
 
@@ -145,7 +145,29 @@ addpath('tools/lts')
 c = compareLaps('FSLapUE/Saved/Runs/<session>/lap_01.run.json', 'FSLapUE/Saved/LTS/runs/<job>/case_001.json', SavePng="compare.png");
 ```
 
-It plots speed, the time gap, lateral acceleration and the driver's inputs over distance, and prints lap and sector times. Either file can be a driven lap or an LTS lap. The second lap's distance is scaled to the first lap's track length, because the LTS track and the game's centreline differ by a few metres. For the stock car, the AI lap is 2.45 s slower than the single-track LTS lap (77.405 s against 74.952 s).
+It plots speed, the time gap, lateral acceleration and the driver's inputs over distance, and prints lap and sector times. Either file can be a driven lap or an LTS lap. The second lap's distance is scaled to the first lap's track length, because the LTS track and the game's centreline differ by a few metres. For the stock car, the AI lap is 2.45 s slower than the single-track LTS lap (77.405 s against 74.952 s). The point-mass LTS gives 71.037 s and the dual-track LTS 77.817 s.
+
+**Offline co-simulation with the Advanced Dual Track Model (ADTM):**
+
+```matlab
+addpath('tools/lts')
+r = adtmReplay('FSLapUE/Saved/Runs/<session>/lap_01.run.json', SavePng="adtm.png");
+```
+
+It drives the logged lap again with the team's ADTM (40 states, TMeasy tyres, double-wishbone kinematics), open loop: the driver's inputs are replayed and nobody corrects the car, as when the team replays real-car logs. It plots both cars over time (speed, yaw rate, lateral acceleration, front wheel angle) and their paths. It prints the RMS differences and writes `lap_NN.adtm_input.csv` in the ADTM's input format, which the ADTM's own start script can load.
+
+How the inputs are converted:
+
+| FS Lap | ADTM |
+|---|---|
+| road wheel angle | steering wheel angle `delta_D`, from the ADTM's own steering kinematics, so the front wheels turn as in FS Lap |
+| brake pedal × `Fb`, split by `brakeFront` | brake pressures `p_BFA` / `p_BRA` (bar), through the ADTM's piston area, disc radius and pad friction |
+| throttle pedal | `throttle`, capped at FS Lap's system power (the ADTM limits each motor, not the 80 kW system) and zero while braking |
+| aero package (ClA, CdA, balance) | copied into the ADTM vehicle |
+
+Everything else (mass, tyres, suspension) comes from the ADTM's vehicle file (`FAUmaxTau.m` by default). The road friction scaling defaults to `default_mu0.7`, as in the team's ADTM setups. Options: `AdtmRoot`, `Vehicle`, `EnvConditions`, `SimFreq`. The ADTM folder comes from `FSLAP_ADTM_ROOT` (default `D:\FSLap_VD\advanced-dual-track-model`); its MATLAB project is opened, nothing in it is changed.
+
+For the stock AI lap, a 77 s lap takes about 1 minute. The speed differs by 0.61 m/s RMS and the yaw rate by 0.12 rad/s RMS. The ADTM covers 1075 m against FS Lap's 1103 m, and its path drifts away from the track, as any open-loop replay does.
 
 ## 5. The car model and the CAD
 
@@ -179,7 +201,7 @@ FSLapUE/                          Unreal project
 tools/                            conversion, import and test scripts
   cad/                            NX Open and Blender scripts for the CAD export (README inside)
   physics_test/                   stand-alone build and test of the vehicle model
-  lts/                            compareLaps.m: driven laps against LTS laps (MATLAB)
+  lts/                            MATLAB: compareLaps.m (driven laps against LTS laps), adtmReplay.m (driven laps through the ADTM)
 vehicle-data/                     suspension hardpoints and design table
 Play FS Lap.bat                   starts the game full screen
 ```
@@ -226,7 +248,7 @@ The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_I
 **Not there yet:** force feedback, a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, real-car data overlays, the wheel's buttons, and a field of view set from the rig's screen size. The LTS reference covers the FSG endurance track only, and the lap files are not yet in .mat format.
 
 **Proposed next, in order, pending the team's answers:**
-1. **Offline co-simulation:** replay a driven lap's inputs (steering, throttle, brake) through the team's Advanced Dual Track Model and compare it with the game's model.
+1. **Closed-loop co-simulation:** the ADTM replay with a driver model that keeps the car on the driven path (the ADTM has one in `f_driverControl_separated`), so whole laps can be compared by distance, not only by time.
 2. **Rig basics:** the real steering ratio from the CAD rack, and a field of view from the screen geometry.
 3. **Force feedback** on the Moza R3.
 4. **Better vehicle model:** a four-wheel model and the tyre model, or live co-simulation with the team's Simulink model.
@@ -251,6 +273,7 @@ Newest first.
   - **Lap logging:** every completed lap is saved as a 600 Hz CSV and an LTS run file.
   - **`tools/lts/compareLaps.m`:** compares driven and LTS laps.
   - **Test mode `lts`.**
+  - **`tools/lts/adtmReplay.m`:** offline co-simulation, which replays a driven lap through the team's Advanced Dual Track Model.
 - **2026-11-13:** FS Lap becomes a driver-in-the-loop simulator for the vehicle dynamics team.
   - **CAD parts:** the car's mechanical parts and the team's steering wheel come from the 2026 NX model.
   - **Driver figure:** removed.
