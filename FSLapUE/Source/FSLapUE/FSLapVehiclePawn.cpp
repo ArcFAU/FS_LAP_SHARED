@@ -165,6 +165,8 @@ void AFSLapVehiclePawn::BeginPlay()
 {
 	Super::BeginPlay();
 	Track = HoMoLap::MakeFsgTrack();
+	StoredLtsT = Track.ltsT; StoredLtsS = Track.ltsS; StoredLtsLap = Track.ltsLap; StoredLtsScale = Track.ltsScale;
+	StoredLtsSplit[0] = Track.ltsSplit[0]; StoredLtsSplit[1] = Track.ltsSplit[1];
 	CityTrack = HoMoLap::MakeCityTrack();
 	LoadBests();
 	// shortcut: while another Unreal holds the map file it can't be re-saved without its old ground actor; this is harmless once it has none.
@@ -374,6 +376,8 @@ void AFSLapVehiclePawn::RestartSimulation(HoMoLap::Mode NewMode)
 
 void AFSLapVehiclePawn::StartRace(HoMoLap::Mode NewMode)
 {
+	static const TCHAR* const ModeNames[] = { TEXT("hotlap"), TEXT("arcade"), TEXT("free"), TEXT("city") };   // HoMoLap::Mode order
+	Log.Begin(ModeNames[static_cast<int32>(NewMode)], SetupJson(), ReferenceJson());
 	RestartSimulation(NewMode);
 	CountdownTime = 0;
 	CountdownHold = FMath::FRandRange(0.5f, 1.3f);
@@ -391,6 +395,11 @@ void AFSLapVehiclePawn::EnterMenu()
 void AFSLapVehiclePawn::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	FFSLapLts::FLap LtsLap;
+	if (Lts.Poll(LtsLap))
+	{
+		ApplyLts(LtsLap);
+	}
 	bWheelLive = SaveData && Wheel.Read(SaveData->WheelName, WheelAxes);
 	WheelSteer = WheelThrottle = WheelBrake = 0;
 	if (IsWheelSetUp())
@@ -714,7 +723,7 @@ void AFSLapVehiclePawn::UpdateEffects(float DeltaSeconds)
 
 int32 AFSLapVehiclePawn::GetSetupRowCount() const
 {
-	return 3 + UE_ARRAY_COUNT(SetupFields);   // the aero package, the fields, the steering wheel, driver assist
+	return 4 + UE_ARRAY_COUNT(SetupFields);   // the aero package, the fields, the LTS reference, the steering wheel, driver assist
 }
 
 FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
@@ -726,6 +735,13 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 	if (Row == GetSetupRowCount() - 1)
 	{
 		return FString::Printf(TEXT("Driver assist:  %s"), bDriverAssist ? TEXT("On") : TEXT("Off"));
+	}
+	if (Row == GetSetupRowCount() - 3)
+	{
+		const FString Status = Lts.Status();
+		const double Lap = LtsModel == 0 || LtsShown == FFSLapLts::Models[LtsModel] ? Track.ltsLap : 0;
+		return FString::Printf(TEXT("LTS reference:  %s%s"), FFSLapLts::ModelLabels[LtsModel],
+			*(Lts.IsBusy() || !Status.IsEmpty() ? TEXT(", ") + Status : (Lap > 0 ? FString::Printf(TEXT(", %.2f s"), Lap) : FString())));
 	}
 	if (Row == GetSetupRowCount() - 2)
 	{
@@ -740,6 +756,11 @@ void AFSLapVehiclePawn::ChangeSetup(int32 Direction)
 	if (SetupRow == GetSetupRowCount() - 1)
 	{
 		bDriverAssist = !bDriverAssist;
+	}
+	else if (SetupRow == GetSetupRowCount() - 3)
+	{
+		LtsModel = (LtsModel + Direction + UE_ARRAY_COUNT(FFSLapLts::Models)) % UE_ARRAY_COUNT(FFSLapLts::Models);
+		RequestLts();
 	}
 	else if (SetupRow == GetSetupRowCount() - 2)
 	{
@@ -961,6 +982,7 @@ void AFSLapVehiclePawn::Confirm()
 	}
 	else if (Flow == EFSLapFlow::Setup)
 	{
+		RequestLts();   // the setup may have changed
 		EnterMenu();
 	}
 	else if (Flow == EFSLapFlow::Wheel)
@@ -1051,6 +1073,7 @@ void AFSLapVehiclePawn::TogglePause()
 	}
 	else if (Flow == EFSLapFlow::Setup)
 	{
+		RequestLts();   // the setup may have changed
 		EnterMenu();
 	}
 	else if (Flow == EFSLapFlow::Wheel)
@@ -1137,6 +1160,10 @@ void AFSLapVehiclePawn::Simulate()
 	if (bAutopilot || Flow == EFSLapFlow::Menu)
 	{
 		Simulation->Step(nullptr);
+		if (Flow == EFSLapFlow::Race)
+		{
+			Log.Sample(*Simulation, nullptr);
+		}
 		return;
 	}
 	HoMoLap::Input Input;
@@ -1147,6 +1174,89 @@ void AFSLapVehiclePawn::Simulate()
 	Input.human = true;
 	Input.assist = bDriverAssist;
 	Simulation->Step(&Input);
+	if (Flow == EFSLapFlow::Race)
+	{
+		Log.Sample(*Simulation, &Input);
+	}
+}
+
+FString AFSLapVehiclePawn::GetLtsLabel() const
+{
+	if (LtsShown.IsEmpty())
+	{
+		return TEXT("LTS lap");
+	}
+	return LtsShown == TEXT("pointMass") ? TEXT("LTS point m.") : (LtsShown == TEXT("dualTrack") ? TEXT("LTS 2-track") : TEXT("LTS 1-track"));
+}
+
+// FS Lap's setup as the LTS's parameters (config/homoLtsParameters.json of the LTS, in its units). The rest of the LTS
+// vehicle (FAUmaxTauV2: tyre model, roll stiffness, powertrain map ...) stays the LTS's own; peak slip angle, brake
+// force, torque vectoring and steering lock have no LTS parameter.
+TArray<TPair<FString, double>> AFSLapVehiclePawn::LtsOverrides() const
+{
+	return {
+		{ TEXT("driverMass"), Setup.mDrv }, { TEXT("carMass"), Setup.mCar }, { TEXT("cgHeight"), Setup.h * 1000 }, { TEXT("frontMassFraction"), Setup.wf * 100 },
+		{ TEXT("clA"), Setup.ClA }, { TEXT("cdA"), Setup.CdA }, { TEXT("aeroBalance"), Setup.bal * 100 }, { TEXT("tireMu"), Setup.mu0 },
+		{ TEXT("tireLoadSensitivity"), Setup.muExp }, { TEXT("frontRollMoment"), Setup.rollFront * 100 }, { TEXT("systemPower"), Setup.Pmax },
+		{ TEXT("motorTorque"), Setup.Tm }, { TEXT("gearRatio"), Setup.G }, { TEXT("brakeBias"), Setup.brakeFront * 100 } };
+}
+
+void AFSLapVehiclePawn::RequestLts()
+{
+	if (LtsModel == 0)
+	{
+		Track.ltsT = StoredLtsT; Track.ltsS = StoredLtsS; Track.ltsLap = StoredLtsLap; Track.ltsScale = StoredLtsScale;
+		Track.ltsSplit[0] = StoredLtsSplit[0]; Track.ltsSplit[1] = StoredLtsSplit[1];
+		LtsShown.Empty();
+		LtsAskedFor.Empty();
+		Log.SetReference(ReferenceJson());
+		return;
+	}
+	const TArray<TPair<FString, double>> Overrides = LtsOverrides();
+	FString Key = FFSLapLts::Models[LtsModel];
+	for (const TPair<FString, double>& O : Overrides)
+	{
+		Key += FString::Printf(TEXT("|%.6g"), O.Value);
+	}
+	if (Key != LtsAskedFor)
+	{
+		LtsAskedFor = Key;
+		Lts.Request(LtsModel, Overrides);
+	}
+}
+
+void AFSLapVehiclePawn::ApplyLts(const FFSLapLts::FLap& Lap)
+{
+	Track.ltsT.assign(Lap.Time.GetData(), Lap.Time.GetData() + Lap.Time.Num());
+	Track.ltsS.assign(Lap.Distance.GetData(), Lap.Distance.GetData() + Lap.Distance.Num());
+	Track.ltsLap = Lap.LapTime;
+	Track.ltsScale = Track.LEN / Lap.Length;   // the LTS track and this centreline differ slightly in length
+	for (int32 i = 0; i < 2; ++i)
+	{
+		Track.ltsSplit[i] = Track.LtsTimeAt(Track.LEN * (i + 1) / 3);   // the game's sectors are thirds of the lap
+	}
+	LtsShown = Lap.Model;
+	Log.SetReference(ReferenceJson());
+}
+
+FString AFSLapVehiclePawn::SetupJson() const
+{
+	FString Json = FString::Printf(TEXT("{\"aeroPackage\": \"%s\", \"driverAssist\": %s"), PresetIndex < 0 ? TEXT("custom") : AeroPresets[PresetIndex].Name, bDriverAssist ? TEXT("true") : TEXT("false"));
+	static const TCHAR* const Names[] = { TEXT("ClA"), TEXT("CdA"), TEXT("bal"), TEXT("mCar"), TEXT("mDrv"), TEXT("wf"), TEXT("h"), TEXT("Pmax"), TEXT("Tm"), TEXT("G"), TEXT("nmax"),
+		TEXT("mu0"), TEXT("muExp"), TEXT("ap"), TEXT("brakeFront"), TEXT("Fb"), TEXT("rollFront"), TEXT("tv"), TEXT("delMax") };
+	const double Values[] = { Setup.ClA, Setup.CdA, Setup.bal, Setup.mCar, Setup.mDrv, Setup.wf, Setup.h, Setup.Pmax, Setup.Tm, Setup.G, Setup.nmax,
+		Setup.mu0, Setup.muExp, Setup.ap, Setup.brakeFront, Setup.Fb, Setup.rollFront, Setup.tv, Setup.delMax };
+	static_assert(UE_ARRAY_COUNT(Names) == UE_ARRAY_COUNT(Values), "one name per value");
+	for (int32 i = 0; i < UE_ARRAY_COUNT(Names); ++i)
+	{
+		Json += FString::Printf(TEXT(", \"%s\": %.6g"), Names[i], Values[i]);
+	}
+	return Json + TEXT("}");
+}
+
+FString AFSLapVehiclePawn::ReferenceJson() const
+{
+	return FString::Printf(TEXT("{\"source\": \"%s\", \"lapTime_s\": %.4f}"), LtsShown.IsEmpty() ? TEXT("stored LTS lap") : *(TEXT("LTS ") + LtsShown), Track.ltsLap);
 }
 
 void AFSLapVehiclePawn::CaptureBest()
@@ -1282,8 +1392,8 @@ void AFSLapVehiclePawn::UpdateGhosts()
 	};
 
 	const bool bShowLts = bLapOn && !ActiveTrack().ltsT.empty() && LapTime <= ActiveTrack().ltsLap;
-	const HoMoLap::Pose Lts = bShowLts ? ActiveTrack().PoseAt(ActiveTrack().LtsDistAt(LapTime)) : HoMoLap::Pose{ 0, 0, 0 };
-	Place(GhostLts, bShowLts, Lts.x, Lts.y, Lts.h);
+	const HoMoLap::Pose LtsPose = bShowLts ? ActiveTrack().PoseAt(ActiveTrack().LtsDistAt(LapTime)) : HoMoLap::Pose{ 0, 0, 0 };
+	Place(GhostLts, bShowLts, LtsPose.x, LtsPose.y, LtsPose.h);
 
 	const std::vector<HoMoLap::GhostPoint>& Points = CurrentBest().Ghost;
 	const bool bShowBest = bLapOn && Points.size() >= 2 && LapTime <= Points.back().t;

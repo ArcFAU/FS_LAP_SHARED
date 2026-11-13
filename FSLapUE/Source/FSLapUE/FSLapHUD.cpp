@@ -121,12 +121,12 @@ void AFSLapHUD::DrawSetup(const AFSLapVehiclePawn& Vehicle)
 	const int32 Rows = Vehicle.GetSetupRowCount();
 	for (int32 Row = 0; Row < Rows; ++Row)
 	{
-		const float Y = 122 + Row * 42;
+		const float Y = 118 + Row * 40;   // 22 rows above the key help
 		const bool bSelected = Row == Vehicle.GetSetupRow();
 		if (bSelected)
 		{
-			Box(44, Y - 4, 780, 40, Chip);
-			Box(44, Y - 4, 4, 40, Signal);
+			Box(44, Y - 4, 780, 38, Chip);
+			Box(44, Y - 4, 4, 38, Signal);
 		}
 		Label(Vehicle.GetSetupRowText(Row), 64, Y, 24, bSelected ? Paper : Muted, bSelected);
 	}
@@ -245,7 +245,7 @@ void AFSLapHUD::DrawTower(const AFSLapVehiclePawn& Vehicle, const HoMoLap::Simul
 	Item(TEXT("Best"), Vehicle.GetBestLap() > 0 ? LapTime(Vehicle.GetBestLap()) : FString(TEXT("-:--.---")), Best);
 	if (bHasLts)
 	{
-		Item(TEXT("LTS lap"), LapTime(Sim.T.ltsLap), Gold);
+		Item(*Vehicle.GetLtsLabel(), LapTime(Sim.T.ltsLap), Gold);
 	}
 }
 

@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "HoMoLapCore.h"
+#include "FSLapLog.h"
+#include "FSLapLts.h"
 #include "FSLapWheel.h"
 #include "FSLapVehiclePawn.generated.h"
 
@@ -45,6 +47,7 @@ public:
 	int32 GetSetupRow() const { return SetupRow; }
 	FString GetSetupRowText(int32 Row) const;
 	FString GetWheelText() const;   // the wheel setup screen: the step, what the wheel reads now
+	FString GetLtsLabel() const;    // the HUD's name for the reference lap
 
 	// Used by Dev\FSLapSliceTest: the AI drives, and the car can be held still for the photos.
 	bool bAutopilot = false;
@@ -211,6 +214,19 @@ private:
 	TArray<FTrafficCar> TrafficCars;
 	size_t TrafficWalls = 0;   // where the cars start in the city's walls
 	FFSLapWheel Wheel;
+	// the reference lap: the LTS lap stored with the track, or one the real LTS computes for this setup (FSLapLts)
+	FFSLapLts Lts;
+	int32 LtsModel = 0;           // index into FFSLapLts::Models; 0 the stored lap
+	FString LtsAskedFor;          // the model and setup of the last request, so the same job is not queued twice
+	FString LtsShown;             // the model of the reference shown now; empty for the stored lap
+	std::vector<double> StoredLtsT, StoredLtsS;
+	double StoredLtsLap = 0, StoredLtsSplit[2] = { 0, 0 }, StoredLtsScale = 1;
+	FFSLapLog Log;                // every lap at 600 Hz to Saved/Runs
+	void RequestLts();
+	void ApplyLts(const FFSLapLts::FLap& Lap);
+	TArray<TPair<FString, double>> LtsOverrides() const;
+	FString SetupJson() const;
+	FString ReferenceJson() const;
 	TArray<float> WheelAxes, WheelRest, WheelNew;   // WheelNew: the calibration being recorded
 	bool bWheelLive = false;
 	float WheelSteer = 0, WheelThrottle = 0, WheelBrake = 0;

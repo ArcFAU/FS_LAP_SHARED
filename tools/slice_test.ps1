@@ -1,8 +1,9 @@
 # Acceptance run in the real game through the normal game flow: AI lap, frame times at Medium settings, photos of the car from all sides.
 # Results in FSLapUE\Saved\SliceTest\<mode> (results.txt, PNGs). The editor must be closed.
-#   tools\slice_test.ps1 [-Mode sim|arcade|free|city|keys]    keys presses every control and checks what it did
+#   tools\slice_test.ps1 [-Mode sim|arcade|free|city|keys|lts]    keys presses every control and checks what it did;
+#   lts first has the real LTS (MATLAB) compute the reference for the stock setup, then runs the hot lap against it
 #   -Sound also records what the game plays, for tools\check_sound.py (you will hear it)
-param([ValidateSet('sim', 'arcade', 'free', 'city', 'keys')][string]$Mode = 'sim', [string]$Engine = 'D:\UE\UE_5.8', [switch]$Sound)
+param([ValidateSet('sim', 'arcade', 'free', 'city', 'keys', 'lts')][string]$Mode = 'sim', [string]$Engine = 'D:\UE\UE_5.8', [switch]$Sound)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $root "FSLapUE\Saved\SliceTest\$Mode"

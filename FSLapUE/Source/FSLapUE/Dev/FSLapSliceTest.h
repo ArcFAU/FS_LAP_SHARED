@@ -42,6 +42,7 @@ private:
 	int32 KeyIndex = 0;
 	bool bKeyDown = false;
 	double KeyTime = 0.0;
+	double LtsAskedAt = 0.0;   // -FSLapMode=lts
 	int32 KeyFrames = 0;   // frames during the current step: a step that fails at a low frame rate says so
 	FString KeyReport;
 	int32 KeyFailures = 0;

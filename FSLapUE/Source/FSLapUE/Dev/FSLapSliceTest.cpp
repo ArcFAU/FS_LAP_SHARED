@@ -139,6 +139,7 @@ void UFSLapSliceTest::Finish(AFSLapVehiclePawn* Car)
 		Text += FString::Printf(TEXT("lap %d: %.3f s (S1 %.3f, S2 %.3f, penalty %.0f, cones %d, off %d, valid %d)\n"), Lap.n, Lap.time, Lap.split1, Lap.split2, Lap.pen, Lap.cones, Lap.offCourse, Lap.valid ? 1 : 0);
 	}
 	Text += FString::Printf(TEXT("best=%.3f\ntraffic=%d\n"), Car->GetBestLap(), Car->GetTrafficCount());
+	Text += FString::Printf(TEXT("reference=%s %.3f\nreference_status=%s\nlap_log=%s\n"), *Car->GetLtsLabel(), Car->GetSimulation()->T.ltsLap, *Car->Lts.Status(), *Car->Log.LastWritten());
 	Text += FString::Printf(TEXT("replay_keys=%d\n"), bReplayKeys ? 1 : 0);
 	FFileHelper::SaveStringToFile(Text, *(OutputDir() / TEXT("results.txt")));
 	Phase = EPhase::Done;
@@ -215,6 +216,20 @@ void UFSLapSliceTest::Tick(float DeltaTime)
 	if (!Car || !Car->GetSimulation())
 	{
 		return;
+	}
+	// -FSLapMode=lts: the real LTS computes the reference for the stock setup first (single track), then the hot lap runs against it
+	if (ModeName == TEXT("lts") && Phase == EPhase::Warmup)
+	{
+		if (LtsAskedAt == 0.0)
+		{
+			LtsAskedAt = Now;
+			Car->LtsModel = 2;
+			Car->RequestLts();
+		}
+		if (Car->Lts.IsBusy() && Now - LtsAskedAt < 400.0)
+		{
+			PhaseStart = Now;   // hold the warm-up until the LTS lap is there (or failed, or 400 s passed)
+		}
 	}
 	const HoMoLap::Mode Mode = ModeName == TEXT("arcade") ? HoMoLap::Mode::Arcade : (ModeName == TEXT("free") ? HoMoLap::Mode::Free : (ModeName == TEXT("city") ? HoMoLap::Mode::City : HoMoLap::Mode::Sim));
 	bool bCompiling = false;

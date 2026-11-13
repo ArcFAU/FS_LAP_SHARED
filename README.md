@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `1e61dc4` on 2026-11-13.
+> Synced from development commit `1eb3e10` on 2026-11-13.
 
 ---
 
@@ -14,6 +14,7 @@ This repository is the team's shared copy. It is updated from the development re
 2. [Getting started](#2-getting-started)
 3. [Driving](#3-driving)
 4. [The vehicle model](#4-the-vehicle-model)
+   - [4a. The complete LTS and lap data](#4a-the-complete-lts-and-lap-data)
 5. [The car model and the CAD](#5-the-car-model-and-the-cad)
 6. [Vehicle data in this repository](#6-vehicle-data-in-this-repository)
 7. [Project layout](#7-project-layout)
@@ -33,6 +34,8 @@ This repository is the team's shared copy. It is updated from the development re
 - **Free roam:** an open paddock with a skidpad and an acceleration strip. 0–100 km/h and 75 m are timed from every standing start.
 - **Setup:** change the aero package, mass, power, tyres, brakes and chassis (18 parameters, section 4). Best laps are kept per mode and setup.
 - **Replay:** watch your best lap from roadside cameras.
+- **The complete LTS as the reference:** the team's lap time simulation (MATLAB) computes the reference lap for your current setup, with the point-mass, single-track or dual-track model (section 4a).
+- **Lap data:** every completed lap is saved at 600 Hz (CSV) and in the LTS run format, and `tools/lts/compareLaps.m` compares it with an LTS lap or another driven lap (section 4a).
 
 ## 2. Getting started
 
@@ -102,7 +105,7 @@ The wheel's rotation range is set in the wheel's own software (Moza Pit House). 
 
 - **Model:** a single-track (bicycle) model at 600 Hz with load transfer, a tyre grip envelope (peak μ at 600 N, load sensitivity, peak slip angle), aero downforce and drag with an aero balance, four motors with a system power limit, brake balance, roll-stiffness distribution and torque vectoring. In Hot lap, driver assists (brake, traction and steering help) can be switched on or off in the setup; laps with and without them are kept apart.
 - **Where it comes from:** it is a port of the team's HoMo-LAP lap simulator (web, MATLAB and Simulink versions). The C++ core in `FSLapUE/Plugins/HoMoLapPhysics` has no Unreal types and builds on its own (`tools/physics_test`).
-- **Check:** the built-in AI driver laps the FSG endurance track in **77.405 s** with the stock car. This is checked on every change (`tools/validate.ps1`). The LTS reference lap is 75.06 s and is shown in the HUD.
+- **Check:** the built-in AI driver laps the FSG endurance track in **77.405 s** with the stock car. This is checked on every change (`tools/validate.ps1`). The stored LTS reference lap is 75.06 s and is shown in the HUD. The complete LTS (single-track) gives 74.952 s for the stock car (section 4a).
 - **Data:** vehicle parameters of the τ (vehicle-params), the LTS vehicle file, and CFD aero packages.
 
 **Setup parameters (setup screen):** aero package, downforce ClA, drag CdA, aero balance, car mass, driver mass, front weight share, CoG height, system power limit, motor torque (each of 4), gear ratio, peak μ at 600 N, load sensitivity exponent, peak slip angle, brake balance, maximum brake force, front roll-stiffness share, torque-vectoring authority, steering lock, and the driver assists. **R** restores the stock car.
@@ -110,6 +113,39 @@ The wheel's rotation range is set in the wheel's own software (Moza Pit House). 
 **Aero packages:** Tau 2026 (LTS vehicle file: ClA 5.40, CdA 1.70, 50 % front); Tau 2026 (vehicle-params: 4.90, 1.40, 55 %); Upsilon 2027 CFD baseline 1011 (5.64, 1.90, 50 %); Upsilon 2027 CFD best V4_K (6.94, 1.96, 45 %); Tau 2026 without downforce.
 
 **Car geometry in the model:** wheelbase 1.53 m, track 1.24 m front / 1.20 m rear, CoG height 0.293 m, 50 % on the front axle, wheel radius 0.202 m. These match the CAD (section 6).
+
+### 4a. The complete LTS and lap data
+
+**What the LTS is here.** The team's LTS (`laptimesimulation`) is a quasi-steady-state solver: it computes the fastest speed profile for a track from the car's limits. It cannot be driven. FS Lap uses it as the **reference lap**: the HUD gap, the sector deltas and the LTS ghost car. The game's own 600 Hz model stays the one you drive.
+
+**Using it:**
+1. Menu → **SETUP** → row **LTS reference**. **Left / Right** chooses `stored lap` (the built-in 75.06 s lap, the default), `point mass`, `single track` or `dual track`.
+2. When you leave the setup, FS Lap sends the current setup to the LTS as a job. The row shows `starting MATLAB … s`, then `running … s`, then the lap time. The HUD and the ghost switch to the new lap when it is ready.
+3. A job takes about 1 minute, plus about 45 s the first time while MATLAB starts. MATLAB keeps running in the background for 30 minutes after the last job. Results are cached per model and setup, so a setup you used before is instant.
+
+**What is passed to the LTS:** driver and car mass, CoG height, front mass share, ClA, CdA, aero balance, tyre μ and load sensitivity, front roll-moment share, system power, motor torque, gear ratio and brake balance. Everything else comes from the LTS's own vehicle file (`vehicles/`).
+
+**What you need:** MATLAB (R2024b tested) with the Optimization Toolbox, and a checkout of `laptimesimulation` that has the job interface (`+lts/+viewer/worker.m`). FS Lap finds them through two environment variables:
+
+| Variable | Default |
+|---|---|
+| `FSLAP_LTS_ROOT` | `D:\VD\laptimesimulation` |
+| `FSLAP_MATLAB` | the newest `C:\Program Files\MATLAB\R20*\bin\matlab.exe` |
+
+FS Lap only adds the LTS folders to the MATLAB path; it does not change the checkout. Jobs and results are in `FSLapUE\Saved\LTS\` (`queue\`, `runs\<job>\case_001.json`). If a job fails, the row says so and names the log file.
+
+**Lap data.** Every lap completed in Hot lap, Arcade or City is saved to `FSLapUE\Saved\Runs\<date>_<time>_<mode>\` as two files. Laps that are not completed are dropped.
+- **`lap_NN.csv`:** every simulation step (600 Hz). Columns: `time_s, distance_m, x_m, y_m, heading_rad, vx_mps, vy_mps, speed_mps, yawRate_radps, ax_mps2, ay_mps2, steerInput, steer, roadWheelAngle_rad, throttle, brake, handbrake, power_kW, lateralOffset_m, slipFront, slipRear, grass`. `steerInput` is the driver's input and `steer` is what the car does with it, after the assists.
+- **`lap_NN.run.json`:** the same lap at 100 Hz in the LTS run format (`homo-lts.run.v1`), so the team's LTS tools can read it. `lap.curvature_1pm` and `lap.lateralAcceleration_mps2` follow the LTS sign convention, which is opposite to the game's. The block `fslap` adds the mode, the lap result (time, penalties, sectors), the setup, the reference in use and all channels in the game's own signs.
+
+**Comparing laps in MATLAB:**
+
+```matlab
+addpath('tools/lts')
+c = compareLaps('FSLapUE/Saved/Runs/<session>/lap_01.run.json', 'FSLapUE/Saved/LTS/runs/<job>/case_001.json', SavePng="compare.png");
+```
+
+It plots speed, the time gap, lateral acceleration and the driver's inputs over distance, and prints lap and sector times. Either file can be a driven lap or an LTS lap. The second lap's distance is scaled to the first lap's track length, because the LTS track and the game's centreline differ by a few metres. For the stock car, the AI lap is 2.45 s slower than the single-track LTS lap (77.405 s against 74.952 s).
 
 ## 5. The car model and the CAD
 
@@ -137,12 +173,13 @@ The wheel's rotation range is set in the wheel's own software (Moza Pit House). 
 FSLapUE/                          Unreal project
   FSLapUE.uproject
   Config/                         engine, input and packaging settings
-  Source/FSLapUE/                 game flow, car presentation, HUD, wheel input (FSLapWheel), tests (Dev/)
+  Source/FSLapUE/                 game flow, car presentation, HUD, wheel input (FSLapWheel), LTS jobs (FSLapLts), lap logging (FSLapLog), tests (Dev/)
   Plugins/HoMoLapPhysics/         the vehicle model, track data, lap rules and AI driver (plain C++)
   Content/FS/Generated/           imported assets: car, CAD parts, track, city, sound, materials (Git LFS)
 tools/                            conversion, import and test scripts
   cad/                            NX Open and Blender scripts for the CAD export (README inside)
   physics_test/                   stand-alone build and test of the vehicle model
+  lts/                            compareLaps.m: driven laps against LTS laps (MATLAB)
 vehicle-data/                     suspension hardpoints and design table
 Play FS Lap.bat                   starts the game full screen
 ```
@@ -151,6 +188,8 @@ The main classes:
 - **`AFSLapVehiclePawn`:** runs the 600 Hz simulation, input, menus, cameras, sound, effects, replay and saving best laps.
 - **`AFSLapHUD`:** draws the HUD and menus.
 - **`FFSLapWheel`:** reads DirectInput wheels. It searches for them on a worker thread.
+- **`FFSLapLts`:** sends LTS jobs to a MATLAB worker through a file queue and reads the results.
+- **`FFSLapLog`:** records each lap and writes the CSV and run files on a worker thread.
 - **`HoMoLap::Simulation`:** the vehicle model and lap rules.
 
 ## 8. Tests
@@ -163,6 +202,7 @@ All tests run from PowerShell in the repository root. Close the Unreal Editor fi
 | `tools\validate.ps1 -Game` | The above, plus the in-game tests below |
 | `tools\slice_test.ps1 -Mode sim` (or `arcade`, `city`, `free`) | Starts the real game, lets the AI drive a lap and takes photos from around the car. Results in `FSLapUE\Saved\SliceTest\<mode>\results.txt`: lap times, fps, average and 95th-percentile frame time, the longest frame and the number of frames over 100 ms (hitches). |
 | `tools\slice_test.ps1 -Mode keys` | Presses every key through the game and checks what each did (46 steps). Each line also reports the frame rate and the car's speed. |
+| `tools\slice_test.ps1 -Mode lts` | Has the real LTS compute the single-track reference for the stock car (needs MATLAB, section 4a), then lets the AI drive a hot lap against it. Checks the reference (`reference=LTS 1-track 74.952`) and the lap files (`lap_log=`). |
 
 Add `-Engine <UE>` if your engine is not at `D:\UE\UE_5.8`.
 
@@ -183,13 +223,13 @@ The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_I
 
 ## 10. Limits and plans
 
-**Not there yet:** force feedback, a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, data logging, real-car data overlays, the wheel's buttons, and a field of view set from the rig's screen size.
+**Not there yet:** force feedback, a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, real-car data overlays, the wheel's buttons, and a field of view set from the rig's screen size. The LTS reference covers the FSG endurance track only, and the lap files are not yet in .mat format.
 
 **Proposed next, in order, pending the team's answers:**
-1. **Data logging:** 600 Hz to CSV / .mat.
+1. **Offline co-simulation:** replay a driven lap's inputs (steering, throttle, brake) through the team's Advanced Dual Track Model and compare it with the game's model.
 2. **Rig basics:** the real steering ratio from the CAD rack, and a field of view from the screen geometry.
 3. **Force feedback** on the Moza R3.
-4. **Better vehicle model:** a four-wheel model and the tyre model, or co-simulation with the team's Simulink model.
+4. **Better vehicle model:** a four-wheel model and the tyre model, or live co-simulation with the team's Simulink model.
 5. **VD tools:** standard test manoeuvres with automatic metrics, setup A/B blind tests, and real-car data overlays.
 
 ## 11. What is not in this repository
@@ -206,6 +246,11 @@ Ask the simulator's maintainer if you need any of these.
 
 Newest first.
 
+- **2026-11-13 (later):** the complete LTS and lap data (section 4a).
+  - **LTS reference:** the setup row **LTS reference** has the team's LTS compute the reference lap for the current setup (point-mass, single-track or dual-track model).
+  - **Lap logging:** every completed lap is saved as a 600 Hz CSV and an LTS run file.
+  - **`tools/lts/compareLaps.m`:** compares driven and LTS laps.
+  - **Test mode `lts`.**
 - **2026-11-13:** FS Lap becomes a driver-in-the-loop simulator for the vehicle dynamics team.
   - **CAD parts:** the car's mechanical parts and the team's steering wheel come from the 2026 NX model.
   - **Driver figure:** removed.

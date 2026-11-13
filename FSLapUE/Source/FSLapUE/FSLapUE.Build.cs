@@ -9,7 +9,7 @@ public class FSLapUE : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "HoMoLapPhysics" });
 
 		// RHI, RenderCore, AudioMixer: only the tests in Dev\ use them.
-		PrivateDependencyModuleNames.AddRange(new string[] { "RHI", "RenderCore", "SlateCore", "AudioMixer" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "RHI", "RenderCore", "SlateCore", "AudioMixer", "Json" });   // Json: LTS results (FSLapLts)
 
 		// FSLapWheel: steering wheels through DirectInput
 		if (Target.Platform == UnrealTargetPlatform.Win64)
