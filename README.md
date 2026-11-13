@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `95f9597` on 2026-11-13.
+> Synced from development commit `9223021` on 2026-11-13.
 
 ---
 
@@ -169,6 +169,19 @@ Everything else (mass, tyres, suspension) comes from the ADTM's vehicle file (`F
 
 For the stock AI lap, a 77 s lap takes about 1 minute. The speed differs by 0.61 m/s RMS and the yaw rate by 0.12 rad/s RMS. The ADTM covers 1075 m against FS Lap's 1103 m, and its path drifts away from the track, as any open-loop replay does.
 
+**Closed loop:** `adtmReplay(..., Mode="closed")` has a driver model drive the ADTM along the path driven in FS Lap. At each step it takes FS Lap's steering and pedals at the same distance, then corrects them:
+- **Steering:** for the heading error, and for the lateral error (Stanley steering);
+- **Pedals:** towards FS Lap's speed at that distance.
+
+It compares both cars over distance:
+- speed;
+- time gained or lost;
+- how far the ADTM is off the path;
+- the front wheel angle its driver needed, against FS Lap's (more angle means the ADTM car understeers more);
+- the paths.
+
+It stops if the car is more than 5 m off the path. For the stock AI lap: the ADTM takes 77.630 s against FS Lap's 77.400 s to the last logged point. It is at most 1.51 m off the path (in the fast section around 420–560 m), and it needs slightly more steering. The run takes about 1 minute. It does not write the ADTM input file, because the inputs depend on the ADTM's own response.
+
 ## 5. The car model and the CAD
 
 - **Bodywork, wings, undertray and wheels:** exported from the team's livery model in Blender (`tools/export_ue.py`, `tools/bake_livery_uv.py`) with the livery baked in.
@@ -248,7 +261,7 @@ The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_I
 **Not there yet:** force feedback, a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, real-car data overlays, the wheel's buttons, and a field of view set from the rig's screen size. The LTS reference covers the FSG endurance track only, and the lap files are not yet in .mat format.
 
 **Proposed next, in order, pending the team's answers:**
-1. **Closed-loop co-simulation:** the ADTM replay with a driver model that keeps the car on the driven path (the ADTM has one in `f_driverControl_separated`), so whole laps can be compared by distance, not only by time.
+1. **Live co-simulation:** the ADTM (or its Simulink version) running alongside the game while you drive.
 2. **Rig basics:** the real steering ratio from the CAD rack, and a field of view from the screen geometry.
 3. **Force feedback** on the Moza R3.
 4. **Better vehicle model:** a four-wheel model and the tyre model, or live co-simulation with the team's Simulink model.
@@ -273,7 +286,7 @@ Newest first.
   - **Lap logging:** every completed lap is saved as a 600 Hz CSV and an LTS run file.
   - **`tools/lts/compareLaps.m`:** compares driven and LTS laps.
   - **Test mode `lts`.**
-  - **`tools/lts/adtmReplay.m`:** offline co-simulation, which replays a driven lap through the team's Advanced Dual Track Model.
+  - **`tools/lts/adtmReplay.m`:** offline co-simulation through the team's Advanced Dual Track Model. It replays a driven lap open loop, or drives the ADTM along the driven path with a driver model (`Mode="closed"`).
 - **2026-11-13:** FS Lap becomes a driver-in-the-loop simulator for the vehicle dynamics team.
   - **CAD parts:** the car's mechanical parts and the team's steering wheel come from the 2026 NX model.
   - **Driver figure:** removed.

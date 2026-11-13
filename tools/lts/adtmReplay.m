@@ -5,6 +5,10 @@ function result = adtmReplay(runFile, options)
 %   team replays real-car logs) and plots both cars over time: speed, yaw rate, lateral acceleration and the path.
 %   It also writes lap_NN.adtm_input.csv in the ADTM's input format, which the ADTM's own start script can load.
 %
+%   adtmReplay(RUN, Mode="closed") lets a driver model drive the ADTM along the path driven in FS Lap instead: FS Lap's
+%   steering and pedals at the same distance as feedforward, corrected for the heading and lateral error and towards
+%   FS Lap's speed at that distance. It compares both cars over distance and gives the ADTM's lap time.
+%
 %   Conversions:
 %   - steering: the ADTM's steering wheel angle that gives FS Lap's road wheel angle (mean of the two front wheels),
 %     from the ADTM's own steering kinematics;
@@ -12,10 +16,11 @@ function result = adtmReplay(runFile, options)
 %   - throttle: FS Lap's pedal, capped at FS Lap's system power (the ADTM limits each motor only, not the system).
 %   The ADTM uses its own vehicle file (mass, tyres, suspension). FS Lap's aero (ClA, CdA, balance) is copied over.
 %
-%   Options: AdtmRoot (default: env FSLAP_ADTM_ROOT or D:\FSLap_VD\advanced-dual-track-model), Vehicle
-%   ("FAUmaxTau.m"), EnvConditions ("default_mu0.7", the team's usual road scaling), SimFreq (200 Hz), SavePng.
+%   Options: Mode ("open" or "closed"), AdtmRoot (default: env FSLAP_ADTM_ROOT or D:\FSLap_VD\advanced-dual-track-model),
+%   Vehicle ("FAUmaxTau.m"), EnvConditions ("default_mu0.7", the team's usual road scaling), SimFreq (200 Hz), SavePng.
 arguments
     runFile (1, 1) string
+    options.Mode (1, 1) string {mustBeMember(options.Mode, ["open", "closed"])} = "open"
     options.AdtmRoot (1, 1) string = defaultRoot()
     options.Vehicle (1, 1) string = "FAUmaxTau.m"
     options.EnvConditions (1, 1) string = "default_mu0.7"
@@ -52,64 +57,148 @@ x0 = zeros(opts.nStates, 1); x0(15) = 10; opts.x_0 = x0;
 wheelMax = veh.u_max / abs(veh.i_S);
 handTable = linspace(-wheelMax, wheelMax, 81).';
 roadTable = zeros(size(handTable));
-iFL = find(strcmp(outNames, 'delta_FL')); iFR = find(strcmp(outNames, 'delta_FR'));
+iFL = strcmp(outNames, 'delta_FL'); iFR = strcmp(outNames, 'delta_FR');
 for k = 1:numel(handTable)
     [~, out] = f_vehicleModel(inputAt(handTable(k), 0, 0, 0), 0, x0, veh, tir{:}, env, road, opts);
     roadTable(k) = (out(iFL) + out(iFR)) / 2;
 end
 [roadTable, order] = sort(roadTable); handTable = handTable(order);
 assert(all(diff(roadTable) > 0), 'adtmReplay:Steering', 'The ADTM front wheel angle is not monotonic in the steering wheel angle.');
-handAngle = interp1(roadTable, handTable, c.roadWheelAngle_rad(:), 'linear', 'extrap');
-outOfRange = mean(abs(handAngle) > wheelMax);
+toHand = @(roadAngle) interp1(roadTable, handTable, roadAngle, 'linear', 'extrap');
 
 % brake force (N, whole car) as pressure (bar): torque per wheel = force per wheel x tyre radius
 r0 = tir{1}.r_0;
-brakeForce = c.brake(:) * setup.Fb;
-pFront = brakeForce * setup.brakeFront / 2 * r0 / veh.i_p2TBFA;
-pRear = brakeForce * (1 - setup.brakeFront) / 2 * r0 / veh.i_p2TBRA;
-% throttle: FS Lap's pedal asks for a share of the power-limited drive force; FS Lap ignores it while braking
-speed = max(c.vx_mps(:), 0.1);
-fullTorquePower = 4 * veh.T_MMax * veh.i_G(1) * speed / r0;
-throttle = c.throttle(:) .* min(1, setup.Pmax * 1000 ./ fullTorquePower);   % shortcut: no drivetrain losses, add them if the ADTM gets a system power limit
-throttle(c.brake(:) > 0.05) = 0;
+toFront = @(brake) brake * setup.Fb * setup.brakeFront / 2 * r0 / veh.i_p2TBFA;
+toRear = @(brake) brake * setup.Fb * (1 - setup.brakeFront) / 2 * r0 / veh.i_p2TBRA;
+% throttle: FS Lap's pedal asks for a share of the power-limited drive force
+% shortcut: no drivetrain losses, add them if the ADTM gets a system power limit
+powerCap = @(speed) min(1, setup.Pmax * 1000 ./ (4 * veh.T_MMax * veh.i_G(1) * max(speed, 0.1) / r0));
 
-% inputs at the simulation rate, start state from the logged lap
-opts.tEnd = floor(t(end) * opts.dataFreq) / opts.dataFreq;
-nData = round(opts.tEnd * opts.dataFreq) + 1;
-tSim = (0:nData * opts.simFreq / opts.dataFreq - 1).' / opts.simFreq;
-at = @(v) interp1(t, v, tSim, 'linear', v(end));
-input = inputAt(at(handAngle), at(pFront), at(pRear), at(throttle));
 opts.x_0 = zeros(opts.nStates, 1);
 opts.x_0(15) = c.vx_mps(1);
 opts.x_0(25:28) = c.vx_mps(1) / r0;
+[xP, yP] = startFrame(c.x_m(:), c.y_m(:), c.heading_rad(1));
+tag = sprintf('FS Lap %s lap %d through the ADTM (%s, %s)', run.fslap.mode, run.fslap.result.lap, options.Vehicle, options.EnvConditions);
 
-writeAdtmInput(strrep(runFile, '.run.json', '.adtm_input.csv'), t, handAngle, pFront, pRear, throttle, c);
-fprintf('ADTM replay of %s: %.1f s, steering beyond the ADTM lock %.1f %% of the time\n', runFile, opts.tEnd, 100 * outOfRange);
-tic; [TTout, opts] = f_solveODE(input, veh, tir{:}, env, road, opts); fprintf('ADTM ran in %.0f s\n', toc);
+if options.Mode == "open"
+    handAngle = toHand(c.roadWheelAngle_rad(:));
+    pFront = toFront(c.brake(:)); pRear = toRear(c.brake(:));
+    throttle = c.throttle(:) .* powerCap(c.vx_mps(:));
+    throttle(c.brake(:) > 0.05) = 0;   % FS Lap ignores the throttle while braking
+    opts.tEnd = floor(t(end) * opts.dataFreq) / opts.dataFreq;
+    nData = round(opts.tEnd * opts.dataFreq) + 1;
+    tSim = (0:nData * opts.simFreq / opts.dataFreq - 1).' / opts.simFreq;
+    at = @(v) interp1(t, v, tSim, 'linear', v(end));
+    writeAdtmInput(strrep(runFile, '.run.json', '.adtm_input.csv'), t, handAngle, pFront, pRear, throttle, c);
+    outOfRange = mean(abs(handAngle) > wheelMax);
+    fprintf('ADTM open-loop replay of %s: %.1f s, steering beyond the ADTM lock %.1f %% of the time\n', runFile, opts.tEnd, 100 * outOfRange);
+    tic; [TTout, opts] = f_solveODE(inputAt(at(handAngle), at(pFront), at(pRear), at(throttle)), veh, tir{:}, env, road, opts);
+    fprintf('ADTM ran in %.0f s\n', toc);
 
-% compare over time
-tA = seconds(TTout.Time);
-vA = hypot(TTout.v_x, TTout.v_y);
-vF = interp1(t, c.speed_mps(:), tA);
-rF = interp1(t, c.yawRate_radps(:), tA);
-ayF = interp1(t, c.ay_mps2(:), tA);
-distanceA = cumtrapz(tA, vA);
-result = struct('time_s', tA, 'adtm', TTout, 'speedFsLap_mps', vF, 'speedAdtm_mps', vA, ...
-    'speedRms_mps', sqrt(mean((vA - vF).^2, 'omitnan')), 'yawRateRms_radps', sqrt(mean((TTout.omega_z - rF).^2, 'omitnan')), ...
-    'distanceFsLap_m', c.distance_m(end), 'distanceAdtm_m', distanceA(end), 'steeringOutOfRange', outOfRange, 'opts', opts);
+    tA = seconds(TTout.Time);
+    vA = hypot(TTout.v_x, TTout.v_y);
+    vF = interp1(t, c.speed_mps(:), tA);
+    rF = interp1(t, c.yawRate_radps(:), tA);
+    distanceA = cumtrapz(tA, vA);
+    result = struct('mode', "open", 'time_s', tA, 'adtm', TTout, 'speedFsLap_mps', vF, 'speedAdtm_mps', vA, ...
+        'speedRms_mps', sqrt(mean((vA - vF).^2, 'omitnan')), 'yawRateRms_radps', sqrt(mean((TTout.omega_z - rF).^2, 'omitnan')), ...
+        'distanceFsLap_m', c.distance_m(end), 'distanceAdtm_m', distanceA(end), 'steeringOutOfRange', outOfRange, 'opts', opts);
 
+    layout = newLayout();   % after the run: the ADTM's solver closes all figures
+    title(layout, ['Open-loop replay of ' tag], 'Interpreter', 'none');
+    nexttile([1 2]); plot(tA, vF * 3.6, tA, vA * 3.6); ylabel('speed (km/h)'); legend('FS Lap', 'ADTM'); grid on
+    nexttile; plot(tA, rF, tA, TTout.omega_z); ylabel('yaw rate (rad/s)'); grid on
+    nexttile; plot(tA, interp1(t, c.ay_mps2(:), tA), tA, TTout.a_y); ylabel('a_y (m/s²)'); grid on
+    nexttile; plot(t, c.roadWheelAngle_rad * 180 / pi, tA, (TTout.delta_FL + TTout.delta_FR) / 2 * 180 / pi); ylabel('front wheel angle (°)'); xlabel('time (s)'); grid on
+    nexttile; plot(xP, yP, TTout.x_V - TTout.x_V(1), TTout.y_V - TTout.y_V(1)); axis equal; grid on
+    xlabel('x from the start (m)'); ylabel('y (m)'); title('path (open loop: drifts off)', 'FontWeight', 'normal');
+    fprintf('speed RMS difference %.2f m/s, yaw rate RMS difference %.3f rad/s, distance %.0f m (FS Lap) vs %.0f m (ADTM)\n', ...
+        result.speedRms_mps, result.yawRateRms_radps, result.distanceFsLap_m, result.distanceAdtm_m);
+else
+    % the path driven in FS Lap, by distance along it
+    sP = [0; cumsum(hypot(diff(xP), diff(yP)))];
+    [sP, keep] = unique(sP);
+    path = struct('x', xP(keep), 'y', yP(keep), 's', sP, 'heading', unwrap(c.heading_rad(keep)) - c.heading_rad(1), ...
+        'wheel', c.roadWheelAngle_rad(keep), 'pedal', c.throttle(keep) - c.brake(keep), 'speed', c.speed_mps(keep), 'time', t(keep));
+    tic; [log, lapTime, lostAt] = driveLap(path, veh, tir, env, road, opts, toHand, toFront, toRear, powerCap, 1.5 * t(end));
+    fprintf('ADTM ran in %.0f s\n', toc);
+    s = log.s; tF = interp1(path.s, path.time, s);
+    result = struct('mode', "closed", 'adtm', log, 'lapTimeFsLap_s', t(end), 'lapTimeAdtm_s', lapTime, 'lostAt_m', lostAt, ...
+        'maxOffset_m', max(abs(log.offset)), 'speedRms_mps', sqrt(mean((log.speed - interp1(path.s, path.speed, s)).^2, 'omitnan')), 'opts', opts);
+
+    layout = newLayout();   % after the run: the ADTM's solver closes all figures
+    title(layout, ['Closed-loop drive of ' tag], 'Interpreter', 'none');
+    nexttile([1 2]); plot(path.s, path.speed * 3.6, s, log.speed * 3.6); ylabel('speed (km/h)'); legend('FS Lap', 'ADTM'); grid on
+    title(sprintf('to the last logged point: FS Lap %.3f s, ADTM %s', t(end), lapText(lapTime, lostAt)), 'FontWeight', 'normal');
+    nexttile; plot(s, log.time - tF); yline(0, ':'); ylabel('ADTM time minus FS Lap (s)'); grid on
+    nexttile; plot(s, log.offset); ylabel('ADTM off the FS Lap path (m, left +)'); grid on
+    nexttile; plot(path.s, path.wheel * 180 / pi, s, log.wheel * 180 / pi); ylabel('front wheel angle (°)'); xlabel('distance (m)'); grid on
+    title('ADTM: what its driver needed for the same path', 'FontWeight', 'normal');
+    nexttile; plot(path.x, path.y, log.x, log.y); axis equal; grid on; xlabel('x from the start (m)'); ylabel('y (m)'); title('path', 'FontWeight', 'normal');
+    fprintf('to the last logged point: FS Lap %.3f s, ADTM %s; largest offset from the path %.2f m, speed RMS difference %.2f m/s\n', ...
+        t(end), lapText(lapTime, lostAt), result.maxOffset_m, result.speedRms_mps);
+end
+if options.SavePng ~= "", exportgraphics(gcf, options.SavePng, 'Resolution', 110); end
+end
+
+function [log, lapTime, lostAt] = driveLap(path, veh, tir, env, road, opts, toHand, toFront, toRear, powerCap, tMax)
+% the ADTM's Runge-Kutta scheme (f_solveODE), with a driver deciding the inputs at every step
+kHeading = 1.0; kOffset = 1.0;   % Stanley steering: heading error plus atan(k x offset / speed)
+kSpeed = 0.2;                     % pedal per m/s of speed error
+tStep = 1 / opts.simFreq; nSub = opts.simFreq / opts.dataFreq;
+x = opts.x_0;
+[x(1), x(2), x(3), x(4), x(5), x(7), x(8), x(9), x(10)] = f_calcInitState(veh, tir{:}, env, road, opts);
+origin = x(1:2);
+n = ceil(tMax * opts.dataFreq) + 1;
+log = struct('time', NaN(n, 1), 's', NaN(n, 1), 'x', NaN(n, 1), 'y', NaN(n, 1), 'offset', NaN(n, 1), ...
+    'speed', NaN(n, 1), 'wheel', NaN(n, 1), 'pedal', NaN(n, 1), 'yawRate', NaN(n, 1));
+idx = 1; t = 0; lapTime = NaN; lostAt = NaN; step = 0;
+while t < tMax
+    % where the car is on the path: nearest point a little behind to some metres ahead of the last one
+    px = x(1) - origin(1); py = x(2) - origin(2);
+    window = max(idx - 5, 1):min(idx + 80, numel(path.s));
+    [~, k] = min((path.x(window) - px).^2 + (path.y(window) - py).^2);
+    idx = window(k);
+    h = path.heading(idx);
+    offset = -sin(h) * (px - path.x(idx)) + cos(h) * (py - path.y(idx));
+    speed = hypot(x(15), x(16));
+    if mod(step, nSub) == 0
+        m = step / nSub + 1;
+        log.time(m) = t; log.s(m) = path.s(idx); log.x(m) = px; log.y(m) = py; log.offset(m) = offset;
+        log.speed(m) = speed; log.yawRate(m) = x(20);
+    end
+    if idx == numel(path.s)
+        lapTime = t; break
+    end
+    if abs(offset) > 5
+        lostAt = path.s(idx); break
+    end
+    headingError = atan2(sin(h - x(6)), cos(h - x(6)));
+    wheel = path.wheel(idx) + kHeading * headingError - atan(kOffset * offset / (speed + 1));
+    pedal = max(-1, min(1, path.pedal(idx) + kSpeed * (path.speed(idx) - speed)));
+    brake = max(-pedal, 0);
+    in = inputAt(toHand(wheel), toFront(brake), toRear(brake), max(pedal, 0) * powerCap(x(15)));
+    if mod(step, nSub) == 0
+        log.wheel(m) = wheel; log.pedal(m) = pedal;
+    end
+    k1 = f_vehicleModel(in, t, x, veh, tir{:}, env, road, opts);
+    k2 = f_vehicleModel(in, t + tStep / 2, x + tStep / 2 * k1, veh, tir{:}, env, road, opts);
+    k3 = f_vehicleModel(in, t + tStep / 2, x + tStep / 2 * k2, veh, tir{:}, env, road, opts);
+    k4 = f_vehicleModel(in, t + tStep, x + tStep * k3, veh, tir{:}, env, road, opts);
+    x = x + tStep * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+    t = t + tStep; step = step + 1;
+end
+keep = ~isnan(log.time);
+log = structfun(@(v) v(keep), log, 'UniformOutput', false);
+end
+
+function text = lapText(lapTime, lostAt)
+if ~isnan(lapTime), text = sprintf('%.3f s', lapTime); else, text = sprintf('lost the path at %.0f m', lostAt); end
+end
+
+function layout = newLayout()
 figure('Name', 'FS Lap vs ADTM', 'Color', 'w', 'Position', [80 60 1200 900]);
 layout = tiledlayout(3, 2, 'TileSpacing', 'compact');
-title(layout, sprintf('Open-loop replay of FS Lap %s lap %d through the ADTM (%s, %s)', run.fslap.mode, run.fslap.result.lap, options.Vehicle, options.EnvConditions), 'Interpreter', 'none');
-nexttile([1 2]); plot(tA, vF * 3.6, tA, vA * 3.6); ylabel('speed (km/h)'); legend('FS Lap', 'ADTM'); grid on
-nexttile; plot(tA, rF, tA, TTout.omega_z); ylabel('yaw rate (rad/s)'); grid on
-nexttile; plot(tA, ayF, tA, TTout.a_y); ylabel('a_y (m/s²)'); grid on
-nexttile; plot(t, c.roadWheelAngle_rad * 180 / pi, tA, (TTout.delta_FL + TTout.delta_FR) / 2 * 180 / pi); ylabel('front wheel angle (°)'); xlabel('time (s)'); grid on
-nexttile; [xF, yF] = startFrame(c.x_m(:), c.y_m(:), c.heading_rad(1)); plot(xF, yF, TTout.x_V - TTout.x_V(1), TTout.y_V - TTout.y_V(1)); axis equal; grid on
-xlabel('x from the start (m)'); ylabel('y (m)'); title('path (open loop: drifts off)', 'FontWeight', 'normal');
-if options.SavePng ~= "", exportgraphics(gcf, options.SavePng, 'Resolution', 110); end
-fprintf('speed RMS difference %.2f m/s, yaw rate RMS difference %.3f rad/s, distance %.0f m (FS Lap) vs %.0f m (ADTM)\n', ...
-    result.speedRms_mps, result.yawRateRms_radps, result.distanceFsLap_m, result.distanceAdtm_m);
 end
 
 function in = inputAt(delta, pF, pR, thr)
