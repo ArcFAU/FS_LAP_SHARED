@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `15e099e` on 2026-11-13.
+> Synced from development commit `52c0a31` on 2026-11-13.
 
 ---
 
@@ -108,7 +108,7 @@ The wheel's rotation range is set in the wheel's own software (Moza Pit House). 
 - **Strength:** **Right** raises it in steps of 10 %. At 100 %, the largest torque on the ADTM's AI hot lap (25.5 Nm at the steering wheel) is the wheel's strongest force; the wheel's own maximum is set in Pit House. Changes in force are smoothed: full force takes 0.2 s to build.
 - **First try:** hold the wheel and start at 10 %. In a corner the wheel must pull back towards the centre. If it pulls further into the corner, go back to off and press **Left** once more: `10 %, reversed`. Wheel drivers do not all push the same way.
 - **Exclusive access:** while force feedback is on, FS Lap takes the wheel exclusively, so other programs cannot send it effects. A controller without force feedback stays shared, and the row says so.
-- **Direction measured** on a Fanatec Porsche 911 GT3 RS: a positive force turns it towards larger axis values, as FS Lap assumes, so `reversed` is not needed there. Not yet tried on the R3.
+- **Not usable yet on the Fanatec Porsche 911 GT3 RS:** as soon as the force effect starts, the wheel runs to the right lock and holds there, even at zero force and in the pause menu. That comes from the wheel's driver, not from the ADTM's torque. Keep force feedback off on that wheel. Not yet tried on the R3.
 - **Known effect:** with the front tyres locked or sliding at full lock, the ADTM's torque pushes further into the turn (up to about 3.6 Nm). That is the model, not a fault.
 
 ## 4. The vehicle model
