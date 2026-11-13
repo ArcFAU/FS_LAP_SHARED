@@ -410,7 +410,11 @@ void AFSLapVehiclePawn::Tick(float DeltaSeconds)
 	{
 		const auto Axis = [this](int32 Which)
 		{
-			const float* Cal = &SaveData->WheelCal[Which * 3];   // axis, at rest, at full
+			const float* Cal = &SaveData->WheelCal[Which * 3];   // axis, at rest, at full; axis -1: no pedal
+			if (Cal[0] < 0)
+			{
+				return 0.0f;
+			}
 			return FMath::Clamp((WheelAxes[FMath::Clamp(static_cast<int32>(Cal[0]), 0, WheelAxes.Num() - 1)] - Cal[1]) / (Cal[2] - Cal[1]), -1.0f, 1.0f);
 		};
 		const auto Pedal = [](float Value) { return Value > 0.03f ? Value : 0.0f; };
@@ -1063,10 +1067,14 @@ void AFSLapVehiclePawn::WheelNext()
 	}
 	if (FMath::Abs(WheelAxes[Moved] - WheelRest[Moved]) < 0.2f)
 	{
-		WheelMessage = TEXT("Nothing moved enough. Try again.");
-		return;
+		if (WheelStep == 1)
+		{
+			WheelMessage = TEXT("Nothing moved enough. Try again.");
+			return;
+		}
+		Moved = -1;   // a pedal step with nothing pressed: no pedal (not connected); the keys and pad drive it
 	}
-	WheelNew.Append({ static_cast<float>(Moved), WheelRest[Moved], WheelAxes[Moved] });
+	WheelNew.Append({ static_cast<float>(Moved), Moved < 0 ? 0.0f : WheelRest[Moved], Moved < 0 ? 1.0f : WheelAxes[Moved] });
 	if (++WheelStep < 4)
 	{
 		return;
@@ -1087,8 +1095,8 @@ FString AFSLapVehiclePawn::GetWheelText() const
 	static const TCHAR* const Steps[] = {
 		TEXT("Hands off the wheel and feet off the pedals,\nthen press ENTER."),
 		TEXT("Turn the wheel to the right as far as you\nwant full steering lock, hold it there\nand press ENTER."),
-		TEXT("Press the throttle pedal fully, hold it\nand press ENTER."),
-		TEXT("Press the brake pedal fully, hold it\nand press ENTER.") };
+		TEXT("Press the throttle pedal fully, hold it\nand press ENTER.\nNo pedals: just press ENTER; W and S\n(or the pad's triggers) are throttle and brake."),
+		TEXT("Press the brake pedal fully, hold it\nand press ENTER.\nNo pedals: just press ENTER.") };
 	FString Text = Wheel.Name + TEXT("\n\n") + (WheelMessage.IsEmpty() ? Steps[WheelStep] : *WheelMessage) + TEXT("\n\n");
 	for (int32 i = 0; i < WheelAxes.Num(); ++i)
 	{

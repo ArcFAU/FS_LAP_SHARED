@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `645754e` on 2026-11-13.
+> Synced from development commit `7dd64a6` on 2026-11-13.
 
 ---
 
@@ -98,7 +98,7 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 **Steering wheel (DirectInput wheels such as the Moza R3):**
 1. Plug the wheel in. The game finds it within about 2 seconds, also while it is running.
 2. Menu → **SETUP** → row **Steering wheel** → press **Right** to open the wheel setup.
-3. Follow the four steps, pressing **Enter** after each: hands off the wheel and feet off the pedals; turn the wheel right as far as you want full steering lock; press the throttle fully; press the brake fully.
+3. Follow the four steps, pressing **Enter** after each: hands off the wheel and feet off the pedals; turn the wheel right as far as you want full steering lock; press the throttle fully; press the brake fully. **No pedals connected:** press **Enter** on the throttle and brake steps without pressing anything; then **W / S** (or a gamepad's triggers) are throttle and brake while the wheel steers.
 4. **Esc** goes back. The setup is saved and used from then on. The keyboard and gamepad keep working and win while they are pressed.
 
 The wheel's rotation range is set in the wheel's own software (Moza Pit House). The wheel's buttons are not used yet.
@@ -341,6 +341,7 @@ Ask the simulator's maintainer if you need any of these.
 
 Newest first.
 
+- **2026-11-13 (night, later):** the wheel setup accepts a wheel without pedals: Enter on the throttle and brake steps with nothing pressed, then the keys or a pad drive the pedals.
 - **2026-11-13 (night):** force feedback from the ADTM's steering torque, setup row **Force feedback** (section 3). Off by default; not yet tried on a force feedback wheel.
 - **2026-11-13 (evening):** drive the team's ADTM (section 4b). It is compiled into the game with MATLAB Coder and chosen in the setup row **Vehicle model** (hot lap and free roam). New tests: `tools\physics_test\adtm.bat`, slice test mode `adtm` and the `-Adtm` switch.
 - **2026-11-13 (later):** the complete LTS and lap data (section 4a).
