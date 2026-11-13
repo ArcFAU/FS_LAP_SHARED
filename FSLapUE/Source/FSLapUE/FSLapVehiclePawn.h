@@ -236,6 +236,7 @@ private:
 	TArray<float> WheelAxes, WheelRest, WheelNew;   // WheelNew: the calibration being recorded
 	bool bWheelLive = false;
 	float WheelSteer = 0, WheelThrottle = 0, WheelBrake = 0;
+	float WheelForce = 0;   // force feedback sent last frame, -1..1 of the wheel's strongest
 	int32 WheelStep = 0;
 	FString WheelMessage;
 	bool IsWheelSetUp() const;

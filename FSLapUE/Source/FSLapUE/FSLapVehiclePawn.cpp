@@ -403,7 +403,8 @@ void AFSLapVehiclePawn::Tick(float DeltaSeconds)
 	{
 		ApplyLts(LtsLap);
 	}
-	bWheelLive = SaveData && Wheel.Read(SaveData->WheelName, WheelAxes);
+	const int32 Ffb = SaveData ? SaveData->ForceFeedback : 0;
+	bWheelLive = SaveData && Wheel.Read(SaveData->WheelName, WheelAxes, Ffb != 0 && SaveData->WheelCal.Num() == 9 ? static_cast<int32>(SaveData->WheelCal[0]) : -1);
 	WheelSteer = WheelThrottle = WheelBrake = 0;
 	if (IsWheelSetUp())
 	{
@@ -417,6 +418,16 @@ void AFSLapVehiclePawn::Tick(float DeltaSeconds)
 		WheelThrottle = Pedal(Axis(1));
 		WheelBrake = Pedal(Axis(2));
 	}
+	// force feedback: the ADTM's steering torque while the driver steers (none in menus, replays or on FS Lap's own model)
+	float ForceWanted = 0;
+	if (Ffb != 0 && IsWheelSetUp() && Simulation && Simulation->external && Flow == EFSLapFlow::Race && !bFrozen && !bAutopilot)
+	{
+		const float* Cal = &SaveData->WheelCal[0];
+		// 100 %: the largest torque on the ADTM's AI hot lap (25.5 Nm) is the wheel's strongest force; + of steerT is to the right
+		ForceWanted = FMath::Clamp(Simulation->c.steerT / 25.5, -1.0, 1.0) * Ffb / 100.0f * FMath::Sign(Cal[2] - Cal[1]);
+	}
+	WheelForce += FMath::Clamp(ForceWanted - WheelForce, -5 * DeltaSeconds, 5 * DeltaSeconds);   // never a jolt: full force takes 0.2 s
+	Wheel.SetForce(WheelForce);
 	if (!Simulation)
 	{
 		return;
@@ -726,7 +737,7 @@ void AFSLapVehiclePawn::UpdateEffects(float DeltaSeconds)
 
 int32 AFSLapVehiclePawn::GetSetupRowCount() const
 {
-	return 5 + UE_ARRAY_COUNT(SetupFields);   // the aero package, the fields, the vehicle model, the LTS reference, the steering wheel, driver assist
+	return 6 + UE_ARRAY_COUNT(SetupFields);   // the aero package, the fields, the vehicle model, the LTS reference, the steering wheel, force feedback, driver assist
 }
 
 FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
@@ -739,7 +750,7 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 	{
 		return FString::Printf(TEXT("Driver assist:  %s"), bDriverAssist ? TEXT("On") : TEXT("Off"));
 	}
-	if (Row == GetSetupRowCount() - 4)
+	if (Row == GetSetupRowCount() - 5)
 	{
 		if (!bAdtm)
 		{
@@ -747,7 +758,7 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 		}
 		return *HoMoLap::AdtmSource() ? TEXT("Vehicle model:  ADTM (team, dual track)") : TEXT("Vehicle model:  ADTM not built yet");
 	}
-	if (Row == GetSetupRowCount() - 3)
+	if (Row == GetSetupRowCount() - 4)
 	{
 		const FString Status = Lts.Status();
 		const double Lap = LtsModel == 0 || LtsShown == FFSLapLts::Models[LtsModel] ? Track.ltsLap : 0;
@@ -755,6 +766,16 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 			*(Lts.IsBusy() || !Status.IsEmpty() ? TEXT(", ") + Status : (Lap > 0 ? FString::Printf(TEXT(", %.2f s"), Lap) : FString())));
 	}
 	if (Row == GetSetupRowCount() - 2)
+	{
+		const int32 Ffb = SaveData ? SaveData->ForceFeedback : 0;
+		if (Ffb == 0)
+		{
+			return TEXT("Force feedback:  off (from the ADTM)");
+		}
+		return FString::Printf(TEXT("Force feedback:  %d %%%s%s"), FMath::Abs(Ffb), Ffb < 0 ? TEXT(", reversed") : TEXT(""),
+			bWheelLive && !Wheel.HasForce() ? TEXT(", this controller has none") : TEXT(""));
+	}
+	if (Row == GetSetupRowCount() - 3)
 	{
 		return !bWheelLive ? TEXT("Steering wheel:  none found") : FString::Printf(TEXT("Steering wheel:  %s, %s"), *Wheel.Name, IsWheelSetUp() ? TEXT("set up") : TEXT("not set up (RIGHT)"));
 	}
@@ -768,16 +789,25 @@ void AFSLapVehiclePawn::ChangeSetup(int32 Direction)
 	{
 		bDriverAssist = !bDriverAssist;
 	}
-	else if (SetupRow == GetSetupRowCount() - 4)
+	else if (SetupRow == GetSetupRowCount() - 5)
 	{
 		bAdtm = !bAdtm;   // without the generated code the row says so and the car stays FS Lap's (MakeAdtm gives null)
 	}
-	else if (SetupRow == GetSetupRowCount() - 3)
+	else if (SetupRow == GetSetupRowCount() - 4)
 	{
 		LtsModel = (LtsModel + Direction + UE_ARRAY_COUNT(FFSLapLts::Models)) % UE_ARRAY_COUNT(FFSLapLts::Models);
 		RequestLts();
 	}
 	else if (SetupRow == GetSetupRowCount() - 2)
+	{
+		if (SaveData)
+		{
+			// in steps of 10 %; left of off is reversed, for a wheel driver that pushes the other way
+			SaveData->ForceFeedback = FMath::Clamp(SaveData->ForceFeedback + Direction * 10, -100, 100);
+			UGameplayStatics::SaveGameToSlot(SaveData, SaveSlot, 0);
+		}
+	}
+	else if (SetupRow == GetSetupRowCount() - 3)
 	{
 		Flow = EFSLapFlow::Wheel;
 		WheelStep = 0;

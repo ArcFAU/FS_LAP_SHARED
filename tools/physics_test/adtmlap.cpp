@@ -25,6 +25,8 @@ int main(int argc, char** argv)
 	bool finite = true;
 	double maxLat = 0, traceT = 0;
 	long long lapSteps = 0, slideSteps = 0;   // FS Lap's own model: a tyre slides on about 3 % of the AI lap
+	double maxSteerT = 0;
+	long long steered = 0, aligning = 0;   // force feedback: T_Steering must pull the wheel back to the centre
 	const auto start = std::chrono::steady_clock::now();
 	for (long long k = 0; k < 165 * 600; ++k)
 	{
@@ -35,6 +37,8 @@ int main(int argc, char** argv)
 			maxLat = std::max(maxLat, std::abs(sim.c.lat));
 			++lapSteps;
 			slideSteps += sim.c.slipF || sim.c.slipR ? 1 : 0;
+			maxSteerT = std::max(maxSteerT, std::abs(sim.c.steerT));
+			if (std::abs(sim.c.delta) > 0.02) { ++steered; aligning += sim.c.steerT * sim.c.delta < 0 ? 1 : 0; }
 		}
 		if (trace && sim.clock - traceT >= 0.02)
 		{
@@ -49,6 +53,8 @@ int main(int argc, char** argv)
 		std::printf("lap %d: %.3f s (raw %.3f, S1 %.3f, S2 %.3f, penalty %.0f, cones %d, off %d, valid %d)\n", lap.n, lap.time, lap.raw, lap.split1, lap.split2, lap.pen, lap.cones, lap.offCourse, lap.valid ? 1 : 0);
 	}
 	const double realTime = 165 / seconds;
+	const double aligningShare = steered ? 100.0 * aligning / steered : 0;
+	std::printf("steering torque: largest %.1f Nm, against the steering angle %.1f %% of the steered time\n", maxSteerT, aligningShare);
 	std::printf("largest distance from the centreline on a lap %.2f m, a tyre sliding %.1f %% of the time, numbers finite %d, %.1fx real time (%.1f us per 600 Hz step)\n",
 		maxLat, lapSteps ? 100.0 * slideSteps / lapSteps : 0.0, finite ? 1 : 0, realTime, seconds / (165 * 600) * 1e6);
 
@@ -71,7 +77,8 @@ int main(int argc, char** argv)
 	for (int k = 0; k < 10 * 600; ++k) drag.Step(&full);
 	std::printf("free roam flat out: 0-100 km/h %.3f s, 75 m %.3f s, top %.1f km/h (FS Lap's own model: 1.577 s, 3.075 s)\n", drag.fr.t100, drag.fr.t75, drag.fr.top * 3.6);
 
-	const bool pass = !sim.laps.empty() && finite && follows && realTime > 2 && drag.fr.t100 > 0 && std::abs(drag.fr.t100 - 1.577) > 0.002;   // the last: the ADTM really drove
+	const bool pass = !sim.laps.empty() && finite && follows && realTime > 2 && drag.fr.t100 > 0 && std::abs(drag.fr.t100 - 1.577) > 0.002
+		&& maxSteerT > 0 && aligningShare > 50;   // the last: the ADTM really drove
 	std::printf(pass ? "PASS\n" : "FAIL\n");
 	return pass ? 0 : 1;
 }

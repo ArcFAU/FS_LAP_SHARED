@@ -40,4 +40,7 @@ public:
 
 	UPROPERTY()
 	TArray<float> WheelCal;   // steering, throttle, brake: axis, value at rest, value at full
+
+	UPROPERTY()
+	int32 ForceFeedback = 0;   // % of the wheel's strongest force, negative: reversed, 0: off
 };

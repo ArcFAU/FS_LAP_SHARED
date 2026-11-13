@@ -73,6 +73,7 @@ namespace
 			const auto sliding = [this](int sx, int sy) { return std::abs(out[sx]) > SlideSlip || std::abs(out[sy]) > SlideSlip; };
 			c.slipF = sliding(out_s_xFL, out_s_yFL) || sliding(out_s_xFR, out_s_yFR);
 			c.slipR = sliding(out_s_xRL, out_s_yRL) || sliding(out_s_xRR, out_s_yRR);
+			c.steerT = out[out_T_Steering];
 			last = c;
 		}
 

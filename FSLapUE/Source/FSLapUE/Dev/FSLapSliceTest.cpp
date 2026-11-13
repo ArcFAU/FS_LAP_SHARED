@@ -64,10 +64,12 @@ namespace FSLapSliceTestLocal
 			{ EKeys::R, 0.2, TEXT("r restores the stock car"), RowHas(1, TEXT("5.40")) },
 			{ EKeys::Up, 0.2, TEXT("setup row up"), [](const Pawn& C) { return C.GetSetupRow() == 0; } },
 			{ EKeys::Up, 0.2, TEXT("setup wraps to driver assist"), AssistIs(TEXT("On")) },
-			{ EKeys::Up, 0.2, TEXT("setup row up to the steering wheel"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 2 && C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("Steering wheel")); } },
+			{ EKeys::Up, 0.2, TEXT("setup row up to force feedback"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 2 && C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("Force feedback")); } },
+			{ EKeys::Up, 0.2, TEXT("setup row up to the steering wheel"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 3 && C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("Steering wheel")); } },
 			{ EKeys::Right, 0.5, TEXT("right opens the wheel setup"), FlowIs(EFSLapFlow::Wheel), -2, TEXT("wheel.png") },
 			{ EKeys::Enter, 0.2, TEXT("enter with no wheel stays in the wheel setup"), FlowIs(EFSLapFlow::Wheel) },
 			{ EKeys::Escape, 0.2, TEXT("esc goes back to setup"), FlowIs(EFSLapFlow::Setup) },
+			{ EKeys::Down, 0.2, TEXT("setup row down to force feedback"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 2; } },   // not changed: it is the owner's saved setting
 			{ EKeys::Down, 0.2, TEXT("setup row down to driver assist"), AssistIs(TEXT("On")) },
 			{ EKeys::Right, 0.2, TEXT("driver assist off"), AssistIs(TEXT("Off")) },
 			{ EKeys::Left, 0.2, TEXT("driver assist on"), AssistIs(TEXT("On")) },

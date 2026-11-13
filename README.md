@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `65d51af` on 2026-11-13.
+> Synced from development commit `645754e` on 2026-11-13.
 
 ---
 
@@ -101,7 +101,14 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 3. Follow the four steps, pressing **Enter** after each: hands off the wheel and feet off the pedals; turn the wheel right as far as you want full steering lock; press the throttle fully; press the brake fully.
 4. **Esc** goes back. The setup is saved and used from then on. The keyboard and gamepad keep working and win while they are pressed.
 
-The wheel's rotation range is set in the wheel's own software (Moza Pit House). There is no force feedback yet, and the wheel's buttons are not used yet.
+The wheel's rotation range is set in the wheel's own software (Moza Pit House). The wheel's buttons are not used yet.
+
+**Force feedback (ADTM only):** setup row **Force feedback**, off by default.
+- **What you feel:** the ADTM's steering torque (`T_Steering`, section 4b) while you drive. There is no force in menus, the pause menu, replays, with the autopilot, or on FS Lap's own model.
+- **Strength:** **Right** raises it in steps of 10 %. At 100 %, the largest torque on the ADTM's AI hot lap (25.5 Nm at the steering wheel) is the wheel's strongest force; the wheel's own maximum is set in Pit House. Changes in force are smoothed: full force takes 0.2 s to build.
+- **First try:** hold the wheel and start at 10 %. In a corner the wheel must pull back towards the centre. If it pulls further into the corner, go back to off and press **Left** once more: `10 %, reversed`. Wheel drivers do not all push the same way.
+- **Exclusive access:** while force feedback is on, FS Lap takes the wheel exclusively, so other programs cannot send it effects. A controller without force feedback stays shared, and the row says so.
+- **Untested on the R3:** force feedback was built and tested without a force feedback wheel.
 
 ## 4. The vehicle model
 
@@ -210,6 +217,7 @@ You can drive the team's Advanced Dual Track Model (ADTM) itself, live, with the
 - **From the ADTM vehicle file baked in at generation:** everything else, including mass, tyres, suspension and motors. Today that is `FAUmaxTau.m` with `default_mu0.7`.
 - **Not used by the ADTM:** FS Lap's mass, tyre, roll and torque-vectoring rows.
 - **No handbrake:** the handbrake does nothing on the ADTM, as on the real car.
+- **Force feedback:** from the ADTM's `T_Steering` (section 3). On the AI hot lap it peaks at 25.5 Nm and pulls the wheel back towards the centre 89 % of the steered time.
 
 **Results with the stock car:**
 
@@ -286,9 +294,9 @@ All tests run from PowerShell in the repository root. Close the Unreal Editor fi
 | `tools\validate.ps1` | Builds the vehicle model alone and runs the AI in sim, arcade, free roam and city mode. The lap times must match (sim 77.405 s, arcade 75.367 s, city 89.633 s) with no wall contacts. No Unreal needed. |
 | `tools\validate.ps1 -Game` | The above, plus the in-game tests below |
 | `tools\slice_test.ps1 -Mode sim` (or `arcade`, `city`, `free`) | Starts the real game, lets the AI drive a lap and takes photos from around the car. Results in `FSLapUE\Saved\SliceTest\<mode>\results.txt`: lap times, fps, average and 95th-percentile frame time, the longest frame and the number of frames over 100 ms (hitches). |
-| `tools\slice_test.ps1 -Mode keys` | Presses every key through the game and checks what each did (46 steps). Each line also reports the frame rate and the car's speed. |
+| `tools\slice_test.ps1 -Mode keys` | Presses every key through the game and checks what each did (48 steps). Each line also reports the frame rate and the car's speed. |
 | `tools\slice_test.ps1 -Mode lts` | Has the real LTS compute the single-track reference for the stock car (needs MATLAB, section 4a), then lets the AI drive a hot lap against it. Checks the reference (`reference=LTS 1-track 74.952`) and the lap files (`lap_log=`). |
-| `tools\physics_test\adtm.bat` | The ADTM in the game's core without Unreal: the AI laps the FSG track (77.620 s), the car is moved and must carry on, and a free-roam standing start (0–100 km/h in 2.185 s, with the assists on). It must run faster than real time. Needs the generated code. |
+| `tools\physics_test\adtm.bat` | The ADTM in the game's core without Unreal: the AI laps the FSG track (77.620 s), the car is moved and must carry on, and a free-roam standing start (0–100 km/h in 2.185 s, with the assists on). The steering torque must pull back towards the centre most of the time. It must run faster than real time. Needs the generated code. |
 | `tools\slice_test.ps1 -Mode adtm` | The in-game hot lap with the ADTM as the vehicle model (`vehicle_model=ADTM ...`). Add `-Adtm` to any other mode to run it with the ADTM. |
 
 Add `-Engine <UE>` if your engine is not at `D:\UE\UE_5.8`.
@@ -310,10 +318,10 @@ The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_I
 
 ## 10. Limits and plans
 
-**Not there yet:** force feedback, a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, real-car data overlays, the wheel's buttons, and a field of view set from the rig's screen size. The LTS reference covers the FSG endurance track only, and the lap files are not yet in .mat format.
+**Not there yet:** force feedback on FS Lap's own model (it has none; only the ADTM gives it), a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, real-car data overlays, the wheel's buttons, and a field of view set from the rig's screen size. The LTS reference covers the FSG endurance track only, and the lap files are not yet in .mat format.
 
 **Proposed next, in order, pending the team's answers:**
-1. **Force feedback** on the Moza R3, from the ADTM's steering torque output (`T_Steering`).
+1. **Force feedback, tried on the Moza R3:** check the direction and the strength with a driver (section 3).
 2. **Rig basics:** the real steering ratio from the CAD rack, so the wheel turns the ADTM's steering directly instead of through FS Lap's speed-dependent lock, and a field of view from the screen geometry.
 3. **The ADTM's vehicle data from FS Lap's setup:** mass and tyres editable in the setup screen, not only at generation.
 4. **Better vehicle model:** a four-wheel model and the tyre model, or live co-simulation with the team's Simulink model.
@@ -333,6 +341,7 @@ Ask the simulator's maintainer if you need any of these.
 
 Newest first.
 
+- **2026-11-13 (night):** force feedback from the ADTM's steering torque, setup row **Force feedback** (section 3). Off by default; not yet tried on a force feedback wheel.
 - **2026-11-13 (evening):** drive the team's ADTM (section 4b). It is compiled into the game with MATLAB Coder and chosen in the setup row **Vehicle model** (hot lap and free roam). New tests: `tools\physics_test\adtm.bat`, slice test mode `adtm` and the `-Adtm` switch.
 - **2026-11-13 (later):** the complete LTS and lap data (section 4a).
   - **LTS reference:** the setup row **LTS reference** has the team's LTS compute the reference lap for the current setup (point-mass, single-track or dual-track model).

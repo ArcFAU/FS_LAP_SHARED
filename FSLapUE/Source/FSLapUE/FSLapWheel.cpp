@@ -26,6 +26,11 @@ FFSLapWheel::~FFSLapWheel()
 void FFSLapWheel::Release(FOpened& Opened)
 {
 #if PLATFORM_WINDOWS
+	if (Opened.Effect)
+	{
+		static_cast<IDirectInputEffect*>(Opened.Effect)->Stop();
+		static_cast<IDirectInputEffect*>(Opened.Effect)->Release();
+	}
 	if (Opened.Device)
 	{
 		static_cast<IDirectInputDevice8W*>(Opened.Device)->Unacquire();
@@ -45,9 +50,10 @@ void FFSLapWheel::Close()
 	Name.Empty();
 }
 
-FFSLapWheel::FOpened FFSLapWheel::Open(const FString& Preferred, void* Window)
+FFSLapWheel::FOpened FFSLapWheel::Open(const FString& Preferred, void* Window, int32 ForceAxis)
 {
 	FOpened Result;
+	Result.ForceAxis = ForceAxis;
 #if PLATFORM_WINDOWS
 	IDirectInput8W* DI = nullptr;
 	if (FAILED(DirectInput8Create(GetModuleHandleW(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8W, reinterpret_cast<void**>(&DI), nullptr)))
@@ -74,10 +80,31 @@ FFSLapWheel::FOpened FFSLapWheel::Open(const FString& Preferred, void* Window)
 	Result.Device = D;
 	Result.Name = Pick->Name;
 	D->SetDataFormat(&c_dfDIJoystick2);
+	DIDEVCAPS Caps = {};
+	Caps.dwSize = sizeof(Caps);
+	// force feedback needs exclusive access; a controller without it (pedals) stays shared as before
+	bool bForce = ForceAxis >= 0 && ForceAxis < 8 && SUCCEEDED(D->GetCapabilities(&Caps)) && (Caps.dwFlags & DIDC_FORCEFEEDBACK);
 	if (Window)
 	{
 		// background: the pedals keep working while another window (Moza Pit House) has the focus
-		D->SetCooperativeLevel(static_cast<HWND>(Window), DISCL_BACKGROUND | DISCL_NONEXCLUSIVE);
+		bForce = bForce && SUCCEEDED(D->SetCooperativeLevel(static_cast<HWND>(Window), DISCL_BACKGROUND | DISCL_EXCLUSIVE));
+		if (!bForce)
+		{
+			D->SetCooperativeLevel(static_cast<HWND>(Window), DISCL_BACKGROUND | DISCL_NONEXCLUSIVE);
+		}
+	}
+	else
+	{
+		bForce = false;
+	}
+	if (bForce)
+	{
+		DIPROPDWORD Center = {};
+		Center.diph.dwSize = sizeof(DIPROPDWORD);
+		Center.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+		Center.diph.dwHow = DIPH_DEVICE;
+		Center.dwData = DIPROPAUTOCENTER_OFF;   // the model's torque does the centring
+		D->SetProperty(DIPROP_AUTOCENTER, &Center.diph);
 	}
 	DIPROPRANGE Range = {};
 	Range.diph.dwSize = sizeof(DIPROPRANGE);
@@ -87,13 +114,59 @@ FFSLapWheel::FOpened FFSLapWheel::Open(const FString& Preferred, void* Window)
 	Range.lMax = 1000;
 	D->SetProperty(DIPROP_RANGE, &Range.diph);
 	D->Acquire();
+	if (bForce)
+	{
+		static const DWORD Offsets[] = { DIJOFS_X, DIJOFS_Y, DIJOFS_Z, DIJOFS_RX, DIJOFS_RY, DIJOFS_RZ, DIJOFS_SLIDER(0), DIJOFS_SLIDER(1) };   // Read's axis order
+		DWORD Axis = Offsets[ForceAxis];
+		LONG Direction = 0;
+		DICONSTANTFORCE Constant = { 0 };   // starts at no force
+		DIEFFECT Effect = {};
+		Effect.dwSize = sizeof(DIEFFECT);
+		Effect.dwFlags = DIEFF_CARTESIAN | DIEFF_OBJECTOFFSETS;
+		Effect.dwDuration = INFINITE;
+		Effect.dwGain = DI_FFNOMINALMAX;
+		Effect.dwTriggerButton = DIEB_NOTRIGGER;
+		Effect.cAxes = 1;
+		Effect.rgdwAxes = &Axis;
+		Effect.rglDirection = &Direction;
+		Effect.cbTypeSpecificParams = sizeof(DICONSTANTFORCE);
+		Effect.lpvTypeSpecificParams = &Constant;
+		IDirectInputEffect* E = nullptr;
+		if (SUCCEEDED(D->CreateEffect(GUID_ConstantForce, &Effect, &E, nullptr)))
+		{
+			Result.Effect = E;
+			E->Start(1, 0);
+		}
+	}
 #endif
 	return Result;
 }
 
-bool FFSLapWheel::Read(const FString& Preferred, TArray<float>& Axes)
+void FFSLapWheel::SetForce(float Force)
 {
 #if PLATFORM_WINDOWS
+	if (!Current.Effect)
+	{
+		return;
+	}
+	DICONSTANTFORCE Constant = { FMath::RoundToInt(FMath::Clamp(Force, -1.0f, 1.0f) * DI_FFNOMINALMAX) };
+	DIEFFECT Effect = {};
+	Effect.dwSize = sizeof(DIEFFECT);
+	Effect.dwFlags = DIEFF_CARTESIAN | DIEFF_OBJECTOFFSETS;
+	Effect.cbTypeSpecificParams = sizeof(DICONSTANTFORCE);
+	Effect.lpvTypeSpecificParams = &Constant;
+	static_cast<IDirectInputEffect*>(Current.Effect)->SetParameters(&Effect, DIEP_TYPESPECIFICPARAMS | DIEP_START);
+#endif
+}
+
+bool FFSLapWheel::Read(const FString& Preferred, TArray<float>& Axes, int32 ForceAxis)
+{
+#if PLATFORM_WINDOWS
+	if (Current.Device && Current.ForceAxis != ForceAxis)
+	{
+		Close();   // force feedback switched on or off: open it again, exclusive or shared
+		NextTry = 0;
+	}
 	if (!Current.Device)
 	{
 		if (Search.IsValid())
@@ -111,7 +184,7 @@ bool FFSLapWheel::Read(const FString& Preferred, TArray<float>& Axes)
 			NextTry = FPlatformTime::Seconds() + 2;
 			const TSharedPtr<SWindow> GameWindow = GEngine && GEngine->GameViewport ? GEngine->GameViewport->GetWindow() : nullptr;
 			void* Window = GameWindow && GameWindow->GetNativeWindow() ? GameWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
-			Search = Async(EAsyncExecution::Thread, [Preferred, Window] { return Open(Preferred, Window); });
+			Search = Async(EAsyncExecution::Thread, [Preferred, Window, ForceAxis] { return Open(Preferred, Window, ForceAxis); });
 		}
 		if (!Current.Device)
 		{
@@ -126,6 +199,10 @@ bool FFSLapWheel::Read(const FString& Preferred, TArray<float>& Axes)
 		if (FAILED(D->Acquire()))
 		{
 			Close();   // unplugged: look for it again
+		}
+		else if (Current.Effect)
+		{
+			static_cast<IDirectInputEffect*>(Current.Effect)->Start(1, 0);   // acquiring again drops the effect from the device
 		}
 		return false;
 	}

@@ -38,6 +38,7 @@ namespace HoMoLap
 		double Fdown = 0, Fdrag = 0, ClAe = 0, beta = 0, capF = 0, capR = 0, power = 0;   // the rest of MATLAB's f, for the HUD
 		bool grass = false, assistBrake = false, hitWall = false;
 		bool slipF = false, slipR = false;   // axle sliding or locked: skid marks and smoke
+		double steerT = 0;   // steering wheel torque (Nm, the ADTM's T_Steering; 0 on FS Lap's own model): force feedback
 	};
 
 	struct HOMOLAPPHYSICS_API Cone { double x, y; char col; bool big, freeOnly; };   // col: 'b' blue left, 'y' yellow right, 'o' orange start
