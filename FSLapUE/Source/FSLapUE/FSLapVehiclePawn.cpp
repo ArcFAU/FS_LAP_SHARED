@@ -1042,7 +1042,9 @@ void AFSLapVehiclePawn::Confirm()
 
 bool AFSLapVehiclePawn::IsWheelSetUp() const
 {
-	return bWheelLive && SaveData->WheelCal.Num() == 9 && Wheel.Name == SaveData->WheelName;
+	// a setup that took the steering as a pedal (saved before the fix in WheelNext) must be done again
+	return bWheelLive && SaveData->WheelCal.Num() == 9 && Wheel.Name == SaveData->WheelName
+		&& SaveData->WheelCal[3] != SaveData->WheelCal[0] && SaveData->WheelCal[6] != SaveData->WheelCal[0];
 }
 
 // The same steps as HoMo-LAP's wheel setup: at rest, then whichever axis moved most is steering, throttle, brake.
@@ -1060,12 +1062,18 @@ void AFSLapVehiclePawn::WheelNext()
 		WheelStep = 1;
 		return;
 	}
-	int32 Moved = 0;
-	for (int32 i = 1; i < WheelAxes.Num(); ++i)
+	// an axis already taken is skipped: a wheel without a centring spring stays turned after the steering step,
+	// and the pedal steps then took the steering as throttle and brake
+	const auto Taken = [this](int32 Axis) { for (int32 k = 0; k < WheelNew.Num(); k += 3) { if (static_cast<int32>(WheelNew[k]) == Axis) return true; } return false; };
+	int32 Moved = -1;
+	for (int32 i = 0; i < WheelAxes.Num(); ++i)
 	{
-		Moved = FMath::Abs(WheelAxes[i] - WheelRest[i]) > FMath::Abs(WheelAxes[Moved] - WheelRest[Moved]) ? i : Moved;
+		if (!Taken(i) && (Moved < 0 || FMath::Abs(WheelAxes[i] - WheelRest[i]) > FMath::Abs(WheelAxes[Moved] - WheelRest[Moved])))
+		{
+			Moved = i;
+		}
 	}
-	if (FMath::Abs(WheelAxes[Moved] - WheelRest[Moved]) < 0.2f)
+	if (Moved < 0 || FMath::Abs(WheelAxes[Moved] - WheelRest[Moved]) < 0.2f)
 	{
 		if (WheelStep == 1)
 		{

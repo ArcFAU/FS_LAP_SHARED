@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `7dd64a6` on 2026-11-13.
+> Synced from development commit `15e099e` on 2026-11-13.
 
 ---
 
@@ -108,7 +108,8 @@ The wheel's rotation range is set in the wheel's own software (Moza Pit House). 
 - **Strength:** **Right** raises it in steps of 10 %. At 100 %, the largest torque on the ADTM's AI hot lap (25.5 Nm at the steering wheel) is the wheel's strongest force; the wheel's own maximum is set in Pit House. Changes in force are smoothed: full force takes 0.2 s to build.
 - **First try:** hold the wheel and start at 10 %. In a corner the wheel must pull back towards the centre. If it pulls further into the corner, go back to off and press **Left** once more: `10 %, reversed`. Wheel drivers do not all push the same way.
 - **Exclusive access:** while force feedback is on, FS Lap takes the wheel exclusively, so other programs cannot send it effects. A controller without force feedback stays shared, and the row says so.
-- **Untested on the R3:** force feedback was built and tested without a force feedback wheel.
+- **Direction measured** on a Fanatec Porsche 911 GT3 RS: a positive force turns it towards larger axis values, as FS Lap assumes, so `reversed` is not needed there. Not yet tried on the R3.
+- **Known effect:** with the front tyres locked or sliding at full lock, the ADTM's torque pushes further into the turn (up to about 3.6 Nm). That is the model, not a fault.
 
 ## 4. The vehicle model
 
@@ -341,6 +342,7 @@ Ask the simulator's maintainer if you need any of these.
 
 Newest first.
 
+- **2026-11-13 (night, fix):** the wheel setup no longer takes the steering as a pedal. A wheel without a centring spring stays turned after the steering step, and the pedal steps then picked the steering axis, so turning right braked. Setups saved that way count as not set up: do the wheel setup again.
 - **2026-11-13 (night, later):** the wheel setup accepts a wheel without pedals: Enter on the throttle and brake steps with nothing pressed, then the keys or a pad drive the pedals.
 - **2026-11-13 (night):** force feedback from the ADTM's steering torque, setup row **Force feedback** (section 3). Off by default; not yet tried on a force feedback wheel.
 - **2026-11-13 (evening):** drive the team's ADTM (section 4b). It is compiled into the game with MATLAB Coder and chosen in the setup row **Vehicle model** (hot lap and free roam). New tests: `tools\physics_test\adtm.bat`, slice test mode `adtm` and the `-Adtm` switch.
