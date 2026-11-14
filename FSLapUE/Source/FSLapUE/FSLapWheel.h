@@ -24,6 +24,9 @@ public:
 
 	bool HasForce() const { return Current.Effect != nullptr; }
 
+	static constexpr int32 AxisCount = 8;   // Read gives these axes first, then Buttons buttons as axes (0 or 1)
+	static constexpr int32 Buttons = 32;
+
 	FString Name;   // the product name of the controller being read
 
 private:

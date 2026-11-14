@@ -77,8 +77,20 @@ int main(int argc, char** argv)
 	for (int k = 0; k < 10 * 600; ++k) drag.Step(&full);
 	std::printf("free roam flat out: 0-100 km/h %.3f s, 75 m %.3f s, top %.1f km/h (FS Lap's own model: 1.577 s, 3.075 s)\n", drag.fr.t100, drag.fr.t75, drag.fr.top * 3.6);
 
+	// a steering wheel with Wheel rotation set: no smoothing, and a fixed ratio at any speed; the keys stay smoothed
+	Input wheel = full;
+	wheel.steer = 0.1; wheel.wheel = wheel.direct = true;
+	drag.Step(&wheel);
+	const bool direct = drag.c.st == 0.1 && drag.c.direct && std::abs(drag.c.delta - 0.1 * drag.C.delMax) < 1e-12;
+	Input keys = full;
+	keys.steer = -0.5;
+	drag.Step(&keys);
+	const bool smoothed = drag.c.st > -0.5 && !drag.c.direct;
+	std::printf("wheel 1:1 at %.0f km/h: st %.3f, road angle %.3f deg; keys after one step: st %.3f (asked -0.5)\n", drag.c.vx * 3.6, 0.1, 0.1 * drag.C.delMax * 180 / 3.14159265358979, drag.c.st);
+
 	const bool pass = !sim.laps.empty() && finite && follows && realTime > 2 && drag.fr.t100 > 0 && std::abs(drag.fr.t100 - 1.577) > 0.002
-		&& maxSteerT > 0 && aligningShare > 50;   // the last: the ADTM really drove
+		&& maxSteerT > 0 && aligningShare > 50   // the ADTM really drove
+		&& direct && smoothed;
 	std::printf(pass ? "PASS\n" : "FAIL\n");
 	return pass ? 0 : 1;
 }

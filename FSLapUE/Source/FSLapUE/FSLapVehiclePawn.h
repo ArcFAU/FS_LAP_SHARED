@@ -51,6 +51,11 @@ public:
 	FString GetWheelText() const;   // the wheel setup screen: the step, what the wheel reads now
 	FString GetLtsLabel() const;    // the HUD's name for the reference lap
 
+	// The mouse in the menus (the HUD finds what is under it): a row of the menu or setup, the pause items in their key order, or back.
+	static constexpr int32 MouseBack = -1;
+	void MouseHover(int32 Target);
+	void MouseClick(int32 Target, bool bRightButton);
+
 	// Used by Dev\FSLapSliceTest: the AI drives, and the car can be held still for the photos.
 	bool bAutopilot = false;
 	bool bFrozen = false;

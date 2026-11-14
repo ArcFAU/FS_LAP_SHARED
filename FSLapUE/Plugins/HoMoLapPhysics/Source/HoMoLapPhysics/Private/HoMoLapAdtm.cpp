@@ -55,7 +55,7 @@ namespace
 			const double brake = std::clamp(c.brk, 0.0, 1.0) * brakeForce;
 			double throttle = std::clamp(c.thr, 0.0, 1.0) * std::min(1.0, systemPower / (4 * motorTorque * gear * std::max(c.vx, 0.1) / r0));
 			if (c.brk > 0.05 && c.vx > 0.3) throttle = 0;   // as FS Lap: the brake wins
-			double u[6] = { HandAngle(c.delta), brake * brakeFront / 2 * r0 / torquePerBarF, brake * (1 - brakeFront) / 2 * r0 / torquePerBarR, throttle, 1, Grip };
+			double u[6] = { c.direct ? std::clamp(c.st, -1.0, 1.0) * handMax : HandAngle(c.delta), brake * brakeFront / 2 * r0 / torquePerBarF, brake * (1 - brakeFront) / 2 * r0 / torquePerBarR, throttle, 1, Grip };
 			adtm::adtm_step(x, u, aero, t, Dt, out);
 			t += Dt;
 			if (!std::all_of(x, x + nStates, [](double v) { return std::isfinite(v); }))

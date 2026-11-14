@@ -28,6 +28,8 @@ namespace HoMoLap
 	{
 		double steer = 0, thr = 0, brk = 0;   // steer -1..1, + = right
 		bool hb = false, assist = false, human = false, arcade = false;
+		bool wheel = false;    // steer comes from a steering wheel: no smoothing, the driver's hands are the rate limit
+		bool direct = false;   // and 1:1: steer is the share of the car's steering wheel lock, at any speed, without the steering assist
 	};
 
 	struct HOMOLAPPHYSICS_API Car
@@ -38,6 +40,7 @@ namespace HoMoLap
 		double Fdown = 0, Fdrag = 0, ClAe = 0, beta = 0, capF = 0, capR = 0, power = 0;   // the rest of MATLAB's f, for the HUD
 		bool grass = false, assistBrake = false, hitWall = false;
 		bool slipF = false, slipR = false;   // axle sliding or locked: skid marks and smoke
+		bool direct = false;   // st is the share of the car's steering wheel lock (Input::direct)
 		double steerT = 0;   // steering wheel torque (Nm, the ADTM's T_Steering; 0 on FS Lap's own model): force feedback
 	};
 

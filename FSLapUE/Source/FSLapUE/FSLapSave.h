@@ -43,4 +43,7 @@ public:
 
 	UPROPERTY()
 	int32 ForceFeedback = 0;   // % of the wheel's strongest force, negative: reversed, 0: off
+
+	UPROPERTY()
+	int32 WheelRotation = 0;   // degrees lock to lock as set in the wheel's driver: steering 1:1 with the car; 0: the calibrated lock
 };

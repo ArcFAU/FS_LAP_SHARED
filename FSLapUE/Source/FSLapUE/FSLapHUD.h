@@ -34,6 +34,12 @@ private:
 	void DrawLights(const AFSLapVehiclePawn& Vehicle);
 	void UpdateMessages(const AFSLapVehiclePawn& Vehicle, const HoMoLap::Simulation& Sim, float DeltaSeconds);
 	void ShowMessage(const FString& Title, const FString& Sub, const FLinearColor& Color, float Seconds, bool bSmall);
+	void Button(const FString& Text, float X, float Y, float W, float H, int32 Target);   // a clickable box, lit while the mouse is over it
+	void UpdateMouse(AFSLapVehiclePawn& Vehicle, bool bMenus);   // the cursor in the menus; hover and clicks go to the pawn
+
+	TArray<TPair<FBox2f, int32>> Targets;   // what this frame drew that the mouse can click, in layout units
+	FVector2f LastMouse = FVector2f(-1, -1);
+	int32 HoverTarget = -2;   // under the mouse last frame; -2: nothing (MouseBack is -1)
 
 	UPROPERTY()
 	UFont* Font = nullptr;

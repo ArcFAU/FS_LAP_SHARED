@@ -42,6 +42,7 @@ namespace FSLapSliceTestLocal
 		TFunction<bool(const AFSLapVehiclePawn&)> Check;
 		float Value = -2;
 		const TCHAR* Photo = nullptr;   // a screenshot with this name at the end of the hold
+		FVector2f Mouse = FVector2f(-1, -1);   // set: the cursor moves there first (the HUD's 1080-line layout units)
 	};
 	const TArray<FKeyStep>& KeySteps()
 	{
@@ -55,7 +56,8 @@ namespace FSLapSliceTestLocal
 			{ EKeys::Down, 0.2, TEXT("menu down"), Menu(2) },
 			{ EKeys::Up, 0.2, TEXT("menu up"), Menu(1) },
 			{ EKeys::Up, 0.2, TEXT("menu up"), Menu(0) },
-			{ EKeys::Up, 0.2, TEXT("menu wraps to setup"), Menu(4) },
+			{ EKeys::Up, 0.2, TEXT("menu wraps to quit"), Menu(5) },
+			{ EKeys::Up, 0.2, TEXT("menu up to setup"), Menu(4) },
 			{ EKeys::Enter, 0.2, TEXT("enter opens setup"), FlowIs(EFSLapFlow::Setup) },
 			{ EKeys::Right, 0.2, TEXT("next aero package"), RowHas(0, TEXT("vehicle-params")) },
 			{ EKeys::Left, 0.2, TEXT("previous aero package"), RowHas(0, TEXT("LTS vehicle file")) },
@@ -65,16 +67,25 @@ namespace FSLapSliceTestLocal
 			{ EKeys::Up, 0.2, TEXT("setup row up"), [](const Pawn& C) { return C.GetSetupRow() == 0; } },
 			{ EKeys::Up, 0.2, TEXT("setup wraps to driver assist"), AssistIs(TEXT("On")) },
 			{ EKeys::Up, 0.2, TEXT("setup row up to force feedback"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 2 && C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("Force feedback")); } },
-			{ EKeys::Up, 0.2, TEXT("setup row up to the steering wheel"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 3 && C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("Steering wheel")); } },
+			{ EKeys::Up, 0.2, TEXT("setup row up to wheel rotation"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 3 && C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("Wheel rotation")); } },
+			{ EKeys::Up, 0.2, TEXT("setup row up to the steering wheel"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 4 && C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("Steering wheel")); } },
 			{ EKeys::Right, 0.5, TEXT("right opens the wheel setup"), FlowIs(EFSLapFlow::Wheel), -2, TEXT("wheel.png") },
 			{ EKeys::Enter, 0.2, TEXT("enter with no wheel stays in the wheel setup"), FlowIs(EFSLapFlow::Wheel) },
-			{ EKeys::Escape, 0.2, TEXT("esc goes back to setup"), FlowIs(EFSLapFlow::Setup) },
+			{ EKeys::Invalid, 0.3, TEXT("the mouse over BACK"), FlowIs(EFSLapFlow::Wheel), -2, nullptr, FVector2f(754, 68) },
+			{ EKeys::LeftMouseButton, 0.2, TEXT("clicking BACK goes back to setup"), FlowIs(EFSLapFlow::Setup) },
+			{ EKeys::Down, 0.2, TEXT("setup row down to wheel rotation"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 3; } },   // not changed: it is the owner's saved setting
 			{ EKeys::Down, 0.2, TEXT("setup row down to force feedback"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 2; } },   // not changed: it is the owner's saved setting
 			{ EKeys::Down, 0.2, TEXT("setup row down to driver assist"), AssistIs(TEXT("On")) },
 			{ EKeys::Right, 0.2, TEXT("driver assist off"), AssistIs(TEXT("Off")) },
 			{ EKeys::Left, 0.2, TEXT("driver assist on"), AssistIs(TEXT("On")) },
+			{ EKeys::Invalid, 0.3, TEXT("the mouse over a setup row selects it"), [](const Pawn& C) { return C.GetSetupRow() == 1; }, -2, nullptr, FVector2f(300, 163) },
+			{ EKeys::RightMouseButton, 0.2, TEXT("right-click lowers downforce"), RowHas(1, TEXT("5.35")) },
+			{ EKeys::LeftMouseButton, 0.2, TEXT("click raises it again"), RowHas(1, TEXT("5.40")) },
 			{ EKeys::Enter, 0.2, TEXT("enter leaves setup"), FlowIs(EFSLapFlow::Menu) },
+			{ EKeys::Down, 0.2, TEXT("menu down to quit"), Menu(5) },
 			{ EKeys::Down, 0.2, TEXT("menu wraps to the top"), Menu(0) },
+			{ EKeys::Invalid, 0.3, TEXT("the mouse over arcade selects it"), Menu(1), -2, nullptr, FVector2f(200, 310) },
+			{ EKeys::Up, 0.2, TEXT("menu up to hot lap"), Menu(0) },
 			{ EKeys::Enter, 0.2, TEXT("enter starts a hot lap"), [](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Countdown && C.GetRaceMode() == HoMoLap::Mode::Sim; } },
 			{ EKeys::Escape, 0.2, TEXT("esc pauses"), FlowIs(EFSLapFlow::Paused) },
 			{ EKeys::Enter, 0.2, TEXT("enter resumes"), FlowIs(EFSLapFlow::Countdown) },
@@ -169,6 +180,12 @@ void UFSLapSliceTest::TickKeys(APlayerController* Player, AFSLapVehiclePawn* Car
 	const bool bAxis = Step.Value > -2;
 	if (!bKeyDown)
 	{
+		if (Step.Mouse.X >= 0)
+		{
+			int32 W, H;
+			Player->GetViewportSize(W, H);
+			Player->SetMouseLocation(FMath::RoundToInt32(Step.Mouse.X * H / 1080), FMath::RoundToInt32(Step.Mouse.Y * H / 1080));
+		}
 		if (Step.Key.IsValid() && !bAxis)
 		{
 			Player->InputKey(FInputKeyEventArgs::CreateSimulated(Step.Key, IE_Pressed, 1.0f));

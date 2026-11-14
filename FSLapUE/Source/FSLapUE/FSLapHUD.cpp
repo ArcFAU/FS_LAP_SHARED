@@ -7,6 +7,8 @@
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
 #include "FSLapVehiclePawn.h"
+#include "GameFramework/PlayerController.h"
+#include "Misc/ScopeExit.h"
 
 #include <algorithm>
 #include <cmath>
@@ -86,15 +88,73 @@ void AFSLapHUD::ShowMessage(const FString& Title, const FString& Sub, const FLin
 	bMessageSmall = bSmall;
 }
 
+void AFSLapHUD::Button(const FString& Text, float X, float Y, float W, float H, int32 Target)
+{
+	Box(X, Y, W, H, Target == HoverTarget ? Signal : Chip);
+	Label(Text, X + W / 2, Y + (H - 24) / 2 - 2, 22, Paper, true, true);
+	Targets.Add({ FBox2f(FVector2f(X, Y), FVector2f(X + W, Y + H)), Target });
+}
+
+void AFSLapHUD::UpdateMouse(AFSLapVehiclePawn& Vehicle, bool bMenus)
+{
+	ON_SCOPE_EXIT { Targets.Reset(); };
+	HoverTarget = -2;
+	if (!PlayerOwner)
+	{
+		return;
+	}
+	if (PlayerOwner->bShowMouseCursor != bMenus)   // the cursor only in the menus; driving keeps the mouse captured as before
+	{
+		PlayerOwner->bShowMouseCursor = bMenus;
+		if (bMenus)
+		{
+			FInputModeGameAndUI Mode;
+			Mode.SetHideCursorDuringCapture(false);
+			PlayerOwner->SetInputMode(Mode);
+		}
+		else
+		{
+			PlayerOwner->SetInputMode(FInputModeGameOnly());
+		}
+	}
+	float X, Y;
+	if (!bMenus || !PlayerOwner->GetMousePosition(X, Y))
+	{
+		return;
+	}
+	const FVector2f Mouse(X / S, Y / S);
+	for (const TPair<FBox2f, int32>& Target : Targets)
+	{
+		HoverTarget = Target.Key.IsInside(Mouse) ? Target.Value : HoverTarget;
+	}
+	// only a moving mouse selects, so a cursor resting on a row never fights the arrow keys
+	const bool bMoved = LastMouse.X >= 0 && !Mouse.Equals(LastMouse, 2);
+	LastMouse = Mouse;
+	if (HoverTarget < AFSLapVehiclePawn::MouseBack)
+	{
+		return;
+	}
+	if (bMoved)
+	{
+		Vehicle.MouseHover(HoverTarget);
+	}
+	const bool bRight = PlayerOwner->WasInputKeyJustPressed(EKeys::RightMouseButton);
+	if (bRight || PlayerOwner->WasInputKeyJustPressed(EKeys::LeftMouseButton))
+	{
+		Vehicle.MouseClick(HoverTarget, bRight);
+	}
+}
+
 void AFSLapHUD::DrawMenu(const AFSLapVehiclePawn& Vehicle)
 {
-	static const TCHAR* const Names[] = { TEXT("HOT LAP"), TEXT("ARCADE"), TEXT("CITY"), TEXT("FREE ROAM"), TEXT("SETUP") };
+	static const TCHAR* const Names[] = { TEXT("HOT LAP"), TEXT("ARCADE"), TEXT("CITY"), TEXT("FREE ROAM"), TEXT("SETUP"), TEXT("QUIT") };
 	static const TCHAR* const Notes[] = {
 		TEXT("Team data and FS Rules penalties."),
 		TEXT("More grip and power on the FSG track.\nHandbrake to slide. No penalties."),
 		TEXT("A made-up city about 3 km across, with traffic\nand ring roads. A timed circuit runs through the middle."),
 		TEXT("Open paddock with skidpad and acceleration strip.\n0-100 km/h and 75 m timed."),
 		TEXT("Change the aero package, mass, power, tyres,\nbrakes and chassis."),
+		TEXT("Close FS Lap."),
 	};
 	Slant(-40, 0, 680, ScreenH, Ink, 60);
 	Slant(640, 0, 6, ScreenH, Signal, 60);
@@ -108,9 +168,10 @@ void AFSLapHUD::DrawMenu(const AFSLapVehiclePawn& Vehicle)
 			Slant(44, 214 + i * 66, 500, 58, Signal, 14);
 		}
 		Label(Names[i], 64, 222 + i * 66, 36, bSelected ? Paper : Muted, true);
+		Targets.Add({ FBox2f(FVector2f(44, 214 + i * 66), FVector2f(544, 272 + i * 66)), i });
 	}
 	Label(Notes[Vehicle.GetMenuIndex()], 58, 214 + UE_ARRAY_COUNT(Names) * 66 + 20, 18, Paper);
-	Label(TEXT("UP / DOWN  choose      ENTER  start"), 58, ScreenH - 62, 18, Muted);
+	Label(TEXT("UP / DOWN  choose      ENTER  start      or the mouse"), 58, ScreenH - 62, 18, Muted);
 }
 
 void AFSLapHUD::DrawSetup(const AFSLapVehiclePawn& Vehicle)
@@ -121,16 +182,18 @@ void AFSLapHUD::DrawSetup(const AFSLapVehiclePawn& Vehicle)
 	const int32 Rows = Vehicle.GetSetupRowCount();
 	for (int32 Row = 0; Row < Rows; ++Row)
 	{
-		const float Y = 118 + Row * 38;   // 23 rows above the key help
+		const float Y = 112 + Row * 36;   // 25 rows above the key help
 		const bool bSelected = Row == Vehicle.GetSetupRow();
 		if (bSelected)
 		{
-			Box(44, Y - 4, 780, 36, Chip);
-			Box(44, Y - 4, 4, 36, Signal);
+			Box(44, Y - 3, 780, 34, Chip);
+			Box(44, Y - 3, 4, 34, Signal);
 		}
 		Label(Vehicle.GetSetupRowText(Row), 64, Y, 24, bSelected ? Paper : Muted, bSelected);
+		Targets.Add({ FBox2f(FVector2f(44, Y - 3), FVector2f(824, Y + 31)), Row });
 	}
-	Label(TEXT("UP / DOWN  choose     LEFT / RIGHT  change     R  stock car     ENTER  back"), 58, ScreenH - 62, 18, Muted);
+	Button(TEXT("BACK"), 684, 44, 140, 48, AFSLapVehiclePawn::MouseBack);
+	Label(TEXT("UP/DOWN  choose    LEFT/RIGHT or RIGHT-CLICK/CLICK  change    R  stock car    ENTER  back"), 58, ScreenH - 62, 18, Muted);
 }
 
 void AFSLapHUD::DrawWheel(const AFSLapVehiclePawn& Vehicle)
@@ -139,6 +202,8 @@ void AFSLapHUD::DrawWheel(const AFSLapVehiclePawn& Vehicle)
 	Box(856, 0, 4, ScreenH, Signal);
 	Label(TEXT("STEERING WHEEL"), 56, 40, 52, Paper, true);
 	Label(Vehicle.GetWheelText(), 58, 130, 24, Paper);
+	Button(TEXT("BACK"), 684, 44, 140, 48, AFSLapVehiclePawn::MouseBack);
+	Button(TEXT("NEXT STEP"), 58, ScreenH - 140, 240, 52, 0);
 	Label(TEXT("ENTER  next step     ESC  back to setup"), 58, ScreenH - 62, 18, Muted);
 }
 
@@ -464,7 +529,7 @@ void AFSLapHUD::DrawHUD()
 {
 	Super::DrawHUD();
 
-	const AFSLapVehiclePawn* Vehicle = Cast<AFSLapVehiclePawn>(GetOwningPawn());
+	AFSLapVehiclePawn* Vehicle = Cast<AFSLapVehiclePawn>(GetOwningPawn());
 	const HoMoLap::Simulation* Sim = Vehicle ? Vehicle->GetSimulation() : nullptr;
 	if (!Font)
 	{
@@ -478,6 +543,8 @@ void AFSLapHUD::DrawHUD()
 	ScreenW = Canvas->ClipX / S;
 	ScreenH = 1080.0f;
 	const float DeltaSeconds = GetWorld()->GetDeltaSeconds();
+	const EFSLapFlow Flow = Vehicle->GetFlow();
+	ON_SCOPE_EXIT { UpdateMouse(*Vehicle, Flow == EFSLapFlow::Menu || Flow == EFSLapFlow::Setup || Flow == EFSLapFlow::Wheel || Flow == EFSLapFlow::Paused); };
 
 	if (Vehicle->GetFlow() == EFSLapFlow::Menu)
 	{
@@ -551,6 +618,16 @@ void AFSLapHUD::DrawHUD()
 	{
 		Box(0, 0, ScreenW, ScreenH, FLinearColor(0, 0, 0, 0.6f));
 		Label(TEXT("PAUSED"), ScreenW / 2, 400, 96, Paper, true, true);
-		Label(Vehicle->CanReplay() ? TEXT("ENTER  resume        R  restart        B  replay best lap        M  menu") : TEXT("ENTER  resume        R  restart        M  menu"), ScreenW / 2, 530, 26, Muted, false, true);
+		// the pause items in the pawn's MouseClick order: ENTER, R, B, M
+		static const TCHAR* const Items[] = { TEXT("ENTER  resume"), TEXT("R  restart"), TEXT("B  replay best lap"), TEXT("M  menu") };
+		float Y = 530;
+		for (int32 i = 0; i < UE_ARRAY_COUNT(Items); ++i)
+		{
+			if (i != 2 || Vehicle->CanReplay())
+			{
+				Button(Items[i], ScreenW / 2 - 200, Y, 400, 48, i);
+				Y += 60;
+			}
+		}
 	}
 }

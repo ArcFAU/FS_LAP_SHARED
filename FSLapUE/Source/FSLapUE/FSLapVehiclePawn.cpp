@@ -14,6 +14,7 @@
 #include "GameFramework/PlayerController.h"
 #include "HoMoLapAdtm.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Materials/MaterialInterface.h"
 #include "Sound/SoundWave.h"
 #include "UObject/ConstructorHelpers.h"
@@ -33,8 +34,10 @@ namespace
 	const TCHAR* const SaveSlot = TEXT("FSLap");
 	const FVector DriverEye(-12, 0, 85);              // the headrest cushion ends at x = -35 cm and is centred at z = 73 cm
 	constexpr float SteeringWheelTilt = -11.8f, SteeringWheelTravel = 140;   // tilt: the CAD's column angle
+	constexpr float CarLock = 110;   // the car's steering wheel at full lock (°), the ADTM's constant: Wheel rotation maps 1:1 onto it
 	constexpr int32 MaxSkids = 1500, MaxPuffs = 48;
 	constexpr int32 MenuSetupRow = UE_ARRAY_COUNT(MenuModes);   // the row after the modes
+	constexpr int32 MenuRows = MenuSetupRow + 2;                 // the modes, setup, quit
 
 	// the motor loops from the test-day recordings (tools\make_sound_loops.py), each with the value of the upper gear tone it was cut at
 	struct FMotorLoop { const TCHAR* Asset; float ToneHz; };
@@ -420,6 +423,12 @@ void AFSLapVehiclePawn::Tick(float DeltaSeconds)
 		};
 		const auto Pedal = [](float Value) { return Value > 0.03f ? Value : 0.0f; };
 		WheelSteer = Axis(0);
+		if (SaveData->WheelRotation > 0)   // 1:1: the axis spans the wheel's whole rotation; the calibration gives the centre and the direction
+		{
+			const float* Cal = &SaveData->WheelCal[0];
+			const float Turned = (WheelAxes[FMath::Clamp(static_cast<int32>(Cal[0]), 0, WheelAxes.Num() - 1)] - Cal[1]) * FMath::Sign(Cal[2] - Cal[1]);
+			WheelSteer = FMath::Clamp(Turned * SaveData->WheelRotation / 2 / CarLock, -1.0f, 1.0f);
+		}
 		WheelThrottle = Pedal(Axis(1));
 		WheelBrake = Pedal(Axis(2));
 	}
@@ -742,7 +751,7 @@ void AFSLapVehiclePawn::UpdateEffects(float DeltaSeconds)
 
 int32 AFSLapVehiclePawn::GetSetupRowCount() const
 {
-	return 6 + UE_ARRAY_COUNT(SetupFields);   // the aero package, the fields, the vehicle model, the LTS reference, the steering wheel, force feedback, driver assist
+	return 7 + UE_ARRAY_COUNT(SetupFields);   // the aero package, the fields, the vehicle model, the LTS reference, the steering wheel, force feedback, driver assist
 }
 
 FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
@@ -755,7 +764,7 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 	{
 		return FString::Printf(TEXT("Driver assist:  %s"), bDriverAssist ? TEXT("On") : TEXT("Off"));
 	}
-	if (Row == GetSetupRowCount() - 5)
+	if (Row == GetSetupRowCount() - 6)
 	{
 		if (!bAdtm)
 		{
@@ -763,7 +772,7 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 		}
 		return *HoMoLap::AdtmSource() ? TEXT("Vehicle model:  ADTM (team, dual track)") : TEXT("Vehicle model:  ADTM not built yet");
 	}
-	if (Row == GetSetupRowCount() - 4)
+	if (Row == GetSetupRowCount() - 5)
 	{
 		const FString Status = Lts.Status();
 		const double Lap = LtsModel == 0 || LtsShown == FFSLapLts::Models[LtsModel] ? Track.ltsLap : 0;
@@ -778,9 +787,15 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 			return TEXT("Force feedback:  off (from the ADTM)");
 		}
 		return FString::Printf(TEXT("Force feedback:  %d %%%s%s"), FMath::Abs(Ffb), Ffb < 0 ? TEXT(", reversed") : TEXT(""),
-			bWheelLive && !Wheel.HasForce() ? TEXT(", this controller has none") : TEXT(""));
+			bWheelLive && !Wheel.HasForce() ? TEXT(", this controller has none") : !bAdtm || !*HoMoLap::AdtmSource() ? TEXT(", only on the ADTM vehicle model") : TEXT(""));
 	}
 	if (Row == GetSetupRowCount() - 3)
+	{
+		const int32 Rotation = SaveData ? SaveData->WheelRotation : 0;
+		return Rotation == 0 ? FString(TEXT("Wheel rotation:  off (full lock where you calibrated)"))
+			: FString::Printf(TEXT("Wheel rotation:  %d°, 1:1 with the car's %.0f°"), Rotation, 2 * CarLock);
+	}
+	if (Row == GetSetupRowCount() - 4)
 	{
 		return !bWheelLive ? TEXT("Steering wheel:  none found") : FString::Printf(TEXT("Steering wheel:  %s, %s"), *Wheel.Name, IsWheelSetUp() ? TEXT("set up") : TEXT("not set up (RIGHT)"));
 	}
@@ -794,11 +809,11 @@ void AFSLapVehiclePawn::ChangeSetup(int32 Direction)
 	{
 		bDriverAssist = !bDriverAssist;
 	}
-	else if (SetupRow == GetSetupRowCount() - 5)
+	else if (SetupRow == GetSetupRowCount() - 6)
 	{
 		bAdtm = !bAdtm;   // without the generated code the row says so and the car stays FS Lap's (MakeAdtm gives null)
 	}
-	else if (SetupRow == GetSetupRowCount() - 4)
+	else if (SetupRow == GetSetupRowCount() - 5)
 	{
 		LtsModel = (LtsModel + Direction + UE_ARRAY_COUNT(FFSLapLts::Models)) % UE_ARRAY_COUNT(FFSLapLts::Models);
 		RequestLts();
@@ -813,6 +828,16 @@ void AFSLapVehiclePawn::ChangeSetup(int32 Direction)
 		}
 	}
 	else if (SetupRow == GetSetupRowCount() - 3)
+	{
+		if (SaveData)
+		{
+			// off, then 180° to 1080° in steps of 90°: the wheel's rotation as its driver sets it (Moza Pit House, Fanatec)
+			const int32 Next = SaveData->WheelRotation + Direction * 90;
+			SaveData->WheelRotation = Next < 180 ? (Direction > 0 ? 180 : 0) : FMath::Min(Next, 1080);
+			UGameplayStatics::SaveGameToSlot(SaveData, SaveSlot, 0);
+		}
+	}
+	else if (SetupRow == GetSetupRowCount() - 4)
 	{
 		Flow = EFSLapFlow::Wheel;
 		WheelStep = 0;
@@ -920,7 +945,6 @@ void AFSLapVehiclePawn::ResetPressed()
 
 void AFSLapVehiclePawn::MenuUp()
 {
-	const int32 MenuRows = MenuSetupRow + 1;
 	if (Flow == EFSLapFlow::Menu)
 	{
 		MenuIndex = (MenuIndex + MenuRows - 1) % MenuRows;
@@ -933,7 +957,6 @@ void AFSLapVehiclePawn::MenuUp()
 
 void AFSLapVehiclePawn::MenuDown()
 {
-	const int32 MenuRows = MenuSetupRow + 1;
 	if (Flow == EFSLapFlow::Menu)
 	{
 		MenuIndex = (MenuIndex + 1) % MenuRows;
@@ -1021,6 +1044,10 @@ void AFSLapVehiclePawn::Confirm()
 		{
 			Flow = EFSLapFlow::Setup;
 		}
+		else if (MenuIndex == MenuSetupRow + 1)
+		{
+			UKismetSystemLibrary::QuitGame(this, Cast<APlayerController>(GetController()), EQuitPreference::Quit, false);
+		}
 		else
 		{
 			StartRace(MenuModes[MenuIndex]);
@@ -1103,14 +1130,23 @@ FString AFSLapVehiclePawn::GetWheelText() const
 	}
 	static const TCHAR* const Steps[] = {
 		TEXT("Hands off the wheel and feet off the pedals,\nthen press ENTER."),
-		TEXT("Turn the wheel to the right as far as you\nwant full steering lock, hold it there\nand press ENTER."),
-		TEXT("Press the throttle pedal fully, hold it\nand press ENTER.\nNo pedals: just press ENTER; W and S\n(or the pad's triggers) are throttle and brake."),
-		TEXT("Press the brake pedal fully, hold it\nand press ENTER.\nNo pedals: just press ENTER.") };
+		TEXT("Turn the wheel to the right as far as you\nwant full steering lock, hold it there\nand press ENTER.\n(With Wheel rotation set, any amount to the right:\nthe lock then comes from the rotation.)"),
+		TEXT("Press the throttle pedal fully, hold it\nand press ENTER.\nOr hold a wheel button for throttle and press ENTER.\nNo pedals: just press ENTER; W and S\n(or the pad's triggers) are throttle and brake."),
+		TEXT("Press the brake pedal fully, hold it\nand press ENTER.\nOr hold a wheel button for brake and press ENTER.\nNo pedals: just press ENTER.") };
 	FString Text = Wheel.Name + TEXT("\n\n") + (WheelMessage.IsEmpty() ? Steps[WheelStep] : *WheelMessage) + TEXT("\n\n");
+	FString Held;
 	for (int32 i = 0; i < WheelAxes.Num(); ++i)
 	{
-		Text += FString::Printf(TEXT("axis %d   %+.2f\n"), i, WheelAxes[i]);
+		if (i < FFSLapWheel::AxisCount)
+		{
+			Text += FString::Printf(TEXT("axis %d   %+.2f\n"), i, WheelAxes[i]);
+		}
+		else if (WheelAxes[i] > 0.5f)
+		{
+			Held += FString::Printf(TEXT(" %d"), i - FFSLapWheel::AxisCount + 1);
+		}
 	}
+	Text += TEXT("buttons held:") + (Held.IsEmpty() ? FString(TEXT(" none")) : Held) + TEXT("\n");
 	if (IsWheelSetUp())
 	{
 		Text += FString::Printf(TEXT("\nNow: steer %+.2f   throttle %.2f   brake %.2f"), WheelSteer, WheelThrottle, WheelBrake);
@@ -1149,6 +1185,47 @@ void AFSLapVehiclePawn::BackToMenu()
 	if (Flow == EFSLapFlow::Paused)
 	{
 		EnterMenu();
+	}
+}
+
+void AFSLapVehiclePawn::MouseHover(int32 Target)
+{
+	if (Flow == EFSLapFlow::Menu && Target >= 0)
+	{
+		MenuIndex = Target;
+	}
+	else if (Flow == EFSLapFlow::Setup && Target >= 0)
+	{
+		SetupRow = Target;
+	}
+}
+
+// a click does what the keys do: ENTER on a menu row, RIGHT (left button) or LEFT (right button) on a setup row, ESC for back
+void AFSLapVehiclePawn::MouseClick(int32 Target, bool bRightButton)
+{
+	MouseHover(Target);
+	if (Target == MouseBack)
+	{
+		TogglePause();
+	}
+	else if (Flow == EFSLapFlow::Setup)
+	{
+		ChangeSetup(bRightButton ? -1 : 1);
+	}
+	else if (Flow == EFSLapFlow::Paused)
+	{
+		switch (Target)   // ENTER, R, B, M
+		{
+		case 0: Confirm(); break;
+		case 1: ResetPressed(); break;
+		case 2: ReplayPressed(); break;
+		case 3: BackToMenu(); break;
+		default: break;
+		}
+	}
+	else if (!bRightButton)
+	{
+		Confirm();   // the menu row, or the wheel setup's next step
 	}
 }
 
@@ -1246,6 +1323,8 @@ void AFSLapVehiclePawn::Simulate()
 	}
 	HoMoLap::Input Input;
 	Input.steer = SteerInput != 0 ? SteerInput : WheelSteer;   // keys and pad first, the wheel when they are idle
+	Input.wheel = SteerInput == 0 && IsWheelSetUp();
+	Input.direct = SaveData && SaveData->WheelRotation > 0;
 	Input.thr = FMath::Max(ThrottleInput, WheelThrottle);
 	Input.brk = FMath::Max(BrakeInput, WheelBrake);
 	Input.hb = Handbrake;
@@ -1518,7 +1597,7 @@ void AFSLapVehiclePawn::UpdateVisuals()
 		FVector(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, 0),
 		FRotator(0, FMath::RadiansToDegrees(Car.h), 0));
 	Body->SetRelativeRotation(FRotator(BodyPitch, 0, BodyRoll));
-	SteeringWheel->SetRelativeRotation(FRotator(SteeringWheelTilt, 0, static_cast<float>(Car.st) * SteeringWheelTravel));
+	SteeringWheel->SetRelativeRotation(FRotator(SteeringWheelTilt, 0, static_cast<float>(Car.st) * (Car.direct ? CarLock : SteeringWheelTravel)));
 	WheelFL->SetRelativeRotation(FRotator(WheelRotation, SteerAngle, 0));
 	WheelFR->SetRelativeRotation(FRotator(WheelRotation, SteerAngle, 0));
 	CadHubFL->SetRelativeRotation(FRotator(0, SteerAngle, 0));

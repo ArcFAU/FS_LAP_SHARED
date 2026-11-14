@@ -456,7 +456,8 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 	c.brk += Clamp(brkT - c.brk, -12 * Dt, Pick(arc, 6, 12) * Dt);   // arcade: the brakes build over about 0.17 s, so a hard stop dives instead of hitting a wall
 	const double st = Clamp(In.steer, -1, 1);
 	const double rate = (std::abs(st) < std::abs(c.st) || st * c.st < 0) ? Pick(arc, 9, 7) : Pick(arc, 6, 4.2);
-	c.st += Clamp(st - c.st, -rate * Dt, rate * Dt);
+	c.st = In.wheel ? st : c.st + Clamp(st - c.st, -rate * Dt, rate * Dt);   // the keys' smoothing made a wheel lag by up to 0.24 s
+	c.direct = In.wheel && In.direct;
 
 	const double v = std::hypot(c.vx, c.vy), vxs = std::max(std::abs(c.vx), 1.5);
 	double sf = 1;
@@ -487,7 +488,7 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 	const double aLim = (capF + capR) / C.m;
 	const double dLim = arc ? std::min(C.delMax, std::atan(C.L * aLim / std::max(v * v, 4.0)) + 1.15 * C.ap)
 	                        : std::min(C.delMax, C.L * aLim / std::max(v * v, 4.0) + 0.9 * C.ap);
-	double dCmd = c.st * dLim;
+	double dCmd = c.st * (c.direct ? C.delMax : dLim);   // 1:1: a fixed steering ratio, the car's full lock at full lock
 	if (arc)
 	{
 		if (std::abs(c.vx) > 3)   // automatic counter-steer into a slide (less while drifting, so the slide lasts)
@@ -496,7 +497,7 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 			dCmd = Clamp(dCmd + Clamp(Pick(drift, 0.45, 0.8) * bx, -0.35, 0.35), -C.delMax, C.delMax);
 		}
 	}
-	else if (In.assist && In.human && !isFree && std::abs(c.vx) > 2.5)
+	else if (In.assist && In.human && !c.direct && !isFree && std::abs(c.vx) > 2.5)
 	{
 		// steering assist: into the bend gives the lock the bend needs plus a margin, otherwise a gentler lock
 		const double iA = std::floor(c.s + 1 + 0.12 * v);
