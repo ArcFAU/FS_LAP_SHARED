@@ -17,6 +17,26 @@
 #include <math.h>
 #include <string.h>
 
+// Type Definitions
+namespace adtm
+{
+  struct struct_T
+  {
+    double m_C;
+    double z_cg;
+    double l_FA;
+    double l_RA;
+    double F_SFL0;
+    double F_SFR0;
+    double F_SRL0;
+    double F_SRR0;
+    double C_LFA;
+    double C_LRA;
+    double C_D;
+    double T_MMax;
+  };
+}
+
 // Variable Definitions
 namespace adtm
 {
@@ -30,125 +50,118 @@ namespace adtm
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
   };
 
-  static const double dv[3] = { 0.765, 0.62, -0.09 };
+  static const double dv3[3] = { 0.765, 0.62, -0.09 };
 
-  static const double dv1[3] = { 0.635, 0.14, -0.14135219963 };
+  static const double dv4[3] = { 0.635, 0.14, -0.14135219963 };
 
-  static const double dv2[3] = { 0.915, 0.11, -0.15869390375999998 };
+  static const double dv5[3] = { 0.915, 0.11, -0.15869390375999998 };
 
-  static const double dv3[3] = { 0.764175883332, 0.5853777559, -0.17886923377 };
+  static const double dv6[3] = { 0.764175883332, 0.5853777559, -0.17886923377 };
 
-  static const double dv4[3] = { 0.615, 0.24601, -0.014593333799999997 };
+  static const double dv7[3] = { 0.615, 0.24601, -0.014593333799999997 };
 
-  static const double dv5[3] = { 0.935, 0.234581, -0.018252069119999992 };
+  static const double dv8[3] = { 0.935, 0.234581, -0.018252069119999992 };
 
-  static const double dv6[3] = { 0.75520777448, 0.555162973,
+  static const double dv9[3] = { 0.75520777448, 0.555162973,
     -0.0077475229400000012 };
 
-  static const double dv7[3] = { 0.8250442, 0.14, -0.13 };
+  static const double dv10[3] = { 0.8250442, 0.14, -0.13 };
 
-  static const double dv8[3] = { 0.82543414787, 0.5823828205, -0.15144758053 };
+  static const double dv11[3] = { 0.82543414787, 0.5823828205, -0.15144758053 };
 
-  static const double dv9[3] = { 0.765, -0.62, -0.09 };
+  static const double dv12[3] = { 0.765, -0.62, -0.09 };
 
-  static const double dv10[3] = { 0.635, -0.14, -0.14135219963 };
+  static const double dv13[3] = { 0.635, -0.14, -0.14135219963 };
 
-  static const double dv11[3] = { 0.915, -0.11, -0.15869390375999998 };
+  static const double dv14[3] = { 0.915, -0.11, -0.15869390375999998 };
 
-  static const double dv12[3] = { 0.764175883332, -0.5853777559, -0.17886923377
+  static const double dv15[3] = { 0.764175883332, -0.5853777559, -0.17886923377
   };
 
-  static const double dv13[3] = { 0.615, -0.24601, -0.014593333799999997 };
+  static const double dv16[3] = { 0.615, -0.24601, -0.014593333799999997 };
 
-  static const double dv14[3] = { 0.935, -0.234581, -0.018252069119999992 };
+  static const double dv17[3] = { 0.935, -0.234581, -0.018252069119999992 };
 
-  static const double dv15[3] = { 0.75520777448, -0.555162973,
+  static const double dv18[3] = { 0.75520777448, -0.555162973,
     -0.0077475229400000012 };
 
-  static const double dv16[3] = { 0.8250442, -0.14, -0.13 };
+  static const double dv19[3] = { 0.8250442, -0.14, -0.13 };
 
-  static const double dv17[3] = { 0.82543414787, -0.5823828205, -0.15144758053 };
+  static const double dv20[3] = { 0.82543414787, -0.5823828205, -0.15144758053 };
 
-  static const double dv18[3] = { -0.765, 0.6, -0.09 };
+  static const double dv21[3] = { -0.765, 0.6, -0.09 };
 
-  static const double dv19[3] = { -0.82000000000000006, 0.171,
+  static const double dv22[3] = { -0.82000000000000006, 0.171,
     -0.17463822676000001 };
 
-  static const double dv20[3] = { -0.545, 0.171, -0.16138069306 };
+  static const double dv23[3] = { -0.545, 0.171, -0.16138069306 };
 
-  static const double dv21[3] = { -0.755, 0.5373777842, -0.18663381170999999 };
+  static const double dv24[3] = { -0.755, 0.5373777842, -0.18663381170999999 };
 
-  static const double dv22[3] = { -0.96500000000000008, 0.171,
+  static const double dv25[3] = { -0.96500000000000008, 0.171,
     -0.06383149703999999 };
 
-  static const double dv23[3] = { -0.545, 0.171, -0.07451259982 };
+  static const double dv26[3] = { -0.545, 0.171, -0.07451259982 };
 
-  static const double dv24[3] = { -0.755, 0.4689737556, 0.0013047124400000082 };
+  static const double dv27[3] = { -0.755, 0.4689737556, 0.0013047124400000082 };
 
-  static const double dv25[3] = { -0.865, 0.171, -0.12 };
+  static const double dv28[3] = { -0.865, 0.171, -0.12 };
 
-  static const double dv26[3] = { -0.865, 0.5598025576, -0.084512323714 };
+  static const double dv29[3] = { -0.865, 0.5598025576, -0.084512323714 };
 
-  static const double dv27[3] = { -0.765, -0.6, -0.09 };
+  static const double dv30[3] = { -0.765, -0.6, -0.09 };
 
-  static const double dv28[3] = { -0.82000000000000006, -0.171,
+  static const double dv31[3] = { -0.82000000000000006, -0.171,
     -0.17463822676000001 };
 
-  static const double dv29[3] = { -0.545, -0.171, -0.16138069306 };
+  static const double dv32[3] = { -0.545, -0.171, -0.16138069306 };
 
-  static const double dv30[3] = { -0.755, -0.5373777842, -0.18663381170999999 };
+  static const double dv33[3] = { -0.755, -0.5373777842, -0.18663381170999999 };
 
-  static const double dv31[3] = { -0.96500000000000008, -0.171,
+  static const double dv34[3] = { -0.96500000000000008, -0.171,
     -0.06383149703999999 };
 
-  static const double dv32[3] = { -0.545, -0.171, -0.07451259982 };
+  static const double dv35[3] = { -0.545, -0.171, -0.07451259982 };
 
-  static const double dv33[3] = { -0.755, -0.4689737556, 0.0013047124400000082 };
+  static const double dv36[3] = { -0.755, -0.4689737556, 0.0013047124400000082 };
 
-  static const double dv34[3] = { -0.865, -0.171, -0.12 };
+  static const double dv37[3] = { -0.865, -0.171, -0.12 };
 
-  static const double dv35[3] = { -0.865, -0.5598025576, -0.084512323714 };
+  static const double dv38[3] = { -0.865, -0.5598025576, -0.084512323714 };
 
-  static const double dv36[9] = { 0.05, 0.0, 0.0, 0.0, 0.05, 0.0, 0.0, 0.0, 0.05
+  static const double dv39[9] = { 0.05, 0.0, 0.0, 0.0, 0.05, 0.0, 0.0, 0.0, 0.05
   };
 
-  static const double dv37[9] = { 0.05, 0.0, 0.0, 0.0, 0.26, 0.0, 0.0, 0.0, 0.05
+  static const double dv40[9] = { 0.05, 0.0, 0.0, 0.0, 0.26, 0.0, 0.0, 0.0, 0.05
   };
 
   static const signed char iv1[9] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
-  static const double dv38[3] = { 0.0, 0.0, 1.0 };
+  static const double dv41[3] = { 0.0, 0.0, 1.0 };
 
-  static const signed char iv2[9] = { 20, 0, 0, 0, 79, 0, 0, 0, 91 };
-
-  static const signed char iv3[42] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  static const signed char iv2[42] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0 };
+
+  static const signed char iv3[9] = { 20, 0, 0, 0, 79, 0, 0, 0, 91 };
 
   static const signed char iv4[42] = { 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
     0, 0 };
 
-  static const double dv39[42] = { 193.60000000000002, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 193.60000000000002, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    193.60000000000002, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  static const signed char iv5[42] = { 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0 };
 
-  static const double dv40[196] = { 193.60000000000002, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 193.60000000000002, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    193.60000000000002, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 79.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 91.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0 };
+  static const signed char iv6[196] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 79, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 91, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0 };
 
   static boolean_T isInitialized_adtm_step = false;
 }
@@ -180,9 +193,9 @@ namespace adtm
     F_LAFA[3], double F_LARA[3], double F_AFAV[3], double F_ARAV[3], double
     out_aero[8]);
   static double f_powertrain(double omega_FL, double omega_FR, double omega_RL,
-    double omega_RR, const double x[42], double throttle, double &T_MFR, double
-    &T_MRL, double &T_MRR, double &T_DFL, double &T_DFR, double &T_DRL, double
-    &T_DRR);
+    double omega_RR, const double x[42], double throttle, double veh_T_MMax,
+    double &T_MFR, double &T_MRL, double &T_MRR, double &T_DFL, double &T_DFR,
+    double &T_DRL, double &T_DRR);
   static double f_roadContact(const double r_0M0[3], const double v_0M0[3],
     const double omega_0U0[3], const double e_yR0[3], double v_0QQ[3], double
     A_0Q[9], double &r_st, double &dz, double &w, double r_MQ0[3]);
@@ -201,18 +214,19 @@ namespace adtm
   static double f_suspensionForces(const double r_VFLV[3], const double r_VFRV[3],
     const double r_VRLV[3], const double r_VRRV[3], const double r_VFLV_dot[3],
     const double r_VFRV_dot[3], const double r_VRLV_dot[3], const double
-    r_VRRV_dot[3], double &z_FR, double &z_RL, double &z_RR, double &z_FL_dot,
-    double &z_FR_dot, double &z_RL_dot, double &z_RR_dot, double &F_CrSFL,
-    double &F_CrSFR, double &F_CrSRL, double &F_CrSRR, double &F_HvSFA, double
-    &F_HvSRA, double &F_RoSFA, double &F_RoSRA, double &F_SFL, double &F_SFR,
-    double &F_SRL, double &F_SRR);
+    r_VRRV_dot[3], double veh_z_cg, double veh_F_SFL0, double veh_F_SFR0, double
+    veh_F_SRL0, double veh_F_SRR0, double &z_FR, double &z_RL, double &z_RR,
+    double &z_FL_dot, double &z_FR_dot, double &z_RL_dot, double &z_RR_dot,
+    double &F_CrSFL, double &F_CrSFR, double &F_CrSRL, double &F_CrSRR, double
+    &F_HvSFA, double &F_HvSRA, double &F_RoSFA, double &F_RoSRA, double &F_SFL,
+    double &F_SFR, double &F_SRL, double &F_SRR);
   static double f_tireTMeasy(const double v_0QQ[3], const double omega_0WW[3],
     double r_st, double dz, double w, double b_gamma, double mu_n, const double
     x_T[3], double F_T[3], double T_T[3], double s[4], double x_T_dot[3], double
     &F_yc, double &dF_x0, double &F_xM, double &dF_y0, double &F_yM);
   static void f_vehicleModel(double inputs_delta_D, double inputs_p_BFA, double
     inputs_p_BRA, double inputs_throttle, double inputs_mu_N, const double x[42],
-    double veh_C_LFA, double veh_C_LRA, double veh_C_D, double x_dot[42]);
+    const struct_T &veh, double x_dot[42]);
 }
 
 // Function Definitions
@@ -682,12 +696,12 @@ namespace adtm
   }
 
   static double f_powertrain(double omega_FL, double omega_FR, double omega_RL,
-    double omega_RR, const double x[42], double throttle, double &T_MFR, double
-    &T_MRL, double &T_MRR, double &T_DFL, double &T_DFR, double &T_DRL, double
-    &T_DRR)
+    double omega_RR, const double x[42], double throttle, double veh_T_MMax,
+    double &T_MFR, double &T_MRL, double &T_MRR, double &T_DFL, double &T_DFR,
+    double &T_DRL, double &T_DRR)
   {
-    double b_dv1[3];
-    double b_dv[2];
+    double b_veh_T_MMax[3];
+    double dv[2];
     double T_MCmdFR;
     double T_MCmdRL;
     double T_MFL;
@@ -791,13 +805,14 @@ namespace adtm
     //  Absolute transport velocity + v_n
     //  Longitudinal slip
     //  Slip error (only negative)
-    b_dv[0] = 0.0;
-    b_dv[1] = 0.15 - (v_T - x[14]) / (fabs(v_T) + 0.5);
-    d = throttle * 21.0 + 100.0 * coder::internal::minimum(b_dv);
+    dv[0] = 0.0;
+    dv[1] = 0.15 - (v_T - x[14]) / (fabs(v_T) + 0.5);
+    d = throttle * veh_T_MMax;
+    d1 = d + 100.0 * coder::internal::minimum(dv);
 
     //  Motor torque command
-    if (d < 0.0) {
-      d = 0.0;
+    if (d1 < 0.0) {
+      d1 = 0.0;
     }
 
     //  Simple slip controller function
@@ -809,9 +824,9 @@ namespace adtm
     //  Absolute transport velocity + v_n
     //  Longitudinal slip
     //  Slip error (only negative)
-    b_dv[0] = 0.0;
-    b_dv[1] = 0.15 - (v_T - x[14]) / (fabs(v_T) + 0.5);
-    T_MCmdFR = throttle * 21.0 + 100.0 * coder::internal::minimum(b_dv);
+    dv[0] = 0.0;
+    dv[1] = 0.15 - (v_T - x[14]) / (fabs(v_T) + 0.5);
+    T_MCmdFR = d + 100.0 * coder::internal::minimum(dv);
 
     //  Motor torque command
     if (T_MCmdFR < 0.0) {
@@ -827,9 +842,9 @@ namespace adtm
     //  Absolute transport velocity + v_n
     //  Longitudinal slip
     //  Slip error (only negative)
-    b_dv[0] = 0.0;
-    b_dv[1] = 0.15 - (v_T - x[14]) / (fabs(v_T) + 0.5);
-    T_MCmdRL = throttle * 21.0 + 100.0 * coder::internal::minimum(b_dv);
+    dv[0] = 0.0;
+    dv[1] = 0.15 - (v_T - x[14]) / (fabs(v_T) + 0.5);
+    T_MCmdRL = d + 100.0 * coder::internal::minimum(dv);
 
     //  Motor torque command
     if (T_MCmdRL < 0.0) {
@@ -845,9 +860,9 @@ namespace adtm
     //  Absolute transport velocity + v_n
     //  Longitudinal slip
     //  Slip error (only negative)
-    b_dv[0] = 0.0;
-    b_dv[1] = 0.15 - (v_T - x[14]) / (fabs(v_T) + 0.5);
-    v_T = throttle * 21.0 + 100.0 * coder::internal::minimum(b_dv);
+    dv[0] = 0.0;
+    dv[1] = 0.15 - (v_T - x[14]) / (fabs(v_T) + 0.5);
+    v_T = d + 100.0 * coder::internal::minimum(dv);
 
     //  Motor torque command
     if (v_T < 0.0) {
@@ -855,74 +870,74 @@ namespace adtm
     }
 
     //  Power Limit
-    d1 = fabs(omega_FL * 12.421);
-    b_dv1[0] = 21.0;
-    if (!(d1 >= 2.2204460492503131E-16)) {
-      d1 = 2.2204460492503131E-16;
+    d = fabs(omega_FL * 12.421);
+    b_veh_T_MMax[0] = veh_T_MMax;
+    if (!(d >= 2.2204460492503131E-16)) {
+      d = 2.2204460492503131E-16;
     }
 
-    b_dv1[1] = 30800.0 / d1;
-    b_dv1[2] = d;
-    if (rtIsNaN(d)) {
-      d = rtNaN;
-    } else if (d < 0.0) {
-      d = -1.0;
+    b_veh_T_MMax[1] = 30800.0 / d;
+    b_veh_T_MMax[2] = d1;
+    if (rtIsNaN(d1)) {
+      d1 = rtNaN;
+    } else if (d1 < 0.0) {
+      d1 = -1.0;
     } else {
-      d = (d > 0.0);
+      d1 = (d1 > 0.0);
     }
 
-    T_MFL = T_MFL * d * coder::internal::b_minimum(b_dv1);
-    d1 = fabs(omega_FR * 12.421);
-    b_dv1[0] = 21.0;
-    if (!(d1 >= 2.2204460492503131E-16)) {
-      d1 = 2.2204460492503131E-16;
+    T_MFL = T_MFL * d1 * coder::internal::b_minimum(b_veh_T_MMax);
+    d = fabs(omega_FR * 12.421);
+    b_veh_T_MMax[0] = veh_T_MMax;
+    if (!(d >= 2.2204460492503131E-16)) {
+      d = 2.2204460492503131E-16;
     }
 
-    b_dv1[1] = 30800.0 / d1;
-    b_dv1[2] = T_MCmdFR;
+    b_veh_T_MMax[1] = 30800.0 / d;
+    b_veh_T_MMax[2] = T_MCmdFR;
     if (rtIsNaN(T_MCmdFR)) {
-      d = rtNaN;
+      d1 = rtNaN;
     } else if (T_MCmdFR < 0.0) {
-      d = -1.0;
+      d1 = -1.0;
     } else {
-      d = (T_MCmdFR > 0.0);
+      d1 = (T_MCmdFR > 0.0);
     }
 
-    T_MFR = facOmegaMLimFR * d * coder::internal::b_minimum(b_dv1);
-    d1 = fabs(omega_RL * 12.421);
-    b_dv1[0] = 21.0;
-    if (!(d1 >= 2.2204460492503131E-16)) {
-      d1 = 2.2204460492503131E-16;
+    T_MFR = facOmegaMLimFR * d1 * coder::internal::b_minimum(b_veh_T_MMax);
+    d = fabs(omega_RL * 12.421);
+    b_veh_T_MMax[0] = veh_T_MMax;
+    if (!(d >= 2.2204460492503131E-16)) {
+      d = 2.2204460492503131E-16;
     }
 
-    b_dv1[1] = 30800.0 / d1;
-    b_dv1[2] = T_MCmdRL;
+    b_veh_T_MMax[1] = 30800.0 / d;
+    b_veh_T_MMax[2] = T_MCmdRL;
     if (rtIsNaN(T_MCmdRL)) {
-      d = rtNaN;
+      d1 = rtNaN;
     } else if (T_MCmdRL < 0.0) {
-      d = -1.0;
+      d1 = -1.0;
     } else {
-      d = (T_MCmdRL > 0.0);
+      d1 = (T_MCmdRL > 0.0);
     }
 
-    T_MRL = facOmegaMLimRL * d * coder::internal::b_minimum(b_dv1);
-    d1 = fabs(omega_RR * 12.421);
-    b_dv1[0] = 21.0;
-    if (!(d1 >= 2.2204460492503131E-16)) {
-      d1 = 2.2204460492503131E-16;
+    T_MRL = facOmegaMLimRL * d1 * coder::internal::b_minimum(b_veh_T_MMax);
+    d = fabs(omega_RR * 12.421);
+    b_veh_T_MMax[0] = veh_T_MMax;
+    if (!(d >= 2.2204460492503131E-16)) {
+      d = 2.2204460492503131E-16;
     }
 
-    b_dv1[1] = 30800.0 / d1;
-    b_dv1[2] = v_T;
+    b_veh_T_MMax[1] = 30800.0 / d;
+    b_veh_T_MMax[2] = v_T;
     if (rtIsNaN(v_T)) {
-      d = rtNaN;
+      d1 = rtNaN;
     } else if (v_T < 0.0) {
-      d = -1.0;
+      d1 = -1.0;
     } else {
-      d = (v_T > 0.0);
+      d1 = (v_T > 0.0);
     }
 
-    T_MRR = facOmegaMLimRR * d * coder::internal::b_minimum(b_dv1);
+    T_MRR = facOmegaMLimRR * d1 * coder::internal::b_minimum(b_veh_T_MMax);
     T_DFL = 12.048369999999998 * T_MFL - omega_FL * 0.000954929658551372;
     T_DFR = 12.048369999999998 * T_MFR - omega_FR * 0.000954929658551372;
     T_DRL = 12.048369999999998 * T_MRL - omega_RL * 0.000954929658551372;
@@ -1152,8 +1167,8 @@ namespace adtm
     __m128d r3;
     double A_beta[9];
     double A_phi_tmp[9];
-    double b_dv[9];
     double b_e_ABV2[9];
+    double dv[9];
     double e_ABV2[9];
     double e_CFW2[9];
     double b_sus_r_VCk[3];
@@ -1247,37 +1262,37 @@ namespace adtm
     e_ABV2[8] = e_ABV[2] * e_ABV[2];
     r_CFk[2] = sus_r_VFk[2] - sus_r_VCk[2];
     r_DFk[2] = sus_r_VFk[2] - sus_r_VDk[2];
-    b_dv[0] = 0.0 * psi;
-    b_dv[3] = -e_ABV[2] * psi;
-    b_dv[6] = e_ABV[1] * psi;
-    b_dv[1] = e_ABV[2] * psi;
-    b_dv[4] = 0.0 * psi;
-    b_dv[7] = -e_ABV[0] * psi;
-    b_dv[2] = -e_ABV[1] * psi;
-    b_dv[5] = e_ABV[0] * psi;
-    b_dv[8] = 0.0 * psi;
+    dv[0] = 0.0 * psi;
+    dv[3] = -e_ABV[2] * psi;
+    dv[6] = e_ABV[1] * psi;
+    dv[1] = e_ABV[2] * psi;
+    dv[4] = 0.0 * psi;
+    dv[7] = -e_ABV[0] * psi;
+    dv[2] = -e_ABV[1] * psi;
+    dv[5] = e_ABV[0] * psi;
+    dv[8] = 0.0 * psi;
     r = _mm_loadu_pd(&A_phi_tmp[0]);
     r1 = _mm_loadu_pd(&e_ABV2[0]);
-    r2 = _mm_loadu_pd(&b_dv[0]);
+    r2 = _mm_loadu_pd(&dv[0]);
     r3 = _mm_set1_pd(b);
     _mm_storeu_pd(&e_ABV2[0], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(_mm_sub_pd(r,
       r1), r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[2]);
     r1 = _mm_loadu_pd(&e_ABV2[2]);
-    r2 = _mm_loadu_pd(&b_dv[2]);
+    r2 = _mm_loadu_pd(&dv[2]);
     _mm_storeu_pd(&e_ABV2[2], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(_mm_sub_pd(r,
       r1), r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[4]);
     r1 = _mm_loadu_pd(&e_ABV2[4]);
-    r2 = _mm_loadu_pd(&b_dv[4]);
+    r2 = _mm_loadu_pd(&dv[4]);
     _mm_storeu_pd(&e_ABV2[4], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(_mm_sub_pd(r,
       r1), r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[6]);
     r1 = _mm_loadu_pd(&e_ABV2[6]);
-    r2 = _mm_loadu_pd(&b_dv[6]);
+    r2 = _mm_loadu_pd(&dv[6]);
     _mm_storeu_pd(&e_ABV2[6], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(_mm_sub_pd(r,
       r1), r3)), r2));
-    e_ABV2[8] = (e_ABV2[8] + (A_phi_tmp[8] - e_ABV2[8]) * b) + b_dv[8];
+    e_ABV2[8] = (e_ABV2[8] + (A_phi_tmp[8] - e_ABV2[8]) * b) + dv[8];
     _mm_storeu_pd(&b_sus_r_VCk[0], _mm_sub_pd(_mm_loadu_pd(&sus_r_VCk[0]),
       _mm_loadu_pd(&sus_r_VAk[0])));
     d = b_sus_r_VCk[0];
@@ -1382,33 +1397,33 @@ namespace adtm
     psi = sin(psi);
 
     //  Rotation of upright around X & Y axis
-    b_dv[0] = 0.0 * psi;
-    b_dv[3] = -e_DEV[2] * psi;
-    b_dv[6] = e_DEV[1] * psi;
-    b_dv[1] = e_DEV[2] * psi;
-    b_dv[4] = 0.0 * psi;
-    b_dv[7] = -e_DEV[0] * psi;
-    b_dv[2] = -e_DEV[1] * psi;
-    b_dv[5] = e_DEV[0] * psi;
-    b_dv[8] = 0.0 * psi;
+    dv[0] = 0.0 * psi;
+    dv[3] = -e_DEV[2] * psi;
+    dv[6] = e_DEV[1] * psi;
+    dv[1] = e_DEV[2] * psi;
+    dv[4] = 0.0 * psi;
+    dv[7] = -e_DEV[0] * psi;
+    dv[2] = -e_DEV[1] * psi;
+    dv[5] = e_DEV[0] * psi;
+    dv[8] = 0.0 * psi;
     r = _mm_loadu_pd(&A_beta[0]);
     r1 = _mm_loadu_pd(&e_ABV2[0]);
-    r2 = _mm_loadu_pd(&b_dv[0]);
+    r2 = _mm_loadu_pd(&dv[0]);
     r3 = _mm_set1_pd(b);
     _mm_storeu_pd(&e_ABV2[0], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_beta[2]);
     r1 = _mm_loadu_pd(&e_ABV2[2]);
-    r2 = _mm_loadu_pd(&b_dv[2]);
+    r2 = _mm_loadu_pd(&dv[2]);
     _mm_storeu_pd(&e_ABV2[2], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_beta[4]);
     r1 = _mm_loadu_pd(&e_ABV2[4]);
-    r2 = _mm_loadu_pd(&b_dv[4]);
+    r2 = _mm_loadu_pd(&dv[4]);
     _mm_storeu_pd(&e_ABV2[4], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_beta[6]);
     r1 = _mm_loadu_pd(&e_ABV2[6]);
-    r2 = _mm_loadu_pd(&b_dv[6]);
+    r2 = _mm_loadu_pd(&dv[6]);
     _mm_storeu_pd(&e_ABV2[6], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
-    e_ABV2[8] = (e_ABV2[8] + A_beta[8] * b) + b_dv[8];
+    e_ABV2[8] = (e_ABV2[8] + A_beta[8] * b) + dv[8];
     d = r_DFk[0];
     d1 = r_DFk[1];
     d2 = r_DFk[2];
@@ -1573,15 +1588,15 @@ namespace adtm
     //  Rotation matrix for angle ang about X axis
     b_r_ABV = sin(sus_gamma_0);
     b_r_DFk = cos(sus_gamma_0);
-    b_dv[0] = 0.0 * psi;
-    b_dv[3] = -r_CFk[2] * psi;
-    b_dv[6] = r_CFk[1] * psi;
-    b_dv[1] = r_CFk[2] * psi;
-    b_dv[4] = 0.0 * psi;
-    b_dv[7] = -r_CFk[0] * psi;
-    b_dv[2] = -r_CFk[1] * psi;
-    b_dv[5] = r_CFk[0] * psi;
-    b_dv[8] = 0.0 * psi;
+    dv[0] = 0.0 * psi;
+    dv[3] = -r_CFk[2] * psi;
+    dv[6] = r_CFk[1] * psi;
+    dv[1] = r_CFk[2] * psi;
+    dv[4] = 0.0 * psi;
+    dv[7] = -r_CFk[0] * psi;
+    dv[2] = -r_CFk[1] * psi;
+    dv[5] = r_CFk[0] * psi;
+    dv[8] = 0.0 * psi;
     for (int i = 0; i < 3; i++) {
       b_i = static_cast<int>(e_ABV2[i]);
       d = e_ABV2[i + 3];
@@ -1594,22 +1609,22 @@ namespace adtm
 
     r = _mm_loadu_pd(&A_phi_tmp[0]);
     r1 = _mm_loadu_pd(&e_CFW2[0]);
-    r2 = _mm_loadu_pd(&b_dv[0]);
+    r2 = _mm_loadu_pd(&dv[0]);
     r3 = _mm_set1_pd(b);
     _mm_storeu_pd(&e_CFW2[0], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[2]);
     r1 = _mm_loadu_pd(&e_CFW2[2]);
-    r2 = _mm_loadu_pd(&b_dv[2]);
+    r2 = _mm_loadu_pd(&dv[2]);
     _mm_storeu_pd(&e_CFW2[2], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[4]);
     r1 = _mm_loadu_pd(&e_CFW2[4]);
-    r2 = _mm_loadu_pd(&b_dv[4]);
+    r2 = _mm_loadu_pd(&dv[4]);
     _mm_storeu_pd(&e_CFW2[4], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[6]);
     r1 = _mm_loadu_pd(&e_CFW2[6]);
-    r2 = _mm_loadu_pd(&b_dv[6]);
+    r2 = _mm_loadu_pd(&dv[6]);
     _mm_storeu_pd(&e_CFW2[6], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
-    e_CFW2[8] = (e_CFW2[8] + A_phi_tmp[8] * b) + b_dv[8];
+    e_CFW2[8] = (e_CFW2[8] + A_phi_tmp[8] * b) + dv[8];
     A_phi_tmp[0] = c_r_ABV;
     A_phi_tmp[3] = -b_r_CFk;
     A_phi_tmp[6] = 0.0;
@@ -1637,15 +1652,15 @@ namespace adtm
           + 1]) + d2 * A_phi_tmp[3 * b_i + 2];
       }
 
-      b_dv[3 * i] = b_iv1[i];
+      dv[3 * i] = b_iv1[i];
     }
 
-    b_dv[1] = 0.0;
-    b_dv[4] = b_r_DFk;
-    b_dv[7] = -b_r_ABV;
-    b_dv[2] = 0.0;
-    b_dv[5] = b_r_ABV;
-    b_dv[8] = b_r_DFk;
+    dv[1] = 0.0;
+    dv[4] = b_r_DFk;
+    dv[7] = -b_r_ABV;
+    dv[2] = 0.0;
+    dv[5] = b_r_ABV;
+    dv[8] = b_r_DFk;
 
     //  X, Y, steering, toe, inclination angle
     delta += sus_delta_0;
@@ -1654,8 +1669,8 @@ namespace adtm
       d1 = b_e_ABV2[i + 3];
       d2 = b_e_ABV2[i + 6];
       for (b_i = 0; b_i < 3; b_i++) {
-        A_VW[i + 3 * b_i] = (d * b_dv[3 * b_i] + d1 * b_dv[3 * b_i + 1]) + d2 *
-          b_dv[3 * b_i + 2];
+        A_VW[i + 3 * b_i] = (d * dv[3 * b_i] + d1 * dv[3 * b_i + 1]) + d2 * dv[3
+          * b_i + 2];
       }
 
       b_sus_r_VCk[i] = sus_r_VWk[i] - sus_r_VCk[i];
@@ -1761,8 +1776,8 @@ namespace adtm
     __m128d r3;
     double A_beta[9];
     double A_phi_tmp[9];
-    double b_dv[9];
     double b_e_ABV2[9];
+    double dv[9];
     double e_ABV2[9];
     double e_CFW2[9];
     double b_sus_r_VCk[3];
@@ -1857,37 +1872,37 @@ namespace adtm
     e_ABV2[8] = e_ABV[2] * e_ABV[2];
     r_CFk[2] = sus_r_VFk[2] - sus_r_VCk[2];
     r_DFk[2] = sus_r_VFk[2] - sus_r_VDk[2];
-    b_dv[0] = 0.0 * psi;
-    b_dv[3] = -e_ABV[2] * psi;
-    b_dv[6] = e_ABV[1] * psi;
-    b_dv[1] = e_ABV[2] * psi;
-    b_dv[4] = 0.0 * psi;
-    b_dv[7] = -e_ABV[0] * psi;
-    b_dv[2] = -e_ABV[1] * psi;
-    b_dv[5] = e_ABV[0] * psi;
-    b_dv[8] = 0.0 * psi;
+    dv[0] = 0.0 * psi;
+    dv[3] = -e_ABV[2] * psi;
+    dv[6] = e_ABV[1] * psi;
+    dv[1] = e_ABV[2] * psi;
+    dv[4] = 0.0 * psi;
+    dv[7] = -e_ABV[0] * psi;
+    dv[2] = -e_ABV[1] * psi;
+    dv[5] = e_ABV[0] * psi;
+    dv[8] = 0.0 * psi;
     r = _mm_loadu_pd(&A_phi_tmp[0]);
     r1 = _mm_loadu_pd(&e_ABV2[0]);
-    r2 = _mm_loadu_pd(&b_dv[0]);
+    r2 = _mm_loadu_pd(&dv[0]);
     r3 = _mm_set1_pd(b);
     _mm_storeu_pd(&e_ABV2[0], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(_mm_sub_pd(r,
       r1), r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[2]);
     r1 = _mm_loadu_pd(&e_ABV2[2]);
-    r2 = _mm_loadu_pd(&b_dv[2]);
+    r2 = _mm_loadu_pd(&dv[2]);
     _mm_storeu_pd(&e_ABV2[2], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(_mm_sub_pd(r,
       r1), r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[4]);
     r1 = _mm_loadu_pd(&e_ABV2[4]);
-    r2 = _mm_loadu_pd(&b_dv[4]);
+    r2 = _mm_loadu_pd(&dv[4]);
     _mm_storeu_pd(&e_ABV2[4], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(_mm_sub_pd(r,
       r1), r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[6]);
     r1 = _mm_loadu_pd(&e_ABV2[6]);
-    r2 = _mm_loadu_pd(&b_dv[6]);
+    r2 = _mm_loadu_pd(&dv[6]);
     _mm_storeu_pd(&e_ABV2[6], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(_mm_sub_pd(r,
       r1), r3)), r2));
-    e_ABV2[8] = (e_ABV2[8] + (A_phi_tmp[8] - e_ABV2[8]) * b) + b_dv[8];
+    e_ABV2[8] = (e_ABV2[8] + (A_phi_tmp[8] - e_ABV2[8]) * b) + dv[8];
     _mm_storeu_pd(&b_sus_r_VCk[0], _mm_sub_pd(_mm_loadu_pd(&sus_r_VCk[0]),
       _mm_loadu_pd(&sus_r_VAk[0])));
     d = b_sus_r_VCk[0];
@@ -1992,33 +2007,33 @@ namespace adtm
     psi = sin(psi);
 
     //  Rotation of upright around X & Y axis
-    b_dv[0] = 0.0 * psi;
-    b_dv[3] = -e_DEV[2] * psi;
-    b_dv[6] = e_DEV[1] * psi;
-    b_dv[1] = e_DEV[2] * psi;
-    b_dv[4] = 0.0 * psi;
-    b_dv[7] = -e_DEV[0] * psi;
-    b_dv[2] = -e_DEV[1] * psi;
-    b_dv[5] = e_DEV[0] * psi;
-    b_dv[8] = 0.0 * psi;
+    dv[0] = 0.0 * psi;
+    dv[3] = -e_DEV[2] * psi;
+    dv[6] = e_DEV[1] * psi;
+    dv[1] = e_DEV[2] * psi;
+    dv[4] = 0.0 * psi;
+    dv[7] = -e_DEV[0] * psi;
+    dv[2] = -e_DEV[1] * psi;
+    dv[5] = e_DEV[0] * psi;
+    dv[8] = 0.0 * psi;
     r = _mm_loadu_pd(&A_beta[0]);
     r1 = _mm_loadu_pd(&e_ABV2[0]);
-    r2 = _mm_loadu_pd(&b_dv[0]);
+    r2 = _mm_loadu_pd(&dv[0]);
     r3 = _mm_set1_pd(b);
     _mm_storeu_pd(&e_ABV2[0], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_beta[2]);
     r1 = _mm_loadu_pd(&e_ABV2[2]);
-    r2 = _mm_loadu_pd(&b_dv[2]);
+    r2 = _mm_loadu_pd(&dv[2]);
     _mm_storeu_pd(&e_ABV2[2], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_beta[4]);
     r1 = _mm_loadu_pd(&e_ABV2[4]);
-    r2 = _mm_loadu_pd(&b_dv[4]);
+    r2 = _mm_loadu_pd(&dv[4]);
     _mm_storeu_pd(&e_ABV2[4], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_beta[6]);
     r1 = _mm_loadu_pd(&e_ABV2[6]);
-    r2 = _mm_loadu_pd(&b_dv[6]);
+    r2 = _mm_loadu_pd(&dv[6]);
     _mm_storeu_pd(&e_ABV2[6], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
-    e_ABV2[8] = (e_ABV2[8] + A_beta[8] * b) + b_dv[8];
+    e_ABV2[8] = (e_ABV2[8] + A_beta[8] * b) + dv[8];
     d = r_DFk[0];
     d1 = r_DFk[1];
     d2 = r_DFk[2];
@@ -2179,15 +2194,15 @@ namespace adtm
     //  Rotation matrix for angle ang about X axis
     c_r_ABV = sin(sus_gamma_0);
     b_r_ABV = cos(sus_gamma_0);
-    b_dv[0] = 0.0 * psi;
-    b_dv[3] = -e_CFW[2] * psi;
-    b_dv[6] = e_CFW[1] * psi;
-    b_dv[1] = e_CFW[2] * psi;
-    b_dv[4] = 0.0 * psi;
-    b_dv[7] = -e_CFW[0] * psi;
-    b_dv[2] = -e_CFW[1] * psi;
-    b_dv[5] = e_CFW[0] * psi;
-    b_dv[8] = 0.0 * psi;
+    dv[0] = 0.0 * psi;
+    dv[3] = -e_CFW[2] * psi;
+    dv[6] = e_CFW[1] * psi;
+    dv[1] = e_CFW[2] * psi;
+    dv[4] = 0.0 * psi;
+    dv[7] = -e_CFW[0] * psi;
+    dv[2] = -e_CFW[1] * psi;
+    dv[5] = e_CFW[0] * psi;
+    dv[8] = 0.0 * psi;
     for (int i = 0; i < 3; i++) {
       b_i = static_cast<int>(e_ABV2[i]);
       d = e_ABV2[i + 3];
@@ -2200,22 +2215,22 @@ namespace adtm
 
     r = _mm_loadu_pd(&A_phi_tmp[0]);
     r1 = _mm_loadu_pd(&e_CFW2[0]);
-    r2 = _mm_loadu_pd(&b_dv[0]);
+    r2 = _mm_loadu_pd(&dv[0]);
     r3 = _mm_set1_pd(b);
     _mm_storeu_pd(&e_CFW2[0], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[2]);
     r1 = _mm_loadu_pd(&e_CFW2[2]);
-    r2 = _mm_loadu_pd(&b_dv[2]);
+    r2 = _mm_loadu_pd(&dv[2]);
     _mm_storeu_pd(&e_CFW2[2], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[4]);
     r1 = _mm_loadu_pd(&e_CFW2[4]);
-    r2 = _mm_loadu_pd(&b_dv[4]);
+    r2 = _mm_loadu_pd(&dv[4]);
     _mm_storeu_pd(&e_CFW2[4], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
     r = _mm_loadu_pd(&A_phi_tmp[6]);
     r1 = _mm_loadu_pd(&e_CFW2[6]);
-    r2 = _mm_loadu_pd(&b_dv[6]);
+    r2 = _mm_loadu_pd(&dv[6]);
     _mm_storeu_pd(&e_CFW2[6], _mm_add_pd(_mm_add_pd(r1, _mm_mul_pd(r, r3)), r2));
-    e_CFW2[8] = (e_CFW2[8] + A_phi_tmp[8] * b) + b_dv[8];
+    e_CFW2[8] = (e_CFW2[8] + A_phi_tmp[8] * b) + dv[8];
     A_phi_tmp[0] = d_r_ABV;
     A_phi_tmp[3] = -b_r_CFk;
     A_phi_tmp[6] = 0.0;
@@ -2243,15 +2258,15 @@ namespace adtm
           + 1]) + d2 * A_phi_tmp[3 * b_i + 2];
       }
 
-      b_dv[3 * i] = b_iv1[i];
+      dv[3 * i] = b_iv1[i];
     }
 
-    b_dv[1] = 0.0;
-    b_dv[4] = b_r_ABV;
-    b_dv[7] = -c_r_ABV;
-    b_dv[2] = 0.0;
-    b_dv[5] = c_r_ABV;
-    b_dv[8] = b_r_ABV;
+    dv[1] = 0.0;
+    dv[4] = b_r_ABV;
+    dv[7] = -c_r_ABV;
+    dv[2] = 0.0;
+    dv[5] = c_r_ABV;
+    dv[8] = b_r_ABV;
 
     //  X, Y, steering, toe, inclination angle
     delta += sus_delta_0;
@@ -2260,8 +2275,8 @@ namespace adtm
       d1 = b_e_ABV2[i + 3];
       d2 = b_e_ABV2[i + 6];
       for (b_i = 0; b_i < 3; b_i++) {
-        A_VW[i + 3 * b_i] = (d * b_dv[3 * b_i] + d1 * b_dv[3 * b_i + 1]) + d2 *
-          b_dv[3 * b_i + 2];
+        A_VW[i + 3 * b_i] = (d * dv[3 * b_i] + d1 * dv[3 * b_i + 1]) + d2 * dv[3
+          * b_i + 2];
       }
 
       b_sus_r_VCk[i] = sus_r_VWk[i] - sus_r_VCk[i];
@@ -2343,22 +2358,23 @@ namespace adtm
   static double f_suspensionForces(const double r_VFLV[3], const double r_VFRV[3],
     const double r_VRLV[3], const double r_VRRV[3], const double r_VFLV_dot[3],
     const double r_VFRV_dot[3], const double r_VRLV_dot[3], const double
-    r_VRRV_dot[3], double &z_FR, double &z_RL, double &z_RR, double &z_FL_dot,
-    double &z_FR_dot, double &z_RL_dot, double &z_RR_dot, double &F_CrSFL,
-    double &F_CrSFR, double &F_CrSRL, double &F_CrSRR, double &F_HvSFA, double
-    &F_HvSRA, double &F_RoSFA, double &F_RoSRA, double &F_SFL, double &F_SFR,
-    double &F_SRL, double &F_SRR)
+    r_VRRV_dot[3], double veh_z_cg, double veh_F_SFL0, double veh_F_SFR0, double
+    veh_F_SRL0, double veh_F_SRR0, double &z_FR, double &z_RL, double &z_RR,
+    double &z_FL_dot, double &z_FR_dot, double &z_RL_dot, double &z_RR_dot,
+    double &F_CrSFL, double &F_CrSFR, double &F_CrSRL, double &F_CrSRR, double
+    &F_HvSFA, double &F_HvSRA, double &F_RoSFA, double &F_RoSRA, double &F_SFL,
+    double &F_SFR, double &F_SRL, double &F_SRR)
   {
-    static const double b_dv1[5] = { -246.10336341263329, -164.06890894175552,
+    static const double b_dv[5] = { -246.10336341263329, -164.06890894175552,
       0.0, 164.06890894175552, 246.10336341263329 };
 
-    static const double b_dv2[5] = { -0.11850000000000001, -0.059250000000000004,
+    static const double dv1[5] = { -0.11850000000000001, -0.059250000000000004,
       0.0, 0.059250000000000004, 0.11850000000000001 };
 
-    static const double b_dv3[5] = { -253.1645569620253, -168.77637130801688,
-      0.0, 168.77637130801688, 253.1645569620253 };
+    static const double dv2[5] = { -253.1645569620253, -168.77637130801688, 0.0,
+      168.77637130801688, 253.1645569620253 };
 
-    double b_dv[5];
+    double dv[5];
     double z_FL;
 
     //    Vehicle Suspension Forces Model       %%
@@ -2369,10 +2385,10 @@ namespace adtm
     //  Modified by: Tim Braungardt               %
     //  ----------------------------------------- %
     //  passive
-    z_FL = r_VFLV[2] + 0.09;
-    z_FR = r_VFRV[2] + 0.09;
-    z_RL = r_VRLV[2] + 0.09;
-    z_RR = r_VRRV[2] + 0.09;
+    z_FL = r_VFLV[2] + veh_z_cg;
+    z_FR = r_VFRV[2] + veh_z_cg;
+    z_RL = r_VRLV[2] + veh_z_cg;
+    z_RR = r_VRRV[2] + veh_z_cg;
     z_FL_dot = r_VFLV_dot[2];
     z_FR_dot = r_VFRV_dot[2];
     z_RL_dot = r_VRLV_dot[2];
@@ -2380,37 +2396,33 @@ namespace adtm
 
     //  Suspension corner spring & damper forces
     for (int i = 0; i < 5; i++) {
-      b_dv[i] = 0.060950000000000004 * static_cast<double>(i) -
+      dv[i] = 0.060950000000000004 * static_cast<double>(i) -
         0.12190000000000001;
     }
 
-    F_CrSFL = (r_VFLV[2] + 0.09) * 106328.49718128536 + f_LUT1D(b_dv, b_dv1,
-      r_VFLV_dot[2]);
+    F_CrSFL = z_FL * 106328.49718128536 + f_LUT1D(dv, b_dv, r_VFLV_dot[2]);
     for (int i = 0; i < 5; i++) {
-      b_dv[i] = 0.060950000000000004 * static_cast<double>(i) -
+      dv[i] = 0.060950000000000004 * static_cast<double>(i) -
         0.12190000000000001;
     }
 
-    F_CrSFR = (r_VFRV[2] + 0.09) * 106328.49718128536 + f_LUT1D(b_dv, b_dv1,
-      r_VFRV_dot[2]);
-    F_CrSRL = (r_VRLV[2] + 0.09) * 62668.019726183476 + f_LUT1D(b_dv2, b_dv3,
-      r_VRLV_dot[2]);
-    F_CrSRR = (r_VRRV[2] + 0.09) * 62668.019726183476 + f_LUT1D(b_dv2, b_dv3,
-      r_VRRV_dot[2]);
+    F_CrSFR = z_FR * 106328.49718128536 + f_LUT1D(dv, b_dv, r_VFRV_dot[2]);
+    F_CrSRL = z_RL * 62668.019726183476 + f_LUT1D(dv1, dv2, r_VRLV_dot[2]);
+    F_CrSRR = z_RR * 62668.019726183476 + f_LUT1D(dv1, dv2, r_VRRV_dot[2]);
 
     //  Suspension heave spring & damper forces
-    F_HvSFA = 0.5 * ((r_VFLV[2] + 0.09) + (r_VFRV[2] + 0.09)) * 0.0;
-    F_HvSRA = 0.5 * ((r_VRLV[2] + 0.09) + (r_VRRV[2] + 0.09)) * 0.0;
+    F_HvSFA = 0.5 * (z_FL + z_FR) * 0.0;
+    F_HvSRA = 0.5 * (z_RL + z_RR) * 0.0;
 
     //  Suspension roll spring & damper forces
-    F_RoSFA = ((r_VFLV[2] + 0.09) - (r_VFRV[2] + 0.09)) * 0.0;
-    F_RoSRA = ((r_VRLV[2] + 0.09) - (r_VRRV[2] + 0.09)) * 0.0;
+    F_RoSFA = (z_FL - z_FR) * 0.0;
+    F_RoSRA = (z_RL - z_RR) * 0.0;
 
     //  Pretension + spring & damper forces
-    F_SFL = ((F_CrSFL + 474.64186) + F_RoSFA) + 0.5 * F_HvSFA;
-    F_SFR = ((F_CrSFR + 474.64186) - F_RoSFA) + 0.5 * F_HvSFA;
-    F_SRL = ((F_CrSRL + 474.64186) + F_RoSRA) + 0.5 * F_HvSRA;
-    F_SRR = ((F_CrSRR + 474.64186) - F_RoSRA) + 0.5 * F_HvSRA;
+    F_SFL = ((veh_F_SFL0 + F_CrSFL) + F_RoSFA) + 0.5 * F_HvSFA;
+    F_SFR = ((veh_F_SFR0 + F_CrSFR) - F_RoSFA) + 0.5 * F_HvSFA;
+    F_SRL = ((veh_F_SRL0 + F_CrSRL) + F_RoSRA) + 0.5 * F_HvSRA;
+    F_SRR = ((veh_F_SRR0 + F_CrSRR) - F_RoSRA) + 0.5 * F_HvSRA;
     return z_FL;
   }
 
@@ -2803,7 +2815,7 @@ namespace adtm
 
   static void f_vehicleModel(double inputs_delta_D, double inputs_p_BFA, double
     inputs_p_BRA, double inputs_throttle, double inputs_mu_N, const double x[42],
-    double veh_C_LFA, double veh_C_LRA, double veh_C_D, double x_dot[42])
+    const struct_T &veh, double x_dot[42])
   {
     static const signed char b[3] = { 0, 1, 0 };
 
@@ -2814,10 +2826,10 @@ namespace adtm
     __m128d r4;
     __m128d r5;
     double K[196];
-    double e_q_tmp[196];
     double f_q_tmp[196];
     double g_q_tmp[196];
     double h_q_tmp[196];
+    double i_q_tmp[196];
     double m_y_tmp[196];
     double n_y_tmp[196];
     double b_q_tmp[42];
@@ -2838,6 +2850,7 @@ namespace adtm
     double dvFRdz[42];
     double dvRLdz[42];
     double dvRRdz[42];
+    double e_q_tmp[42];
     double e_y_tmp[42];
     double f_y_tmp[42];
     double g_y_tmp[42];
@@ -2847,10 +2860,10 @@ namespace adtm
     double k_y_tmp[42];
     double q_tmp[42];
     double y_tmp[42];
-    double b_dv[14];
-    double b_dv1[14];
-    double b_dv2[14];
     double b_dv3[14];
+    double dv[14];
+    double dv1[14];
+    double dv2[14];
     double l_y_tmp[14];
     double A_0V[9];
     double A_VQFR[9];
@@ -2882,7 +2895,7 @@ namespace adtm
     double T_WRL_tmp[3];
     double T_WRR_tmp[3];
     double b_A_0V[3];
-    double b_I_UFLV_tmp[3];
+    double b_I_UFRV_tmp[3];
     double b_T_C_tmp[3];
     double b_a[3];
     double c_A_0V[3];
@@ -3073,10 +3086,10 @@ namespace adtm
     for (i = 0; i < 3; i++) {
       d = A_z_tmp[i];
       d1 = A_z_tmp[i + 3];
-      b_i = static_cast<int>(A_z_tmp[i + 6]);
-      for (i1 = 0; i1 < 3; i1++) {
-        A_VQRR[i + 3 * i1] = (d * A_y_tmp[3 * i1] + d1 * A_y_tmp[3 * i1 + 1]) +
-          static_cast<double>(b_i) * A_y_tmp[3 * i1 + 2];
+      i1 = static_cast<int>(A_z_tmp[i + 6]);
+      for (i2 = 0; i2 < 3; i2++) {
+        A_VQRR[i + 3 * i2] = (d * A_y_tmp[3 * i2] + d1 * A_y_tmp[3 * i2 + 1]) +
+          static_cast<double>(i1) * A_y_tmp[3 * i2 + 2];
       }
     }
 
@@ -3093,9 +3106,9 @@ namespace adtm
       d = A_VQRR[i];
       d1 = A_VQRR[i + 3];
       d2 = A_VQRR[i + 6];
-      for (b_i = 0; b_i < 3; b_i++) {
-        A_0V[i + 3 * b_i] = (d * A_z_tmp[3 * b_i] + d1 * A_z_tmp[3 * b_i + 1]) +
-          d2 * A_z_tmp[3 * b_i + 2];
+      for (i1 = 0; i1 < 3; i1++) {
+        A_0V[i + 3 * i1] = (d * A_z_tmp[3 * i1] + d1 * A_z_tmp[3 * i1 + 1]) + d2
+          * A_z_tmp[3 * i1 + 2];
       }
     }
 
@@ -3158,21 +3171,21 @@ namespace adtm
 
     //  Front steering rack travel
     //  Double-Wishbone
-    f_suspensionDWB(0.0034906585039886592, 0.017453292519943295, dv, dv1, dv2,
-                    dv3, dv4, dv5, dv6, dv7, dv8, x[6], u, A_VQRR, r_VFLV,
+    f_suspensionDWB(0.0034906585039886592, 0.017453292519943295, dv3, dv4, dv5,
+                    dv6, dv7, dv8, dv9, dv10, dv11, x[6], u, A_VQRR, r_VFLV,
                     dvdphi_FL, domdphi_FL, dvdu_FL, domdu_FL);
-    f_suspensionDWB(-0.0034906585039886592, -0.017453292519943295, dv9, dv10,
-                    dv11, dv12, dv13, dv14, dv15, dv16, dv17, x[7], u, A_VQRL,
+    f_suspensionDWB(-0.0034906585039886592, -0.017453292519943295, dv12, dv13,
+                    dv14, dv15, dv16, dv17, dv18, dv19, dv20, x[7], u, A_VQRL,
                     r_VFRV, dvdphi_FR, domdphi_FR, dvdu_FL, domdu_FL);
 
     //  Rear axle
     //  Double-Wishbone
-    f_suspensionDWB(-0.0087266462599716477, 0.017453292519943295, dv18, dv19,
-                    dv20, dv21, dv22, dv23, dv24, dv25, dv26, x[8], A_VRL,
+    f_suspensionDWB(-0.0087266462599716477, 0.017453292519943295, dv21, dv22,
+                    dv23, dv24, dv25, dv26, dv27, dv28, dv29, x[8], A_VRL,
                     r_VRLV, dvdu_FL, domdu_FL);
-    T_BFL = f_suspensionDWB(0.0087266462599716477, -0.017453292519943295, dv27,
-      dv28, dv29, dv30, dv31, dv32, dv33, dv34, dv35, x[9], A_VQFR, r_VRRV,
-      dvdphi_RR, domdphi_RR);
+    f_suspensionDWB(0.0087266462599716477, -0.017453292519943295, dv30, dv31,
+                    dv32, dv33, dv34, dv35, dv36, dv37, dv38, x[9], A_VQFR,
+                    r_VRRV, dvdphi_RR, domdphi_RR);
 
     //  Wheel rot. axis vehicle frame
     //  Wheel rot. axis origin frame
@@ -3182,17 +3195,17 @@ namespace adtm
       d1 = 0.0;
       d2 = 0.0;
       d3 = 0.0;
-      for (b_i = 0; b_i < 3; b_i++) {
-        i1 = i + 3 * b_i;
-        d4 = A_VQRR[i1];
-        e_yFLV_tmp = b[b_i];
+      for (i1 = 0; i1 < 3; i1++) {
+        i2 = i + 3 * i1;
+        d4 = A_VQRR[i2];
+        e_yFLV_tmp = b[i1];
         d += d4 * static_cast<double>(e_yFLV_tmp);
-        d1 += A_VQRL[i1] * static_cast<double>(e_yFLV_tmp);
-        d2 += A_VRL[i1] * static_cast<double>(e_yFLV_tmp);
-        d3 += A_VQFR[i1] * static_cast<double>(e_yFLV_tmp);
-        I_UFLV_tmp[b_i + 3 * i] = d4;
-        A_z_tmp[i1] = (A_VQRR[i] * dv36[3 * b_i] + A_VQRR[i + 3] * dv36[3 * b_i
-                       + 1]) + A_VQRR[i + 6] * dv36[3 * b_i + 2];
+        d1 += A_VQRL[i2] * static_cast<double>(e_yFLV_tmp);
+        d2 += A_VRL[i2] * static_cast<double>(e_yFLV_tmp);
+        d3 += A_VQFR[i2] * static_cast<double>(e_yFLV_tmp);
+        I_UFLV_tmp[i1 + 3 * i] = d4;
+        A_z_tmp[i2] = (A_VQRR[i] * dv39[3 * i1] + A_VQRR[i + 3] * dv39[3 * i1 +
+                       1]) + A_VQRR[i + 6] * dv39[3 * i1 + 2];
       }
 
       e_yRRV[i] = d3;
@@ -3205,19 +3218,19 @@ namespace adtm
       d = A_z_tmp[i];
       d1 = A_z_tmp[i + 3];
       d2 = A_z_tmp[i + 6];
-      for (b_i = 0; b_i < 3; b_i++) {
-        e_yFLV_tmp = i + 3 * b_i;
-        I_UFLV[e_yFLV_tmp] = (d * I_UFLV_tmp[3 * b_i] + d1 * I_UFLV_tmp[3 * b_i
-                              + 1]) + d2 * I_UFLV_tmp[3 * b_i + 2];
-        I_UFRV_tmp[b_i + 3 * i] = A_VQRL[e_yFLV_tmp];
+      for (i1 = 0; i1 < 3; i1++) {
+        e_yFLV_tmp = i + 3 * i1;
+        I_UFLV[e_yFLV_tmp] = (d * I_UFLV_tmp[3 * i1] + d1 * I_UFLV_tmp[3 * i1 +
+                              1]) + d2 * I_UFLV_tmp[3 * i1 + 2];
+        I_UFRV_tmp[i1 + 3 * i] = A_VQRL[e_yFLV_tmp];
       }
 
       d = A_VQRL[i];
       d1 = A_VQRL[i + 3];
       d2 = A_VQRL[i + 6];
-      for (b_i = 0; b_i < 3; b_i++) {
-        A_z_tmp[i + 3 * b_i] = (d * dv36[3 * b_i] + d1 * dv36[3 * b_i + 1]) + d2
-          * dv36[3 * b_i + 2];
+      for (i1 = 0; i1 < 3; i1++) {
+        A_z_tmp[i + 3 * i1] = (d * dv39[3 * i1] + d1 * dv39[3 * i1 + 1]) + d2 *
+          dv39[3 * i1 + 2];
       }
     }
 
@@ -3225,19 +3238,19 @@ namespace adtm
       d = A_z_tmp[i];
       d1 = A_z_tmp[i + 3];
       d2 = A_z_tmp[i + 6];
-      for (b_i = 0; b_i < 3; b_i++) {
-        e_yFLV_tmp = i + 3 * b_i;
-        I_UFRV[e_yFLV_tmp] = (d * I_UFRV_tmp[3 * b_i] + d1 * I_UFRV_tmp[3 * b_i
-                              + 1]) + d2 * I_UFRV_tmp[3 * b_i + 2];
-        I_URLV_tmp[b_i + 3 * i] = A_VRL[e_yFLV_tmp];
+      for (i1 = 0; i1 < 3; i1++) {
+        e_yFLV_tmp = i + 3 * i1;
+        I_UFRV[e_yFLV_tmp] = (d * I_UFRV_tmp[3 * i1] + d1 * I_UFRV_tmp[3 * i1 +
+                              1]) + d2 * I_UFRV_tmp[3 * i1 + 2];
+        I_URLV_tmp[i1 + 3 * i] = A_VRL[e_yFLV_tmp];
       }
 
       d = A_VRL[i];
       d1 = A_VRL[i + 3];
       d2 = A_VRL[i + 6];
-      for (b_i = 0; b_i < 3; b_i++) {
-        A_z_tmp[i + 3 * b_i] = (d * dv36[3 * b_i] + d1 * dv36[3 * b_i + 1]) + d2
-          * dv36[3 * b_i + 2];
+      for (i1 = 0; i1 < 3; i1++) {
+        A_z_tmp[i + 3 * i1] = (d * dv39[3 * i1] + d1 * dv39[3 * i1 + 1]) + d2 *
+          dv39[3 * i1 + 2];
       }
     }
 
@@ -3245,19 +3258,19 @@ namespace adtm
       d = A_z_tmp[i];
       d1 = A_z_tmp[i + 3];
       d2 = A_z_tmp[i + 6];
-      for (b_i = 0; b_i < 3; b_i++) {
-        e_yFLV_tmp = i + 3 * b_i;
-        I_URLV[e_yFLV_tmp] = (d * I_URLV_tmp[3 * b_i] + d1 * I_URLV_tmp[3 * b_i
-                              + 1]) + d2 * I_URLV_tmp[3 * b_i + 2];
-        I_URRV_tmp[b_i + 3 * i] = A_VQFR[e_yFLV_tmp];
+      for (i1 = 0; i1 < 3; i1++) {
+        e_yFLV_tmp = i + 3 * i1;
+        I_URLV[e_yFLV_tmp] = (d * I_URLV_tmp[3 * i1] + d1 * I_URLV_tmp[3 * i1 +
+                              1]) + d2 * I_URLV_tmp[3 * i1 + 2];
+        I_URRV_tmp[i1 + 3 * i] = A_VQFR[e_yFLV_tmp];
       }
 
       d = A_VQFR[i];
       d1 = A_VQFR[i + 3];
       d2 = A_VQFR[i + 6];
-      for (b_i = 0; b_i < 3; b_i++) {
-        A_z_tmp[i + 3 * b_i] = (d * dv36[3 * b_i] + d1 * dv36[3 * b_i + 1]) + d2
-          * dv36[3 * b_i + 2];
+      for (i1 = 0; i1 < 3; i1++) {
+        A_z_tmp[i + 3 * i1] = (d * dv39[3 * i1] + d1 * dv39[3 * i1 + 1]) + d2 *
+          dv39[3 * i1 + 2];
       }
     }
 
@@ -3275,16 +3288,17 @@ namespace adtm
     omega_0VV[2] = x[19];
 
     //  Angular vel. @ CoG
-    v_0FAV_tmp = x[14] + (x[18] * -0.09 - 0.0 * x[19]);
+    v_0FAV_tmp = x[14] + (x[18] * -veh.z_cg - 0.0 * x[19]);
     v_0FAV[0] = v_0FAV_tmp;
-    v_0FAV[1] = x[15] + (0.765 * x[19] - x[17] * -0.09);
-    v_0FAV[2] = x[16] + (x[17] * 0.0 - 0.765 * x[18]);
+    T_BFL = x[17] * -veh.z_cg;
+    v_0FAV[1] = x[15] + (veh.l_FA * x[19] - T_BFL);
+    v_0FAV[2] = x[16] + (x[17] * 0.0 - veh.l_FA * x[18]);
 
     //  Vel. @ front axle
     //  Norm of vel. @ front axle
     v_0RAV[0] = v_0FAV_tmp;
-    v_0RAV[1] = x[15] + (-0.765 * x[19] - x[17] * -0.09);
-    v_0RAV[2] = x[16] + (x[17] * 0.0 - -0.765 * x[18]);
+    v_0RAV[1] = x[15] + (-veh.l_RA * x[19] - T_BFL);
+    v_0RAV[2] = x[16] + (x[17] * 0.0 - -veh.l_RA * x[18]);
 
     //  Vel. @ rear axle
     //  Norm of vel. @ rear axle
@@ -3320,8 +3334,8 @@ namespace adtm
       d1 = A_VQRR[b_i + 3];
       d2 = A_VQRR[b_i + 6];
       for (i = 0; i < 3; i++) {
-        A_z_tmp[b_i + 3 * i] = (d * dv37[3 * i] + d1 * dv37[3 * i + 1]) + d2 *
-          dv37[3 * i + 2];
+        A_z_tmp[b_i + 3 * i] = (d * dv40[3 * i] + d1 * dv40[3 * i + 1]) + d2 *
+          dv40[3 * i + 2];
       }
 
       d = A_z_tmp[b_i];
@@ -3336,8 +3350,8 @@ namespace adtm
       d1 = A_VQRL[b_i + 3];
       d2 = A_VQRL[b_i + 6];
       for (i = 0; i < 3; i++) {
-        A_z_tmp[b_i + 3 * i] = (d * dv37[3 * i] + d1 * dv37[3 * i + 1]) + d2 *
-          dv37[3 * i + 2];
+        A_z_tmp[b_i + 3 * i] = (d * dv40[3 * i] + d1 * dv40[3 * i + 1]) + d2 *
+          dv40[3 * i + 2];
       }
 
       d = A_z_tmp[b_i];
@@ -3352,8 +3366,8 @@ namespace adtm
       d1 = A_VRL[b_i + 3];
       d2 = A_VRL[b_i + 6];
       for (i = 0; i < 3; i++) {
-        A_z_tmp[b_i + 3 * i] = (d * dv37[3 * i] + d1 * dv37[3 * i + 1]) + d2 *
-          dv37[3 * i + 2];
+        A_z_tmp[b_i + 3 * i] = (d * dv40[3 * i] + d1 * dv40[3 * i + 1]) + d2 *
+          dv40[3 * i + 2];
       }
 
       d = A_z_tmp[b_i];
@@ -3368,8 +3382,8 @@ namespace adtm
       d1 = A_VQFR[b_i + 3];
       d2 = A_VQFR[b_i + 6];
       for (i = 0; i < 3; i++) {
-        A_z_tmp[b_i + 3 * i] = (d * dv37[3 * i] + d1 * dv37[3 * i + 1]) + d2 *
-          dv37[3 * i + 2];
+        A_z_tmp[b_i + 3 * i] = (d * dv40[3 * i] + d1 * dv40[3 * i + 1]) + d2 *
+          dv40[3 * i + 2];
       }
 
       d = A_z_tmp[b_i];
@@ -3551,28 +3565,28 @@ namespace adtm
     for (i = 0; i < 3; i++) {
       r3 = _mm_loadu_pd(&A_VQRR[3 * i]);
       _mm_storeu_pd(&domWFLdz[3 * i], r1);
-      b_i = 3 * (i + 3);
-      _mm_storeu_pd(&domWFLdz[b_i], _mm_sub_pd(r3, _mm_add_pd(r1, _mm_mul_pd(r,
+      i1 = 3 * (i + 3);
+      _mm_storeu_pd(&domWFLdz[i1], _mm_sub_pd(r3, _mm_add_pd(r1, _mm_mul_pd(r,
         _mm_set1_pd(e_yFLV[i])))));
       e_yFLV_tmp = 3 * i + 2;
       domWFLdz[e_yFLV_tmp] = 0.0;
       u = A_VQRR[e_yFLV_tmp];
-      domWFLdz[b_i + 2] = u - e_yFLV[2] * e_yFLV[i];
+      domWFLdz[i1 + 2] = u - e_yFLV[2] * e_yFLV[i];
       domWFLdz[i + 18] = domdphi_FL[i];
       dvRRdz_tmp = 3 * (i + 7);
       domWFLdz[dvRRdz_tmp] = 0.0;
       domWFLdz[dvRRdz_tmp + 1] = 0.0;
       domWFLdz[dvRRdz_tmp + 2] = 0.0;
       domWFLdz[i + 30] = e_yFLV[i];
-      i1 = 3 * (i + 11);
-      _mm_storeu_pd(&domWFLdz[i1], r1);
+      i2 = 3 * (i + 11);
+      _mm_storeu_pd(&domWFLdz[i2], r1);
       r3 = _mm_loadu_pd(&A_VQRR[3 * i]);
       _mm_storeu_pd(&domWFRdz[3 * i], r1);
-      _mm_storeu_pd(&domWFRdz[b_i], _mm_sub_pd(r3, _mm_add_pd(r1, _mm_mul_pd(r2,
+      _mm_storeu_pd(&domWFRdz[i1], _mm_sub_pd(r3, _mm_add_pd(r1, _mm_mul_pd(r2,
         _mm_set1_pd(e_yFRV[i])))));
-      domWFLdz[i1 + 2] = 0.0;
+      domWFLdz[i2 + 2] = 0.0;
       domWFRdz[e_yFLV_tmp] = 0.0;
-      domWFRdz[b_i + 2] = u - e_yFRV[2] * e_yFRV[i];
+      domWFRdz[i1 + 2] = u - e_yFRV[2] * e_yFRV[i];
       domWFRdz[i + 18] = 0.0;
       domWFRdz[i + 21] = domdphi_FR[i];
       e_yFLV_tmp = 3 * (i + 8);
@@ -3619,34 +3633,34 @@ namespace adtm
     r = _mm_loadu_pd(&e_yRRV[0]);
     for (i = 0; i < 3; i++) {
       domWRLdz[i + 24] = domdu_FL[i];
-      b_i = 3 * (i + 9);
-      _mm_storeu_pd(&domWRLdz[b_i], r2);
+      i1 = 3 * (i + 9);
+      _mm_storeu_pd(&domWRLdz[i1], r2);
       r1 = _mm_loadu_pd(&A_VQRR[3 * i]);
       _mm_storeu_pd(&domWRRdz[3 * i], r2);
-      i1 = 3 * (i + 3);
-      _mm_storeu_pd(&domWRRdz[i1], _mm_sub_pd(r1, _mm_add_pd(r2, _mm_mul_pd(r,
+      i2 = 3 * (i + 3);
+      _mm_storeu_pd(&domWRRdz[i2], _mm_sub_pd(r1, _mm_add_pd(r2, _mm_mul_pd(r,
         _mm_set1_pd(e_yRRV[i])))));
-      i2 = 3 * (i + 6);
-      _mm_storeu_pd(&domWRRdz[i2], r2);
-      domWRLdz[b_i + 2] = 0.0;
+      e_yFLV_tmp = 3 * (i + 6);
+      _mm_storeu_pd(&domWRRdz[e_yFLV_tmp], r2);
+      domWRLdz[i1 + 2] = 0.0;
       b_i = 3 * i + 2;
       domWRRdz[b_i] = 0.0;
-      domWRRdz[i1 + 2] = A_VQRR[b_i] - e_yRRV[2] * e_yRRV[i];
-      domWRRdz[i2 + 2] = 0.0;
+      domWRRdz[i2 + 2] = A_VQRR[b_i] - e_yRRV[2] * e_yRRV[i];
+      domWRRdz[e_yFLV_tmp + 2] = 0.0;
       domWRLdz[i + 36] = e_yRLV[i];
       domWRLdz[i + 39] = 0.0;
       domWRRdz[i + 27] = domdphi_RR[i];
       dvRRdz_tmp = 3 * (i + 10);
       domWRRdz[dvRRdz_tmp] = 0.0;
       domUFLdz[3 * i] = 0.0;
-      domUFLdz[i1] = iv1[3 * i];
+      domUFLdz[i2] = iv1[3 * i];
       domWRRdz[dvRRdz_tmp + 1] = 0.0;
       e_yFLV_tmp = 3 * i + 1;
       domUFLdz[e_yFLV_tmp] = 0.0;
-      domUFLdz[i1 + 1] = iv1[e_yFLV_tmp];
+      domUFLdz[i2 + 1] = iv1[e_yFLV_tmp];
       domWRRdz[dvRRdz_tmp + 2] = 0.0;
       domUFLdz[b_i] = 0.0;
-      domUFLdz[i1 + 2] = iv1[b_i];
+      domUFLdz[i2 + 2] = iv1[b_i];
       domWRRdz[i + 39] = e_yRRV[i];
       domUFLdz[i + 18] = domdphi_FL[i];
     }
@@ -3918,18 +3932,18 @@ namespace adtm
       d4 = A_y_tmp[i];
       d5 = A_y_tmp[i + 3];
       d6 = A_y_tmp[i + 6];
-      for (b_i = 0; b_i < 3; b_i++) {
-        i1 = i + 3 * b_i;
-        d7 = A_0V[i1];
-        d += d7 * r_VRRV[b_i];
-        d1 += d7 * v_0RRV[b_i];
-        d2 += d7 * omega_0URRV[b_i];
-        d3 += d7 * e_yRRV[b_i];
-        i2 = 3 * b_i + 1;
-        dvRRdz_tmp = 3 * b_i + 2;
-        A_VQFR[i1] = (d4 * A_VRL[3 * b_i] + d5 * A_VRL[i2]) + d6 *
+      for (i1 = 0; i1 < 3; i1++) {
+        i2 = i + 3 * i1;
+        d7 = A_0V[i2];
+        d += d7 * r_VRRV[i1];
+        d1 += d7 * v_0RRV[i1];
+        d2 += d7 * omega_0URRV[i1];
+        d3 += d7 * e_yRRV[i1];
+        e_yFLV_tmp = 3 * i1 + 1;
+        dvRRdz_tmp = 3 * i1 + 2;
+        A_VQFR[i2] = (d4 * A_VRL[3 * i1] + d5 * A_VRL[e_yFLV_tmp]) + d6 *
           A_VRL[dvRRdz_tmp];
-        A_0V[i1] = (d4 * A_VQRL[3 * b_i] + d5 * A_VQRL[i2]) + d6 *
+        A_0V[i2] = (d4 * A_VQRL[3 * i1] + d5 * A_VQRL[e_yFLV_tmp]) + d6 *
           A_VQRL[dvRRdz_tmp];
       }
 
@@ -3945,9 +3959,9 @@ namespace adtm
       d = A_y_tmp[i];
       d1 = A_y_tmp[i + 3];
       d2 = A_y_tmp[i + 6];
-      for (b_i = 0; b_i < 3; b_i++) {
-        A_VQRL[i + 3 * b_i] = (d * A_VQRR[3 * b_i] + d1 * A_VQRR[3 * b_i + 1]) +
-          d2 * A_VQRR[3 * b_i + 2];
+      for (i1 = 0; i1 < 3; i1++) {
+        A_VQRL[i + 3 * i1] = (d * A_VQRR[3 * i1] + d1 * A_VQRR[3 * i1 + 1]) + d2
+          * A_VQRR[3 * i1 + 2];
       }
     }
 
@@ -3958,19 +3972,19 @@ namespace adtm
       d1 = A_y_tmp[i + 3];
       d2 = A_y_tmp[i + 6];
       d3 = 0.0;
-      for (b_i = 0; b_i < 3; b_i++) {
-        e_yFLV_tmp = i + 3 * b_i;
-        A_VQRR[e_yFLV_tmp] = (d * A_z_tmp[3 * b_i] + d1 * A_z_tmp[3 * b_i + 1])
-          + d2 * A_z_tmp[3 * b_i + 2];
-        d3 += I_UFLV_tmp[e_yFLV_tmp] * omega_0WFLV[b_i];
+      for (i1 = 0; i1 < 3; i1++) {
+        e_yFLV_tmp = i + 3 * i1;
+        A_VQRR[e_yFLV_tmp] = (d * A_z_tmp[3 * i1] + d1 * A_z_tmp[3 * i1 + 1]) +
+          d2 * A_z_tmp[3 * i1 + 2];
+        d3 += I_UFLV_tmp[e_yFLV_tmp] * omega_0WFLV[i1];
       }
 
-      b_I_UFLV_tmp[i] = d3;
+      d_A_0V[i] = d3;
     }
 
     double out_aero[8];
     double s_FL[4];
-    f_tireTMeasy(dvdu_FL, b_I_UFLV_tmp, r_stFL, dz_FL, w_FL, gamma_FL, 0.7 *
+    f_tireTMeasy(dvdu_FL, d_A_0V, r_stFL, dz_FL, w_FL, gamma_FL, 0.7 *
                  inputs_mu_N, &x[28], dvdphi_FR, T_TFL, s_FL, x_TFL_dot,
                  A_x_tmp_tmp, T_BFL, T_BFR, T_BRL, T_BRR);
     d = omega_0WFRV[0];
@@ -3984,10 +3998,10 @@ namespace adtm
     r1 = _mm_loadu_pd(&I_UFRV_tmp[6]);
     r1 = _mm_mul_pd(r1, _mm_set1_pd(d2));
     r = _mm_add_pd(r, r1);
-    _mm_storeu_pd(&b_I_UFLV_tmp[0], r);
-    b_I_UFLV_tmp[2] = (I_UFRV_tmp[2] * d + I_UFRV_tmp[5] * d1) + I_UFRV_tmp[8] *
+    _mm_storeu_pd(&b_I_UFRV_tmp[0], r);
+    b_I_UFRV_tmp[2] = (I_UFRV_tmp[2] * d + I_UFRV_tmp[5] * d1) + I_UFRV_tmp[8] *
       d2;
-    f_tireTMeasy(domdu_FL, b_I_UFLV_tmp, r_stFR, dz_FR, w_FR, gamma_FR, 0.7 *
+    f_tireTMeasy(domdu_FL, b_I_UFRV_tmp, r_stFR, dz_FR, w_FR, gamma_FR, 0.7 *
                  inputs_mu_N, &x[31], domdphi_FR, T_TFR, s_FL, x_TFR_dot,
                  A_x_tmp_tmp, T_BFL, T_BFR, T_BRL, T_BRR);
     d = omega_0WRLV[0];
@@ -4001,10 +4015,9 @@ namespace adtm
     r1 = _mm_loadu_pd(&I_URLV_tmp[6]);
     r1 = _mm_mul_pd(r1, _mm_set1_pd(d2));
     r = _mm_add_pd(r, r1);
-    _mm_storeu_pd(&b_I_UFLV_tmp[0], r);
-    b_I_UFLV_tmp[2] = (I_URLV_tmp[2] * d + I_URLV_tmp[5] * d1) + I_URLV_tmp[8] *
-      d2;
-    f_tireTMeasy(dvdphi_RR, b_I_UFLV_tmp, r_stRL, dz_RL, w_RL, gamma_RL, 0.7 *
+    _mm_storeu_pd(&omega_0VV[0], r);
+    omega_0VV[2] = (I_URLV_tmp[2] * d + I_URLV_tmp[5] * d1) + I_URLV_tmp[8] * d2;
+    f_tireTMeasy(dvdphi_RR, omega_0VV, r_stRL, dz_RL, w_RL, gamma_RL, 0.7 *
                  inputs_mu_N, &x[34], dvdphi_FL, T_TRL, s_FL, x_TRL_dot, T_BRL,
                  T_BRR, A_x_tmp_tmp, T_BFL, T_BFR);
     d = omega_0WRRV[0];
@@ -4018,16 +4031,16 @@ namespace adtm
     r1 = _mm_loadu_pd(&I_URRV_tmp[6]);
     r1 = _mm_mul_pd(r1, _mm_set1_pd(d2));
     r = _mm_add_pd(r, r1);
-    _mm_storeu_pd(&b_I_UFLV_tmp[0], r);
-    b_I_UFLV_tmp[2] = (I_URRV_tmp[2] * d + I_URRV_tmp[5] * d1) + I_URRV_tmp[8] *
-      d2;
-    f_tireTMeasy(domdphi_RR, b_I_UFLV_tmp, r_stRR, dz_RR, w_RR, gamma_RR, 0.7 *
+    _mm_storeu_pd(&omega_0VV[0], r);
+    omega_0VV[2] = (I_URRV_tmp[2] * d + I_URRV_tmp[5] * d1) + I_URRV_tmp[8] * d2;
+    f_tireTMeasy(domdphi_RR, omega_0VV, r_stRR, dz_RR, w_RR, gamma_RR, 0.7 *
                  inputs_mu_N, &x[37], domdphi_FL, T_TRR, s_FL, x_TRR_dot, T_BFL,
                  T_BFR, T_BRL, T_BRR, A_x_tmp_tmp);
 
     //  Suspension forces
     f_suspensionForces(r_VFLV, r_VFRV, r_VRLV, r_VRRV, r_VFLV_dot, r_VFRV_dot,
-                       r_VRLV_dot, r_VRRV_dot, A_x_tmp_tmp, T_BFL, T_BFR, T_BRL,
+                       r_VRLV_dot, r_VRRV_dot, veh.z_cg, veh.F_SFL0, veh.F_SFR0,
+                       veh.F_SRL0, veh.F_SRR0, A_x_tmp_tmp, T_BFL, T_BFR, T_BRL,
                        T_BRR, gamma_FL, r_stFL, dz_FL, w_FL, gamma_FR, r_stFR,
                        dz_FR, w_FR, gamma_RL, r_stRL, dz_RL, w_RL, gamma_RR,
                        r_stRR);
@@ -4036,14 +4049,14 @@ namespace adtm
     d = v_0FAV_tmp * v_0FAV_tmp;
     f_aerodynamics(sqrt((d + v_0FAV[1] * v_0FAV[1]) + v_0FAV[2] * v_0FAV[2]),
                    v_0FAV, sqrt((d + v_0RAV[1] * v_0RAV[1]) + v_0RAV[2] *
-      v_0RAV[2]), v_0RAV, dv38, veh_C_LFA, veh_C_LRA, veh_C_D, dvdu_FL, domdu_FL,
-                   dvdphi_RR, domdphi_RR, b_I_UFLV_tmp, F_ARAV, out_aero);
+      v_0RAV[2]), v_0RAV, dv41, veh.C_LFA, veh.C_LRA, veh.C_D, dvdu_FL, domdu_FL,
+                   dvdphi_RR, domdphi_RR, omega_0VV, F_ARAV, out_aero);
 
     //  Applied forces & torques
     //  Wheel rot. friction damping coef.
     //  Powertrain
-    f_powertrain(x[24], x[25], x[26], x[27], x, inputs_throttle, T_BFL, T_BFR,
-                 T_BRL, A_x_tmp_tmp, gamma_FL, r_stFL, dz_FL);
+    f_powertrain(x[24], x[25], x[26], x[27], x, inputs_throttle, veh.T_MMax,
+                 T_BFL, T_BFR, T_BRL, A_x_tmp_tmp, gamma_FL, r_stFL, dz_FL);
 
     //  Brake torques
     T_BFL = -39.111507258094768 * x[24];
@@ -4138,21 +4151,6 @@ namespace adtm
     //  RL
     //  RR
     //  Applied force vector
-    //       % Chassis force
-    //       % Chassis torque
-    //     % Force FL
-    //     % Force FR
-    //     % Force RL
-    //     % Force RR
-    //  % Upright torque FL
-    //  % Upright torque FR
-    //  % Upright torque RL
-    //  % Upright torque RR
-    //  % Wheel torque FL
-    //  % Wheel torque FR
-    //  % Wheel torque RL
-    //  Wheel torque RR
-    //  Generalized force vector
     for (b_i = 0; b_i < 3; b_i++) {
       T_WRR_tmp[b_i] = (A_VQRR[b_i] * domdphi_FL[0] + A_VQRR[b_i + 3] *
                         domdphi_FL[1]) + A_VQRR[b_i + 6] * domdphi_FL[2];
@@ -4162,7 +4160,7 @@ namespace adtm
                         domdphi_FR[1]) + A_VQFR[b_i + 6] * domdphi_FR[2];
       T_WFL_tmp[b_i] = (A_0V[b_i] * dvdphi_FR[0] + A_0V[b_i + 3] * dvdphi_FR[1])
         + A_0V[b_i + 6] * dvdphi_FR[2];
-      i = static_cast<int>(dv38[b_i]);
+      i = static_cast<int>(dv41[b_i]);
       T_C_tmp[b_i] = dz_RL * static_cast<double>(i);
       b_T_C_tmp[b_i] = w_RL * static_cast<double>(i);
       c_T_C_tmp[b_i] = gamma_RR * static_cast<double>(i);
@@ -4181,18 +4179,42 @@ namespace adtm
         i_y_tmp[dvRRdz_tmp] = domWFRdz[e_yFLV_tmp];
         j_y_tmp[dvRRdz_tmp] = domWRLdz[e_yFLV_tmp];
         k_y_tmp[dvRRdz_tmp] = domWRRdz[e_yFLV_tmp];
-        q_tmp[dvRRdz_tmp] = dvFLdz[e_yFLV_tmp] * 11.6;
       }
+    }
+
+    //       % Chassis force
+    //       % Chassis torque
+    //     % Force FL
+    //     % Force FR
+    //     % Force RL
+    //     % Force RR
+    //  % Upright torque FL
+    //  % Upright torque FR
+    //  % Upright torque RL
+    //  % Upright torque RR
+    //  % Wheel torque FL
+    //  % Wheel torque FR
+    //  % Wheel torque RL
+    //  Wheel torque RR
+    //  Generalized force vector
+    for (i = 0; i < 42; i++) {
+      q_tmp[i] = static_cast<double>(iv2[i]) * veh.m_C;
+    }
+
+    for (i = 0; i < 14; i++) {
+      b_q_tmp[i] = dvFLdz[3 * i] * 11.6;
+      b_q_tmp[i + 14] = dvFLdz[3 * i + 1] * 11.6;
+      b_q_tmp[i + 28] = dvFLdz[3 * i + 2] * 11.6;
     }
 
     r = _mm_set1_pd(11.6);
     for (i = 0; i <= 40; i += 2) {
       r1 = _mm_loadu_pd(&y_tmp[i]);
-      _mm_storeu_pd(&b_q_tmp[i], _mm_mul_pd(r1, r));
-      r1 = _mm_loadu_pd(&b_y_tmp[i]);
       _mm_storeu_pd(&c_q_tmp[i], _mm_mul_pd(r1, r));
-      r1 = _mm_loadu_pd(&c_y_tmp[i]);
+      r1 = _mm_loadu_pd(&b_y_tmp[i]);
       _mm_storeu_pd(&d_q_tmp[i], _mm_mul_pd(r1, r));
+      r1 = _mm_loadu_pd(&c_y_tmp[i]);
+      _mm_storeu_pd(&e_q_tmp[i], _mm_mul_pd(r1, r));
     }
 
     //  % Chassis force
@@ -4298,49 +4320,49 @@ namespace adtm
         6] * r_stRL;
       domdu_FL[i] = (I_UFLV[i] * dz_RL + I_UFLV[i + 3] * w_RL) + I_UFLV[i + 6] *
         gamma_RR;
-      dvdu_FL[i] = (static_cast<double>(iv2[i]) * r_stRR + static_cast<double>
-                    (iv2[i + 3]) * dz_RR) + static_cast<double>(iv2[i + 6]) *
+      dvdu_FL[i] = (static_cast<double>(iv3[i]) * r_stRR + static_cast<double>
+                    (iv3[i + 3]) * dz_RR) + static_cast<double>(iv3[i + 6]) *
         w_RR;
       v_0FAV[i] = d16;
       v_0RAV[i] = d15;
       r_MQFL0[i] = d14;
     }
 
-    memcpy(&b_dv[0], &x[14], 14U * sizeof(double));
-    coder::mldivide(K, b_dv);
-    r = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
+    memcpy(&dv[0], &x[14], 14U * sizeof(double));
+    coder::mldivide(K, dv);
+    r = _mm_loadu_pd(&omega_0VV[0]);
     r1 = _mm_loadu_pd(&F_ARAV[0]);
     _mm_storeu_pd(&r_MQRR0[0], _mm_add_pd(_mm_add_pd(r, r1), _mm_mul_pd
-      (_mm_set1_pd(a), _mm_loadu_pd(&dv38[0]))));
-    r_MQRR0[2] = (b_I_UFLV_tmp[2] + F_ARAV[2]) + a;
+      (_mm_set1_pd(a), _mm_loadu_pd(&dv41[0]))));
+    r_MQRR0[2] = (omega_0VV[2] + F_ARAV[2]) + a;
     r_MQFR0[0] = r_VFLV[1] * T_C_tmp[2] - T_C_tmp[1] * r_VFLV[2];
     r_MQFR0[1] = T_C_tmp[0] * r_VFLV[2] - r_VFLV[0] * T_C_tmp[2];
     r_MQFR0[2] = r_VFLV[0] * T_C_tmp[1] - T_C_tmp[0] * r_VFLV[1];
-    d_A_0V[0] = r_VFRV[1] * b_T_C_tmp[2] - b_T_C_tmp[1] * r_VFRV[2];
-    d_A_0V[1] = b_T_C_tmp[0] * r_VFRV[2] - r_VFRV[0] * b_T_C_tmp[2];
-    d_A_0V[2] = r_VFRV[0] * b_T_C_tmp[1] - b_T_C_tmp[0] * r_VFRV[1];
-    c_A_0V[0] = r_VRLV[1] * c_T_C_tmp[2] - c_T_C_tmp[1] * r_VRLV[2];
-    c_A_0V[1] = c_T_C_tmp[0] * r_VRLV[2] - r_VRLV[0] * c_T_C_tmp[2];
-    c_A_0V[2] = r_VRLV[0] * c_T_C_tmp[1] - c_T_C_tmp[0] * r_VRLV[1];
-    b_A_0V[0] = r_VRRV[1] * d_T_C_tmp[2] - d_T_C_tmp[1] * r_VRRV[2];
-    b_A_0V[1] = d_T_C_tmp[0] * r_VRRV[2] - r_VRRV[0] * d_T_C_tmp[2];
-    b_A_0V[2] = r_VRRV[0] * d_T_C_tmp[1] - d_T_C_tmp[0] * r_VRRV[1];
-    omega_0VV[0] = 0.0 * b_I_UFLV_tmp[2] - b_I_UFLV_tmp[1] * -0.09;
-    omega_0VV[1] = b_I_UFLV_tmp[0] * -0.09 - 0.765 * b_I_UFLV_tmp[2];
-    omega_0VV[2] = 0.765 * b_I_UFLV_tmp[1] - b_I_UFLV_tmp[0] * 0.0;
-    b_I_UFLV_tmp[0] = 0.0 * F_ARAV[2] - F_ARAV[1] * -0.09;
-    b_I_UFLV_tmp[1] = F_ARAV[0] * -0.09 - -0.765 * F_ARAV[2];
-    b_I_UFLV_tmp[2] = -0.765 * F_ARAV[1] - F_ARAV[0] * 0.0;
+    b_I_UFRV_tmp[0] = r_VFRV[1] * b_T_C_tmp[2] - b_T_C_tmp[1] * r_VFRV[2];
+    b_I_UFRV_tmp[1] = b_T_C_tmp[0] * r_VFRV[2] - r_VFRV[0] * b_T_C_tmp[2];
+    b_I_UFRV_tmp[2] = r_VFRV[0] * b_T_C_tmp[1] - b_T_C_tmp[0] * r_VFRV[1];
+    d_A_0V[0] = r_VRLV[1] * c_T_C_tmp[2] - c_T_C_tmp[1] * r_VRLV[2];
+    d_A_0V[1] = c_T_C_tmp[0] * r_VRLV[2] - r_VRLV[0] * c_T_C_tmp[2];
+    d_A_0V[2] = r_VRLV[0] * c_T_C_tmp[1] - c_T_C_tmp[0] * r_VRLV[1];
+    c_A_0V[0] = r_VRRV[1] * d_T_C_tmp[2] - d_T_C_tmp[1] * r_VRRV[2];
+    c_A_0V[1] = d_T_C_tmp[0] * r_VRRV[2] - r_VRRV[0] * d_T_C_tmp[2];
+    c_A_0V[2] = r_VRRV[0] * d_T_C_tmp[1] - d_T_C_tmp[0] * r_VRRV[1];
+    b_A_0V[0] = 0.0 * omega_0VV[2] - omega_0VV[1] * -veh.z_cg;
+    b_A_0V[1] = omega_0VV[0] * -veh.z_cg - veh.l_FA * omega_0VV[2];
+    b_A_0V[2] = veh.l_FA * omega_0VV[1] - omega_0VV[0] * 0.0;
+    omega_0VV[0] = 0.0 * F_ARAV[2] - F_ARAV[1] * -veh.z_cg;
+    omega_0VV[1] = F_ARAV[0] * -veh.z_cg - -veh.l_RA * F_ARAV[2];
+    omega_0VV[2] = -veh.l_RA * F_ARAV[1] - F_ARAV[0] * 0.0;
     r = _mm_loadu_pd(&r_MQFR0[0]);
-    r1 = _mm_loadu_pd(&d_A_0V[0]);
-    r2 = _mm_loadu_pd(&c_A_0V[0]);
-    r3 = _mm_loadu_pd(&b_A_0V[0]);
-    r4 = _mm_loadu_pd(&omega_0VV[0]);
-    r5 = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
+    r1 = _mm_loadu_pd(&b_I_UFRV_tmp[0]);
+    r2 = _mm_loadu_pd(&d_A_0V[0]);
+    r3 = _mm_loadu_pd(&c_A_0V[0]);
+    r4 = _mm_loadu_pd(&b_A_0V[0]);
+    r5 = _mm_loadu_pd(&omega_0VV[0]);
     _mm_storeu_pd(&r_MQFR0[0], _mm_add_pd(_mm_add_pd(_mm_add_pd(_mm_add_pd
       (_mm_add_pd(r, r1), r2), r3), r4), r5));
-    r_MQFR0[2] = ((((r_MQFR0[2] + d_A_0V[2]) + c_A_0V[2]) + b_A_0V[2]) +
-                  omega_0VV[2]) + b_I_UFLV_tmp[2];
+    r_MQFR0[2] = ((((r_MQFR0[2] + b_I_UFRV_tmp[2]) + d_A_0V[2]) + c_A_0V[2]) +
+                  b_A_0V[2]) + omega_0VV[2];
     r = _mm_loadu_pd(&T_WFL_tmp[0]);
     r1 = _mm_loadu_pd(&T_C_tmp[0]);
     _mm_storeu_pd(&T_C_tmp[0], _mm_sub_pd(r, r1));
@@ -4388,34 +4410,32 @@ namespace adtm
     dz_FL = omega_0VV[1];
     w_FL = -e_yFRV[2] * b_b_tmp;
     for (i = 0; i < 14; i++) {
-      b_dv2[i] = (((((((static_cast<double>(iv3[i]) * d3 + static_cast<double>
-                        (iv3[i + 14]) * d4) + static_cast<double>(iv3[i + 28]) *
-                       d5) + ((static_cast<double>(iv4[i]) * d + static_cast<
+      dv2[i] = (((((((static_cast<double>(iv2[i]) * d3 + static_cast<double>
+                      (iv2[i + 14]) * d4) + static_cast<double>(iv2[i + 28]) *
+                     d5) + ((static_cast<double>(iv4[i]) * d + static_cast<
         double>(iv4[i + 14]) * d1) + static_cast<double>(iv4[i + 28]) * d2)) +
-                     ((dvFLdz[3 * i] * d9 + dvFLdz[3 * i + 1] * d10) + dvFLdz[3 *
-                      i + 2] * d11)) + ((y_tmp[i] * d6 + y_tmp[i + 14] * d7) +
+                   ((dvFLdz[3 * i] * d9 + dvFLdz[3 * i + 1] * d10) + dvFLdz[3 *
+                    i + 2] * d11)) + ((y_tmp[i] * d6 + y_tmp[i + 14] * d7) +
         y_tmp[i + 28] * d8)) + ((b_y_tmp[i] * d12 + b_y_tmp[i + 14] * d13) +
-        b_y_tmp[i + 28] * u)) + ((c_y_tmp[i] * A_x_tmp_tmp + c_y_tmp[i + 14] *
-        T_BFL) + c_y_tmp[i + 28] * T_BFR)) + ((d_y_tmp[i] * T_BRL + d_y_tmp[i +
-        14] * T_BRR) + d_y_tmp[i + 28] * gamma_FL);
+                  b_y_tmp[i + 28] * u)) + ((c_y_tmp[i] * A_x_tmp_tmp + c_y_tmp[i
+                  + 14] * T_BFL) + c_y_tmp[i + 28] * T_BFR)) + ((d_y_tmp[i] *
+        T_BRL + d_y_tmp[i + 14] * T_BRR) + d_y_tmp[i + 28] * gamma_FL);
       l_y_tmp[i] = (e_y_tmp[i] * r_stFL + e_y_tmp[i + 14] * dz_FL) + e_y_tmp[i +
         28] * w_FL;
     }
 
     r = _mm_loadu_pd(&e_yRLV[0]);
-    _mm_storeu_pd(&omega_0VV[0], _mm_mul_pd(_mm_mul_pd(r, r1), _mm_set1_pd
-      (c_b_tmp)));
+    _mm_storeu_pd(&c_A_0V[0], _mm_mul_pd(_mm_mul_pd(r, r1), _mm_set1_pd(c_b_tmp)));
     r = _mm_loadu_pd(&e_yRRV[0]);
-    _mm_storeu_pd(&b_I_UFLV_tmp[0], _mm_mul_pd(_mm_mul_pd(r, r1), _mm_set1_pd
-      (d_b_tmp)));
-    d = omega_0VV[0];
-    d1 = omega_0VV[1];
+    _mm_storeu_pd(&b_A_0V[0], _mm_mul_pd(_mm_mul_pd(r, r1), _mm_set1_pd(d_b_tmp)));
+    d = c_A_0V[0];
+    d1 = c_A_0V[1];
     d2 = -e_yRLV[2] * c_b_tmp;
-    d3 = b_I_UFLV_tmp[0];
-    d4 = b_I_UFLV_tmp[1];
+    d3 = b_A_0V[0];
+    d4 = b_A_0V[1];
     d5 = -e_yRRV[2] * d_b_tmp;
     for (i = 0; i <= 12; i += 2) {
-      r = _mm_loadu_pd(&b_dv2[i]);
+      r = _mm_loadu_pd(&dv2[i]);
       r2 = _mm_loadu_pd(&l_y_tmp[i]);
       r = _mm_add_pd(r, r2);
       r2 = _mm_loadu_pd(&f_y_tmp[i]);
@@ -4427,7 +4447,7 @@ namespace adtm
       r3 = _mm_mul_pd(r3, _mm_set1_pd(d2));
       r2 = _mm_add_pd(r2, r3);
       r = _mm_add_pd(r, r2);
-      _mm_storeu_pd(&b_dv1[i], r);
+      _mm_storeu_pd(&dv1[i], r);
       r = _mm_loadu_pd(&g_y_tmp[i]);
       r = _mm_mul_pd(r, _mm_set1_pd(d3));
       r2 = _mm_loadu_pd(&g_y_tmp[i + 14]);
@@ -4439,15 +4459,21 @@ namespace adtm
       _mm_storeu_pd(&l_y_tmp[i], r);
     }
 
-    b_I_UFLV_tmp[0] = b_a[1] * T_WFL_tmp[2] - T_WFL_tmp[1] * b_a[2];
-    b_I_UFLV_tmp[1] = T_WFL_tmp[0] * b_a[2] - b_a[0] * T_WFL_tmp[2];
-    b_I_UFLV_tmp[2] = b_a[0] * T_WFL_tmp[1] - T_WFL_tmp[0] * b_a[1];
+    omega_0VV[0] = b_a[1] * T_WFL_tmp[2] - T_WFL_tmp[1] * b_a[2];
+    omega_0VV[1] = T_WFL_tmp[0] * b_a[2] - b_a[0] * T_WFL_tmp[2];
+    omega_0VV[2] = b_a[0] * T_WFL_tmp[1] - T_WFL_tmp[0] * b_a[1];
+    b_I_UFRV_tmp[0] = r_MQFL0[1] * T_WFR_tmp[2] - T_WFR_tmp[1] * r_MQFL0[2];
+    b_I_UFRV_tmp[1] = T_WFR_tmp[0] * r_MQFL0[2] - r_MQFL0[0] * T_WFR_tmp[2];
+    b_I_UFRV_tmp[2] = r_MQFL0[0] * T_WFR_tmp[1] - T_WFR_tmp[0] * r_MQFL0[1];
     d = T_TFL[0];
     d1 = T_TFL[1];
     d2 = T_TFL[2];
+    d3 = T_TFR[0];
+    d4 = T_TFR[1];
+    d5 = T_TFR[2];
     r = _mm_loadu_pd(&e_yFLV[0]);
     r = _mm_mul_pd(r, _mm_set1_pd(b_tmp));
-    r2 = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
+    r2 = _mm_loadu_pd(&omega_0VV[0]);
     r = _mm_add_pd(r, r2);
     r2 = _mm_loadu_pd(&A_0V[0]);
     r2 = _mm_mul_pd(r2, _mm_set1_pd(d));
@@ -4459,30 +4485,24 @@ namespace adtm
     r2 = _mm_add_pd(r2, r3);
     r = _mm_add_pd(r, r2);
     _mm_storeu_pd(&b_A_0V[0], r);
-    b_A_0V[2] = (e_yFLV[2] * b_tmp + b_I_UFLV_tmp[2]) + ((A_0V[2] * d + A_0V[5] *
-      d1) + A_0V[8] * d2);
-    b_I_UFLV_tmp[0] = r_MQFL0[1] * T_WFR_tmp[2] - T_WFR_tmp[1] * r_MQFL0[2];
-    b_I_UFLV_tmp[1] = T_WFR_tmp[0] * r_MQFL0[2] - r_MQFL0[0] * T_WFR_tmp[2];
-    b_I_UFLV_tmp[2] = r_MQFL0[0] * T_WFR_tmp[1] - T_WFR_tmp[0] * r_MQFL0[1];
-    d = T_TFR[0];
-    d1 = T_TFR[1];
-    d2 = T_TFR[2];
     r = _mm_loadu_pd(&e_yFRV[0]);
     r = _mm_mul_pd(r, _mm_set1_pd(b_b_tmp));
-    r2 = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
+    r2 = _mm_loadu_pd(&b_I_UFRV_tmp[0]);
     r = _mm_add_pd(r, r2);
     r2 = _mm_loadu_pd(&A_VQFR[0]);
-    r2 = _mm_mul_pd(r2, _mm_set1_pd(d));
+    r2 = _mm_mul_pd(r2, _mm_set1_pd(d3));
     r3 = _mm_loadu_pd(&A_VQFR[3]);
-    r3 = _mm_mul_pd(r3, _mm_set1_pd(d1));
+    r3 = _mm_mul_pd(r3, _mm_set1_pd(d4));
     r2 = _mm_add_pd(r2, r3);
     r3 = _mm_loadu_pd(&A_VQFR[6]);
-    r3 = _mm_mul_pd(r3, _mm_set1_pd(d2));
+    r3 = _mm_mul_pd(r3, _mm_set1_pd(d5));
     r2 = _mm_add_pd(r2, r3);
     r = _mm_add_pd(r, r2);
     _mm_storeu_pd(&omega_0VV[0], r);
-    omega_0VV[2] = (e_yFRV[2] * b_b_tmp + b_I_UFLV_tmp[2]) + ((A_VQFR[2] * d +
-      A_VQFR[5] * d1) + A_VQFR[8] * d2);
+    b_A_0V[2] = (e_yFLV[2] * b_tmp + omega_0VV[2]) + ((A_0V[2] * d + A_0V[5] *
+      d1) + A_0V[8] * d2);
+    omega_0VV[2] = (e_yFRV[2] * b_b_tmp + b_I_UFRV_tmp[2]) + ((A_VQFR[2] * d3 +
+      A_VQFR[5] * d4) + A_VQFR[8] * d5);
     d = b_A_0V[0];
     d1 = b_A_0V[1];
     d2 = b_A_0V[2];
@@ -4490,7 +4510,7 @@ namespace adtm
     d4 = omega_0VV[1];
     d5 = omega_0VV[2];
     for (i = 0; i <= 12; i += 2) {
-      r = _mm_loadu_pd(&b_dv1[i]);
+      r = _mm_loadu_pd(&dv1[i]);
       r2 = _mm_loadu_pd(&l_y_tmp[i]);
       r = _mm_add_pd(r, r2);
       r2 = _mm_loadu_pd(&h_y_tmp[i]);
@@ -4502,7 +4522,7 @@ namespace adtm
       r3 = _mm_mul_pd(r3, _mm_set1_pd(d2));
       r2 = _mm_add_pd(r2, r3);
       r = _mm_add_pd(r, r2);
-      _mm_storeu_pd(&b_dv2[i], r);
+      _mm_storeu_pd(&dv2[i], r);
       r = _mm_loadu_pd(&i_y_tmp[i]);
       r = _mm_mul_pd(r, _mm_set1_pd(d3));
       r2 = _mm_loadu_pd(&i_y_tmp[i + 14]);
@@ -4514,12 +4534,12 @@ namespace adtm
       _mm_storeu_pd(&l_y_tmp[i], r);
     }
 
-    c_A_0V[0] = v_0RAV[1] * T_WRL_tmp[2] - T_WRL_tmp[1] * v_0RAV[2];
-    c_A_0V[1] = T_WRL_tmp[0] * v_0RAV[2] - v_0RAV[0] * T_WRL_tmp[2];
-    c_A_0V[2] = v_0RAV[0] * T_WRL_tmp[1] - T_WRL_tmp[0] * v_0RAV[1];
-    b_A_0V[0] = v_0FAV[1] * T_WRR_tmp[2] - T_WRR_tmp[1] * v_0FAV[2];
-    b_A_0V[1] = T_WRR_tmp[0] * v_0FAV[2] - v_0FAV[0] * T_WRR_tmp[2];
-    b_A_0V[2] = v_0FAV[0] * T_WRR_tmp[1] - T_WRR_tmp[0] * v_0FAV[1];
+    b_A_0V[0] = v_0RAV[1] * T_WRL_tmp[2] - T_WRL_tmp[1] * v_0RAV[2];
+    b_A_0V[1] = T_WRL_tmp[0] * v_0RAV[2] - v_0RAV[0] * T_WRL_tmp[2];
+    b_A_0V[2] = v_0RAV[0] * T_WRL_tmp[1] - T_WRL_tmp[0] * v_0RAV[1];
+    omega_0VV[0] = v_0FAV[1] * T_WRR_tmp[2] - T_WRR_tmp[1] * v_0FAV[2];
+    omega_0VV[1] = T_WRR_tmp[0] * v_0FAV[2] - v_0FAV[0] * T_WRR_tmp[2];
+    omega_0VV[2] = v_0FAV[0] * T_WRR_tmp[1] - T_WRR_tmp[0] * v_0FAV[1];
     d = T_TRL[0];
     d1 = T_TRL[1];
     d2 = T_TRL[2];
@@ -4528,7 +4548,7 @@ namespace adtm
     d5 = T_TRR[2];
     r = _mm_loadu_pd(&e_yRLV[0]);
     r = _mm_mul_pd(r, _mm_set1_pd(c_b_tmp));
-    r2 = _mm_loadu_pd(&c_A_0V[0]);
+    r2 = _mm_loadu_pd(&b_A_0V[0]);
     r = _mm_add_pd(r, r2);
     r2 = _mm_loadu_pd(&A_VQRL[0]);
     r2 = _mm_mul_pd(r2, _mm_set1_pd(d));
@@ -4539,10 +4559,10 @@ namespace adtm
     r3 = _mm_mul_pd(r3, _mm_set1_pd(d2));
     r2 = _mm_add_pd(r2, r3);
     r = _mm_add_pd(r, r2);
-    _mm_storeu_pd(&omega_0VV[0], r);
+    _mm_storeu_pd(&c_A_0V[0], r);
     r = _mm_loadu_pd(&e_yRRV[0]);
     r = _mm_mul_pd(r, _mm_set1_pd(d_b_tmp));
-    r2 = _mm_loadu_pd(&b_A_0V[0]);
+    r2 = _mm_loadu_pd(&omega_0VV[0]);
     r = _mm_add_pd(r, r2);
     r2 = _mm_loadu_pd(&A_VQRR[0]);
     r2 = _mm_mul_pd(r2, _mm_set1_pd(d3));
@@ -4553,19 +4573,22 @@ namespace adtm
     r3 = _mm_mul_pd(r3, _mm_set1_pd(d5));
     r2 = _mm_add_pd(r2, r3);
     r = _mm_add_pd(r, r2);
-    _mm_storeu_pd(&b_I_UFLV_tmp[0], r);
-    omega_0VV[2] = (e_yRLV[2] * c_b_tmp + c_A_0V[2]) + ((A_VQRL[2] * d + A_VQRL
-      [5] * d1) + A_VQRL[8] * d2);
-    b_I_UFLV_tmp[2] = (e_yRRV[2] * d_b_tmp + b_A_0V[2]) + ((A_VQRR[2] * d3 +
+    _mm_storeu_pd(&b_A_0V[0], r);
+    c_A_0V[2] = (e_yRLV[2] * c_b_tmp + b_A_0V[2]) + ((A_VQRL[2] * d + A_VQRL[5] *
+      d1) + A_VQRL[8] * d2);
+    b_A_0V[2] = (e_yRRV[2] * d_b_tmp + omega_0VV[2]) + ((A_VQRR[2] * d3 +
       A_VQRR[5] * d4) + A_VQRR[8] * d5);
-    d = omega_0VV[0];
-    d1 = omega_0VV[1];
-    d2 = omega_0VV[2];
-    d3 = b_I_UFLV_tmp[0];
-    d4 = b_I_UFLV_tmp[1];
-    d5 = b_I_UFLV_tmp[2];
+    d = c_A_0V[0];
+    d1 = c_A_0V[1];
+    d2 = c_A_0V[2];
+    d3 = b_A_0V[0];
+    d4 = b_A_0V[1];
+    d5 = b_A_0V[2];
+    d6 = g_V[0] - (x[16] * x[18] - x[15] * x[19]);
+    d7 = g_V[1] - (x[14] * x[19] - x[16] * x[17]);
+    d8 = g_V[2] - (x[15] * x[17] - x[14] * x[18]);
     for (i = 0; i <= 12; i += 2) {
-      r = _mm_loadu_pd(&b_dv2[i]);
+      r = _mm_loadu_pd(&dv2[i]);
       r2 = _mm_loadu_pd(&l_y_tmp[i]);
       r = _mm_add_pd(r, r2);
       r2 = _mm_loadu_pd(&j_y_tmp[i]);
@@ -4577,109 +4600,114 @@ namespace adtm
       r3 = _mm_mul_pd(r3, _mm_set1_pd(d2));
       r2 = _mm_add_pd(r2, r3);
       r = _mm_add_pd(r, r2);
-      _mm_storeu_pd(&b_dv1[i], r);
-      r = _mm_loadu_pd(&k_y_tmp[i]);
-      r = _mm_mul_pd(r, _mm_set1_pd(d3));
-      r2 = _mm_loadu_pd(&k_y_tmp[i + 14]);
-      r2 = _mm_mul_pd(r2, _mm_set1_pd(d4));
+      r2 = _mm_loadu_pd(&k_y_tmp[i]);
+      r2 = _mm_mul_pd(r2, _mm_set1_pd(d3));
+      r3 = _mm_loadu_pd(&k_y_tmp[i + 14]);
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(d4));
+      r2 = _mm_add_pd(r2, r3);
+      r3 = _mm_loadu_pd(&k_y_tmp[i + 28]);
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(d5));
+      r2 = _mm_add_pd(r2, r3);
+      _mm_storeu_pd(&l_y_tmp[i], r2);
       r = _mm_add_pd(r, r2);
-      r2 = _mm_loadu_pd(&k_y_tmp[i + 28]);
-      r2 = _mm_mul_pd(r2, _mm_set1_pd(d5));
+      r2 = _mm_loadu_pd(&q_tmp[i]);
+      r2 = _mm_mul_pd(r2, _mm_set1_pd(d6));
+      r3 = _mm_loadu_pd(&q_tmp[i + 14]);
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(d7));
+      r2 = _mm_add_pd(r2, r3);
+      r3 = _mm_loadu_pd(&q_tmp[i + 28]);
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(d8));
+      r2 = _mm_add_pd(r2, r3);
       r = _mm_add_pd(r, r2);
-      _mm_storeu_pd(&l_y_tmp[i], r);
+      _mm_storeu_pd(&dv2[i], r);
     }
 
-    d = g_V[0] - (x[16] * x[18] - x[15] * x[19]);
-    d1 = g_V[1] - (x[14] * x[19] - x[16] * x[17]);
-    d2 = g_V[2] - (x[15] * x[17] - x[14] * x[18]);
-    d3 = -(dvdu_FL[2] * x[18] - dvdu_FL[1] * x[19]);
-    d4 = -(dvdu_FL[0] * x[19] - dvdu_FL[2] * x[17]);
-    d5 = -(dvdu_FL[1] * x[17] - dvdu_FL[0] * x[18]);
+    d = -(dvdu_FL[2] * x[18] - dvdu_FL[1] * x[19]);
+    d1 = -(dvdu_FL[0] * x[19] - dvdu_FL[2] * x[17]);
+    d2 = -(dvdu_FL[1] * x[17] - dvdu_FL[0] * x[18]);
     for (i = 0; i < 14; i++) {
-      b_dv2[i] = (b_dv1[i] + l_y_tmp[i]) + ((dv39[i] * d + dv39[i + 14] * d1) +
-        dv39[i + 28] * d2);
-      b_dv1[i] = (static_cast<double>(iv4[i]) * d3 + static_cast<double>(iv4[i +
-        14]) * d4) + static_cast<double>(iv4[i + 28]) * d5;
+      dv1[i] = (static_cast<double>(iv4[i]) * d + static_cast<double>(iv4[i + 14])
+                * d1) + static_cast<double>(iv4[i + 28]) * d2;
     }
 
-    d_A_0V[0] = r_VFLV_dot[2] * x[18] - r_VFLV_dot[1] * x[19];
-    d_A_0V[1] = r_VFLV_dot[0] * x[19] - r_VFLV_dot[2] * x[17];
-    d_A_0V[2] = r_VFLV_dot[1] * x[17] - r_VFLV_dot[0] * x[18];
-    b_I_UFLV_tmp[0] = x[18] * v_0FLV_idx_2 - v_0FLV_idx_1 * x[19];
-    b_I_UFLV_tmp[1] = v_0FLV_idx_0 * x[19] - x[17] * v_0FLV_idx_2;
-    b_I_UFLV_tmp[2] = x[17] * v_0FLV_idx_1 - v_0FLV_idx_0 * x[18];
+    c_A_0V[0] = r_VFLV_dot[2] * x[18] - r_VFLV_dot[1] * x[19];
+    c_A_0V[1] = r_VFLV_dot[0] * x[19] - r_VFLV_dot[2] * x[17];
+    c_A_0V[2] = r_VFLV_dot[1] * x[17] - r_VFLV_dot[0] * x[18];
+    d_A_0V[0] = x[18] * v_0FLV_idx_2 - v_0FLV_idx_1 * x[19];
+    d_A_0V[1] = v_0FLV_idx_0 * x[19] - x[17] * v_0FLV_idx_2;
+    d_A_0V[2] = x[17] * v_0FLV_idx_1 - v_0FLV_idx_0 * x[18];
+    r = _mm_loadu_pd(&c_A_0V[0]);
+    r2 = _mm_loadu_pd(&d_A_0V[0]);
+    r3 = _mm_loadu_pd(&g_V[0]);
+    _mm_storeu_pd(&c_A_0V[0], _mm_sub_pd(r3, _mm_add_pd(r, r2)));
+    c_A_0V[2] = g_V[2] - (c_A_0V[2] + d_A_0V[2]);
+    d_A_0V[0] = r_VFRV_dot[2] * x[18] - r_VFRV_dot[1] * x[19];
+    d_A_0V[1] = r_VFRV_dot[0] * x[19] - r_VFRV_dot[2] * x[17];
+    d_A_0V[2] = r_VFRV_dot[1] * x[17] - r_VFRV_dot[0] * x[18];
+    b_A_0V[0] = x[18] * v_0FRV_idx_2 - v_0FRV_idx_1 * x[19];
+    b_A_0V[1] = v_0FRV_idx_0 * x[19] - x[17] * v_0FRV_idx_2;
+    b_A_0V[2] = x[17] * v_0FRV_idx_1 - v_0FRV_idx_0 * x[18];
     r = _mm_loadu_pd(&d_A_0V[0]);
-    r2 = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
+    r2 = _mm_loadu_pd(&b_A_0V[0]);
     r3 = _mm_loadu_pd(&g_V[0]);
     _mm_storeu_pd(&d_A_0V[0], _mm_sub_pd(r3, _mm_add_pd(r, r2)));
-    d_A_0V[2] = g_V[2] - (d_A_0V[2] + b_I_UFLV_tmp[2]);
-    b_I_UFLV_tmp[0] = r_VFRV_dot[2] * x[18] - r_VFRV_dot[1] * x[19];
-    b_I_UFLV_tmp[1] = r_VFRV_dot[0] * x[19] - r_VFRV_dot[2] * x[17];
-    b_I_UFLV_tmp[2] = r_VFRV_dot[1] * x[17] - r_VFRV_dot[0] * x[18];
-    c_A_0V[0] = x[18] * v_0FRV_idx_2 - v_0FRV_idx_1 * x[19];
-    c_A_0V[1] = v_0FRV_idx_0 * x[19] - x[17] * v_0FRV_idx_2;
-    c_A_0V[2] = x[17] * v_0FRV_idx_1 - v_0FRV_idx_0 * x[18];
-    r = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
-    r2 = _mm_loadu_pd(&c_A_0V[0]);
-    r3 = _mm_loadu_pd(&g_V[0]);
-    _mm_storeu_pd(&b_I_UFLV_tmp[0], _mm_sub_pd(r3, _mm_add_pd(r, r2)));
-    b_I_UFLV_tmp[2] = g_V[2] - (b_I_UFLV_tmp[2] + c_A_0V[2]);
-    d = b_I_UFLV_tmp[0];
-    d1 = b_I_UFLV_tmp[1];
-    d2 = b_I_UFLV_tmp[2];
-    d3 = d_A_0V[0];
-    d4 = d_A_0V[1];
-    d5 = d_A_0V[2];
+    d_A_0V[2] = g_V[2] - (d_A_0V[2] + b_A_0V[2]);
+    d = d_A_0V[0];
+    d1 = d_A_0V[1];
+    d2 = d_A_0V[2];
+    d3 = c_A_0V[0];
+    d4 = c_A_0V[1];
+    d5 = c_A_0V[2];
     for (i = 0; i <= 12; i += 2) {
-      r = _mm_loadu_pd(&b_q_tmp[i]);
+      r = _mm_loadu_pd(&c_q_tmp[i]);
       r = _mm_mul_pd(r, _mm_set1_pd(d));
-      r2 = _mm_loadu_pd(&b_q_tmp[i + 14]);
+      r2 = _mm_loadu_pd(&c_q_tmp[i + 14]);
       r2 = _mm_mul_pd(r2, _mm_set1_pd(d1));
       r = _mm_add_pd(r, r2);
-      r2 = _mm_loadu_pd(&b_q_tmp[i + 28]);
+      r2 = _mm_loadu_pd(&c_q_tmp[i + 28]);
       r2 = _mm_mul_pd(r2, _mm_set1_pd(d2));
       r = _mm_add_pd(r, r2);
       _mm_storeu_pd(&l_y_tmp[i], r);
-      r = _mm_loadu_pd(&b_dv2[i]);
-      r2 = _mm_loadu_pd(&b_dv1[i]);
+      r = _mm_loadu_pd(&dv2[i]);
+      r2 = _mm_loadu_pd(&dv1[i]);
       r = _mm_add_pd(r, r2);
-      r2 = _mm_loadu_pd(&q_tmp[i]);
+      r2 = _mm_loadu_pd(&b_q_tmp[i]);
       r2 = _mm_mul_pd(r2, _mm_set1_pd(d3));
-      r3 = _mm_loadu_pd(&q_tmp[i + 14]);
+      r3 = _mm_loadu_pd(&b_q_tmp[i + 14]);
       r3 = _mm_mul_pd(r3, _mm_set1_pd(d4));
       r2 = _mm_add_pd(r2, r3);
-      r3 = _mm_loadu_pd(&q_tmp[i + 28]);
+      r3 = _mm_loadu_pd(&b_q_tmp[i + 28]);
       r3 = _mm_mul_pd(r3, _mm_set1_pd(d5));
       r2 = _mm_add_pd(r2, r3);
       r = _mm_add_pd(r, r2);
       _mm_storeu_pd(&b_dv3[i], r);
     }
 
-    d_A_0V[0] = r_VRLV_dot[2] * x[18] - r_VRLV_dot[1] * x[19];
-    d_A_0V[1] = r_VRLV_dot[0] * x[19] - r_VRLV_dot[2] * x[17];
-    d_A_0V[2] = r_VRLV_dot[1] * x[17] - r_VRLV_dot[0] * x[18];
-    b_I_UFLV_tmp[0] = x[18] * v_0RLV_idx_2 - v_0RLV_idx_1 * x[19];
-    b_I_UFLV_tmp[1] = v_0RLV_idx_0 * x[19] - x[17] * v_0RLV_idx_2;
-    b_I_UFLV_tmp[2] = x[17] * v_0RLV_idx_1 - v_0RLV_idx_0 * x[18];
-    r = _mm_loadu_pd(&d_A_0V[0]);
-    r2 = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
+    c_A_0V[0] = r_VRLV_dot[2] * x[18] - r_VRLV_dot[1] * x[19];
+    c_A_0V[1] = r_VRLV_dot[0] * x[19] - r_VRLV_dot[2] * x[17];
+    c_A_0V[2] = r_VRLV_dot[1] * x[17] - r_VRLV_dot[0] * x[18];
+    d_A_0V[0] = x[18] * v_0RLV_idx_2 - v_0RLV_idx_1 * x[19];
+    d_A_0V[1] = v_0RLV_idx_0 * x[19] - x[17] * v_0RLV_idx_2;
+    d_A_0V[2] = x[17] * v_0RLV_idx_1 - v_0RLV_idx_0 * x[18];
+    r = _mm_loadu_pd(&c_A_0V[0]);
+    r2 = _mm_loadu_pd(&d_A_0V[0]);
     r3 = _mm_loadu_pd(&g_V[0]);
-    _mm_storeu_pd(&d_A_0V[0], _mm_sub_pd(r3, _mm_add_pd(r, r2)));
-    d_A_0V[2] = g_V[2] - (d_A_0V[2] + b_I_UFLV_tmp[2]);
-    b_I_UFLV_tmp[0] = r_VRRV_dot[2] * x[18] - r_VRRV_dot[1] * x[19];
-    b_I_UFLV_tmp[1] = r_VRRV_dot[0] * x[19] - r_VRRV_dot[2] * x[17];
-    b_I_UFLV_tmp[2] = r_VRRV_dot[1] * x[17] - r_VRRV_dot[0] * x[18];
-    c_A_0V[0] = v_0RRV[2] * x[18] - v_0RRV[1] * x[19];
-    c_A_0V[1] = v_0RRV[0] * x[19] - v_0RRV[2] * x[17];
-    c_A_0V[2] = v_0RRV[1] * x[17] - v_0RRV[0] * x[18];
-    r = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
-    r2 = _mm_loadu_pd(&c_A_0V[0]);
+    _mm_storeu_pd(&c_A_0V[0], _mm_sub_pd(r3, _mm_add_pd(r, r2)));
+    c_A_0V[2] = g_V[2] - (c_A_0V[2] + d_A_0V[2]);
+    d_A_0V[0] = r_VRRV_dot[2] * x[18] - r_VRRV_dot[1] * x[19];
+    d_A_0V[1] = r_VRRV_dot[0] * x[19] - r_VRRV_dot[2] * x[17];
+    d_A_0V[2] = r_VRRV_dot[1] * x[17] - r_VRRV_dot[0] * x[18];
+    b_A_0V[0] = v_0RRV[2] * x[18] - v_0RRV[1] * x[19];
+    b_A_0V[1] = v_0RRV[0] * x[19] - v_0RRV[2] * x[17];
+    b_A_0V[2] = v_0RRV[1] * x[17] - v_0RRV[0] * x[18];
+    r = _mm_loadu_pd(&d_A_0V[0]);
+    r2 = _mm_loadu_pd(&b_A_0V[0]);
     r3 = _mm_loadu_pd(&g_V[0]);
     _mm_storeu_pd(&g_V[0], _mm_sub_pd(r3, _mm_add_pd(r, r2)));
-    g_V[2] -= b_I_UFLV_tmp[2] + c_A_0V[2];
-    d = d_A_0V[0];
-    d1 = d_A_0V[1];
-    d2 = d_A_0V[2];
+    g_V[2] -= d_A_0V[2] + b_A_0V[2];
+    d = c_A_0V[0];
+    d1 = c_A_0V[1];
+    d2 = c_A_0V[2];
     d3 = -(omega_0UFRV[1] * dvdphi_RR[2] - dvdphi_RR[1] * omega_0UFRV[2]);
     d4 = -(dvdphi_RR[0] * omega_0UFRV[2] - omega_0UFRV[0] * dvdphi_RR[2]);
     d5 = -(omega_0UFRV[0] * dvdphi_RR[1] - dvdphi_RR[0] * omega_0UFRV[1]);
@@ -4696,12 +4724,12 @@ namespace adtm
       r = _mm_loadu_pd(&b_dv3[i]);
       r2 = _mm_loadu_pd(&l_y_tmp[i]);
       r = _mm_add_pd(r, r2);
-      r2 = _mm_loadu_pd(&c_q_tmp[i]);
+      r2 = _mm_loadu_pd(&d_q_tmp[i]);
       r2 = _mm_mul_pd(r2, _mm_set1_pd(d));
-      r3 = _mm_loadu_pd(&c_q_tmp[i + 14]);
+      r3 = _mm_loadu_pd(&d_q_tmp[i + 14]);
       r3 = _mm_mul_pd(r3, _mm_set1_pd(d1));
       r2 = _mm_add_pd(r2, r3);
-      r3 = _mm_loadu_pd(&c_q_tmp[i + 28]);
+      r3 = _mm_loadu_pd(&d_q_tmp[i + 28]);
       r3 = _mm_mul_pd(r3, _mm_set1_pd(d2));
       r2 = _mm_add_pd(r2, r3);
       r = _mm_add_pd(r, r2);
@@ -4714,12 +4742,12 @@ namespace adtm
       r3 = _mm_mul_pd(r3, _mm_set1_pd(d5));
       r2 = _mm_add_pd(r2, r3);
       _mm_storeu_pd(&l_y_tmp[i], r2);
-      r3 = _mm_loadu_pd(&d_q_tmp[i]);
+      r3 = _mm_loadu_pd(&e_q_tmp[i]);
       r3 = _mm_mul_pd(r3, _mm_set1_pd(d6));
-      r4 = _mm_loadu_pd(&d_q_tmp[i + 14]);
+      r4 = _mm_loadu_pd(&e_q_tmp[i + 14]);
       r4 = _mm_mul_pd(r4, _mm_set1_pd(d7));
       r3 = _mm_add_pd(r3, r4);
-      r4 = _mm_loadu_pd(&d_q_tmp[i + 28]);
+      r4 = _mm_loadu_pd(&e_q_tmp[i + 28]);
       r4 = _mm_mul_pd(r4, _mm_set1_pd(d8));
       r3 = _mm_add_pd(r3, r4);
       r = _mm_add_pd(r, r3);
@@ -4742,7 +4770,7 @@ namespace adtm
       r3 = _mm_mul_pd(r3, _mm_set1_pd(u));
       r2 = _mm_add_pd(r2, r3);
       r = _mm_add_pd(r, r2);
-      _mm_storeu_pd(&b_dv1[i], r);
+      _mm_storeu_pd(&dv1[i], r);
     }
 
     d = -(omega_0URRV[1] * dvdphi_FR[2] - dvdphi_FR[1] * omega_0URRV[2]);
@@ -4760,14 +4788,14 @@ namespace adtm
       _mm_storeu_pd(&l_y_tmp[i], r);
     }
 
-    d_A_0V[0] = omega_0WFLV[2] * x[18] - omega_0WFLV[1] * x[19];
-    d_A_0V[1] = omega_0WFLV[0] * x[19] - omega_0WFLV[2] * x[17];
-    d_A_0V[2] = omega_0WFLV[1] * x[17] - omega_0WFLV[0] * x[18];
-    omega_0VV[0] = omega_VUFLV[1] * omega_0WFLV_tmp[2] - omega_0WFLV_tmp[1] *
+    c_A_0V[0] = omega_0WFLV[2] * x[18] - omega_0WFLV[1] * x[19];
+    c_A_0V[1] = omega_0WFLV[0] * x[19] - omega_0WFLV[2] * x[17];
+    c_A_0V[2] = omega_0WFLV[1] * x[17] - omega_0WFLV[0] * x[18];
+    b_I_UFRV_tmp[0] = omega_VUFLV[1] * omega_0WFLV_tmp[2] - omega_0WFLV_tmp[1] *
       omega_VUFLV[2];
-    omega_0VV[1] = omega_0WFLV_tmp[0] * omega_VUFLV[2] - omega_VUFLV[0] *
+    b_I_UFRV_tmp[1] = omega_0WFLV_tmp[0] * omega_VUFLV[2] - omega_VUFLV[0] *
       omega_0WFLV_tmp[2];
-    omega_0VV[2] = omega_VUFLV[0] * omega_0WFLV_tmp[1] - omega_0WFLV_tmp[0] *
+    b_I_UFRV_tmp[2] = omega_VUFLV[0] * omega_0WFLV_tmp[1] - omega_0WFLV_tmp[0] *
       omega_VUFLV[1];
     r = _mm_loadu_pd(&I_WFLV[0]);
     _mm_storeu_pd(&A_z_tmp[0], _mm_mul_pd(r, r1));
@@ -4778,19 +4806,16 @@ namespace adtm
     r = _mm_loadu_pd(&I_WFLV[6]);
     _mm_storeu_pd(&A_z_tmp[6], _mm_mul_pd(r, r1));
     A_z_tmp[8] = -I_WFLV[8];
-    r = _mm_loadu_pd(&d_A_0V[0]);
-    r2 = _mm_loadu_pd(&omega_0VV[0]);
-    _mm_storeu_pd(&d_A_0V[0], _mm_add_pd(r, r2));
-    d_A_0V[2] += omega_0VV[2];
-    b_I_UFLV_tmp[0] = omega_0WFLV[1] * domdphi_FR[2] - domdphi_FR[1] *
-      omega_0WFLV[2];
-    b_I_UFLV_tmp[1] = domdphi_FR[0] * omega_0WFLV[2] - omega_0WFLV[0] *
-      domdphi_FR[2];
-    b_I_UFLV_tmp[2] = omega_0WFLV[0] * domdphi_FR[1] - domdphi_FR[0] *
-      omega_0WFLV[1];
-    d = d_A_0V[0];
-    d1 = d_A_0V[1];
-    d2 = d_A_0V[2];
+    r = _mm_loadu_pd(&c_A_0V[0]);
+    r2 = _mm_loadu_pd(&b_I_UFRV_tmp[0]);
+    _mm_storeu_pd(&c_A_0V[0], _mm_add_pd(r, r2));
+    c_A_0V[2] += b_I_UFRV_tmp[2];
+    d_A_0V[0] = omega_0WFLV[1] * domdphi_FR[2] - domdphi_FR[1] * omega_0WFLV[2];
+    d_A_0V[1] = domdphi_FR[0] * omega_0WFLV[2] - omega_0WFLV[0] * domdphi_FR[2];
+    d_A_0V[2] = omega_0WFLV[0] * domdphi_FR[1] - domdphi_FR[0] * omega_0WFLV[1];
+    d = c_A_0V[0];
+    d1 = c_A_0V[1];
+    d2 = c_A_0V[2];
     r = _mm_loadu_pd(&A_z_tmp[0]);
     r = _mm_mul_pd(r, _mm_set1_pd(d));
     r2 = _mm_loadu_pd(&A_z_tmp[3]);
@@ -4799,19 +4824,19 @@ namespace adtm
     r2 = _mm_loadu_pd(&A_z_tmp[6]);
     r2 = _mm_mul_pd(r2, _mm_set1_pd(d2));
     r = _mm_add_pd(r, r2);
-    r2 = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
+    r2 = _mm_loadu_pd(&d_A_0V[0]);
     r = _mm_sub_pd(r, r2);
-    _mm_storeu_pd(&c_A_0V[0], r);
-    c_A_0V[2] = ((A_z_tmp[2] * d + A_z_tmp[5] * d1) + A_z_tmp[8] * d2) -
-      b_I_UFLV_tmp[2];
-    d_A_0V[0] = omega_0WFRV[2] * x[18] - omega_0WFRV[1] * x[19];
-    d_A_0V[1] = omega_0WFRV[0] * x[19] - omega_0WFRV[2] * x[17];
-    d_A_0V[2] = omega_0WFRV[1] * x[17] - omega_0WFRV[0] * x[18];
-    b_A_0V[0] = omega_VUFRV[1] * omega_0WFRV_tmp[2] - omega_0WFRV_tmp[1] *
+    _mm_storeu_pd(&b_A_0V[0], r);
+    b_A_0V[2] = ((A_z_tmp[2] * d + A_z_tmp[5] * d1) + A_z_tmp[8] * d2) - d_A_0V
+      [2];
+    c_A_0V[0] = omega_0WFRV[2] * x[18] - omega_0WFRV[1] * x[19];
+    c_A_0V[1] = omega_0WFRV[0] * x[19] - omega_0WFRV[2] * x[17];
+    c_A_0V[2] = omega_0WFRV[1] * x[17] - omega_0WFRV[0] * x[18];
+    omega_0VV[0] = omega_VUFRV[1] * omega_0WFRV_tmp[2] - omega_0WFRV_tmp[1] *
       omega_VUFRV[2];
-    b_A_0V[1] = omega_0WFRV_tmp[0] * omega_VUFRV[2] - omega_VUFRV[0] *
+    omega_0VV[1] = omega_0WFRV_tmp[0] * omega_VUFRV[2] - omega_VUFRV[0] *
       omega_0WFRV_tmp[2];
-    b_A_0V[2] = omega_VUFRV[0] * omega_0WFRV_tmp[1] - omega_0WFRV_tmp[0] *
+    omega_0VV[2] = omega_VUFRV[0] * omega_0WFRV_tmp[1] - omega_0WFRV_tmp[0] *
       omega_VUFRV[1];
     r = _mm_loadu_pd(&I_WFRV[0]);
     _mm_storeu_pd(&A_z_tmp[0], _mm_mul_pd(r, r1));
@@ -4822,19 +4847,16 @@ namespace adtm
     r = _mm_loadu_pd(&I_WFRV[6]);
     _mm_storeu_pd(&A_z_tmp[6], _mm_mul_pd(r, r1));
     A_z_tmp[8] = -I_WFRV[8];
-    r = _mm_loadu_pd(&d_A_0V[0]);
-    r2 = _mm_loadu_pd(&b_A_0V[0]);
-    _mm_storeu_pd(&d_A_0V[0], _mm_add_pd(r, r2));
-    d_A_0V[2] += b_A_0V[2];
-    b_I_UFLV_tmp[0] = omega_0WFRV[1] * dvdphi_FL[2] - dvdphi_FL[1] *
-      omega_0WFRV[2];
-    b_I_UFLV_tmp[1] = dvdphi_FL[0] * omega_0WFRV[2] - omega_0WFRV[0] *
-      dvdphi_FL[2];
-    b_I_UFLV_tmp[2] = omega_0WFRV[0] * dvdphi_FL[1] - dvdphi_FL[0] *
-      omega_0WFRV[1];
-    d = d_A_0V[0];
-    d1 = d_A_0V[1];
-    d2 = d_A_0V[2];
+    r = _mm_loadu_pd(&c_A_0V[0]);
+    r2 = _mm_loadu_pd(&omega_0VV[0]);
+    _mm_storeu_pd(&c_A_0V[0], _mm_add_pd(r, r2));
+    c_A_0V[2] += omega_0VV[2];
+    d_A_0V[0] = omega_0WFRV[1] * dvdphi_FL[2] - dvdphi_FL[1] * omega_0WFRV[2];
+    d_A_0V[1] = dvdphi_FL[0] * omega_0WFRV[2] - omega_0WFRV[0] * dvdphi_FL[2];
+    d_A_0V[2] = omega_0WFRV[0] * dvdphi_FL[1] - dvdphi_FL[0] * omega_0WFRV[1];
+    d = c_A_0V[0];
+    d1 = c_A_0V[1];
+    d2 = c_A_0V[2];
     r = _mm_loadu_pd(&A_z_tmp[0]);
     r = _mm_mul_pd(r, _mm_set1_pd(d));
     r2 = _mm_loadu_pd(&A_z_tmp[3]);
@@ -4843,19 +4865,19 @@ namespace adtm
     r2 = _mm_loadu_pd(&A_z_tmp[6]);
     r2 = _mm_mul_pd(r2, _mm_set1_pd(d2));
     r = _mm_add_pd(r, r2);
-    r2 = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
+    r2 = _mm_loadu_pd(&d_A_0V[0]);
     r = _mm_sub_pd(r, r2);
-    _mm_storeu_pd(&omega_0VV[0], r);
-    omega_0VV[2] = ((A_z_tmp[2] * d + A_z_tmp[5] * d1) + A_z_tmp[8] * d2) -
-      b_I_UFLV_tmp[2];
-    d = c_A_0V[0];
-    d1 = c_A_0V[1];
-    d2 = c_A_0V[2];
-    d3 = omega_0VV[0];
-    d4 = omega_0VV[1];
-    d5 = omega_0VV[2];
+    _mm_storeu_pd(&b_I_UFRV_tmp[0], r);
+    b_I_UFRV_tmp[2] = ((A_z_tmp[2] * d + A_z_tmp[5] * d1) + A_z_tmp[8] * d2) -
+      d_A_0V[2];
+    d = b_A_0V[0];
+    d1 = b_A_0V[1];
+    d2 = b_A_0V[2];
+    d3 = b_I_UFRV_tmp[0];
+    d4 = b_I_UFRV_tmp[1];
+    d5 = b_I_UFRV_tmp[2];
     for (i = 0; i <= 12; i += 2) {
-      r = _mm_loadu_pd(&b_dv1[i]);
+      r = _mm_loadu_pd(&dv1[i]);
       r2 = _mm_loadu_pd(&l_y_tmp[i]);
       r = _mm_add_pd(r, r2);
       r2 = _mm_loadu_pd(&h_y_tmp[i]);
@@ -4867,7 +4889,7 @@ namespace adtm
       r3 = _mm_mul_pd(r3, _mm_set1_pd(d2));
       r2 = _mm_add_pd(r2, r3);
       r = _mm_add_pd(r, r2);
-      _mm_storeu_pd(&b_dv2[i], r);
+      _mm_storeu_pd(&dv2[i], r);
       r = _mm_loadu_pd(&i_y_tmp[i]);
       r = _mm_mul_pd(r, _mm_set1_pd(d3));
       r2 = _mm_loadu_pd(&i_y_tmp[i + 14]);
@@ -4879,14 +4901,14 @@ namespace adtm
       _mm_storeu_pd(&l_y_tmp[i], r);
     }
 
-    d_A_0V[0] = omega_0WRLV[2] * x[18] - omega_0WRLV[1] * x[19];
-    d_A_0V[1] = omega_0WRLV[0] * x[19] - omega_0WRLV[2] * x[17];
-    d_A_0V[2] = omega_0WRLV[1] * x[17] - omega_0WRLV[0] * x[18];
-    omega_0VV[0] = omega_VURLV[1] * omega_0WRLV_tmp[2] - omega_0WRLV_tmp[1] *
+    c_A_0V[0] = omega_0WRLV[2] * x[18] - omega_0WRLV[1] * x[19];
+    c_A_0V[1] = omega_0WRLV[0] * x[19] - omega_0WRLV[2] * x[17];
+    c_A_0V[2] = omega_0WRLV[1] * x[17] - omega_0WRLV[0] * x[18];
+    b_I_UFRV_tmp[0] = omega_VURLV[1] * omega_0WRLV_tmp[2] - omega_0WRLV_tmp[1] *
       omega_VURLV[2];
-    omega_0VV[1] = omega_0WRLV_tmp[0] * omega_VURLV[2] - omega_VURLV[0] *
+    b_I_UFRV_tmp[1] = omega_0WRLV_tmp[0] * omega_VURLV[2] - omega_VURLV[0] *
       omega_0WRLV_tmp[2];
-    omega_0VV[2] = omega_VURLV[0] * omega_0WRLV_tmp[1] - omega_0WRLV_tmp[0] *
+    b_I_UFRV_tmp[2] = omega_VURLV[0] * omega_0WRLV_tmp[1] - omega_0WRLV_tmp[0] *
       omega_VURLV[1];
     r = _mm_loadu_pd(&I_WRLV[0]);
     _mm_storeu_pd(&A_z_tmp[0], _mm_mul_pd(r, r1));
@@ -4897,19 +4919,16 @@ namespace adtm
     r = _mm_loadu_pd(&I_WRLV[6]);
     _mm_storeu_pd(&A_z_tmp[6], _mm_mul_pd(r, r1));
     A_z_tmp[8] = -I_WRLV[8];
-    r = _mm_loadu_pd(&d_A_0V[0]);
-    r2 = _mm_loadu_pd(&omega_0VV[0]);
-    _mm_storeu_pd(&d_A_0V[0], _mm_add_pd(r, r2));
-    d_A_0V[2] += omega_0VV[2];
-    b_I_UFLV_tmp[0] = omega_0WRLV[1] * domdphi_FL[2] - domdphi_FL[1] *
-      omega_0WRLV[2];
-    b_I_UFLV_tmp[1] = domdphi_FL[0] * omega_0WRLV[2] - omega_0WRLV[0] *
-      domdphi_FL[2];
-    b_I_UFLV_tmp[2] = omega_0WRLV[0] * domdphi_FL[1] - domdphi_FL[0] *
-      omega_0WRLV[1];
-    d = d_A_0V[0];
-    d1 = d_A_0V[1];
-    d2 = d_A_0V[2];
+    r = _mm_loadu_pd(&c_A_0V[0]);
+    r2 = _mm_loadu_pd(&b_I_UFRV_tmp[0]);
+    _mm_storeu_pd(&c_A_0V[0], _mm_add_pd(r, r2));
+    c_A_0V[2] += b_I_UFRV_tmp[2];
+    d_A_0V[0] = omega_0WRLV[1] * domdphi_FL[2] - domdphi_FL[1] * omega_0WRLV[2];
+    d_A_0V[1] = domdphi_FL[0] * omega_0WRLV[2] - omega_0WRLV[0] * domdphi_FL[2];
+    d_A_0V[2] = omega_0WRLV[0] * domdphi_FL[1] - domdphi_FL[0] * omega_0WRLV[1];
+    d = c_A_0V[0];
+    d1 = c_A_0V[1];
+    d2 = c_A_0V[2];
     r = _mm_loadu_pd(&A_z_tmp[0]);
     r = _mm_mul_pd(r, _mm_set1_pd(d));
     r2 = _mm_loadu_pd(&A_z_tmp[3]);
@@ -4918,19 +4937,19 @@ namespace adtm
     r2 = _mm_loadu_pd(&A_z_tmp[6]);
     r2 = _mm_mul_pd(r2, _mm_set1_pd(d2));
     r = _mm_add_pd(r, r2);
-    r2 = _mm_loadu_pd(&b_I_UFLV_tmp[0]);
+    r2 = _mm_loadu_pd(&d_A_0V[0]);
     r = _mm_sub_pd(r, r2);
-    _mm_storeu_pd(&b_A_0V[0], r);
-    b_A_0V[2] = ((A_z_tmp[2] * d + A_z_tmp[5] * d1) + A_z_tmp[8] * d2) -
-      b_I_UFLV_tmp[2];
-    d_A_0V[0] = omega_0WRRV[2] * x[18] - omega_0WRRV[1] * x[19];
-    d_A_0V[1] = omega_0WRRV[0] * x[19] - omega_0WRRV[2] * x[17];
-    d_A_0V[2] = omega_0WRRV[1] * x[17] - omega_0WRRV[0] * x[18];
-    omega_0VV[0] = omega_VURRV[1] * omega_0WRRV_tmp[2] - omega_0WRRV_tmp[1] *
+    _mm_storeu_pd(&omega_0VV[0], r);
+    omega_0VV[2] = ((A_z_tmp[2] * d + A_z_tmp[5] * d1) + A_z_tmp[8] * d2) -
+      d_A_0V[2];
+    c_A_0V[0] = omega_0WRRV[2] * x[18] - omega_0WRRV[1] * x[19];
+    c_A_0V[1] = omega_0WRRV[0] * x[19] - omega_0WRRV[2] * x[17];
+    c_A_0V[2] = omega_0WRRV[1] * x[17] - omega_0WRRV[0] * x[18];
+    b_I_UFRV_tmp[0] = omega_VURRV[1] * omega_0WRRV_tmp[2] - omega_0WRRV_tmp[1] *
       omega_VURRV[2];
-    omega_0VV[1] = omega_0WRRV_tmp[0] * omega_VURRV[2] - omega_VURRV[0] *
+    b_I_UFRV_tmp[1] = omega_0WRRV_tmp[0] * omega_VURRV[2] - omega_VURRV[0] *
       omega_0WRRV_tmp[2];
-    omega_0VV[2] = omega_VURRV[0] * omega_0WRRV_tmp[1] - omega_0WRRV_tmp[0] *
+    b_I_UFRV_tmp[2] = omega_VURRV[0] * omega_0WRRV_tmp[1] - omega_0WRRV_tmp[0] *
       omega_VURRV[1];
     r = _mm_loadu_pd(&I_WRRV[0]);
     _mm_storeu_pd(&A_z_tmp[0], _mm_mul_pd(r, r1));
@@ -4941,16 +4960,16 @@ namespace adtm
     r = _mm_loadu_pd(&I_WRRV[6]);
     _mm_storeu_pd(&A_z_tmp[6], _mm_mul_pd(r, r1));
     A_z_tmp[8] = -I_WRRV[8];
-    r = _mm_loadu_pd(&d_A_0V[0]);
-    r1 = _mm_loadu_pd(&omega_0VV[0]);
-    _mm_storeu_pd(&d_A_0V[0], _mm_add_pd(r, r1));
-    d_A_0V[2] += omega_0VV[2];
-    omega_0VV[0] = omega_0WRRV[1] * r_0V0[2] - r_0V0[1] * omega_0WRRV[2];
-    omega_0VV[1] = r_0V0[0] * omega_0WRRV[2] - omega_0WRRV[0] * r_0V0[2];
-    omega_0VV[2] = omega_0WRRV[0] * r_0V0[1] - r_0V0[0] * omega_0WRRV[1];
-    d = d_A_0V[0];
-    d1 = d_A_0V[1];
-    d2 = d_A_0V[2];
+    r = _mm_loadu_pd(&c_A_0V[0]);
+    r1 = _mm_loadu_pd(&b_I_UFRV_tmp[0]);
+    _mm_storeu_pd(&c_A_0V[0], _mm_add_pd(r, r1));
+    c_A_0V[2] += b_I_UFRV_tmp[2];
+    b_I_UFRV_tmp[0] = omega_0WRRV[1] * r_0V0[2] - r_0V0[1] * omega_0WRRV[2];
+    b_I_UFRV_tmp[1] = r_0V0[0] * omega_0WRRV[2] - omega_0WRRV[0] * r_0V0[2];
+    b_I_UFRV_tmp[2] = omega_0WRRV[0] * r_0V0[1] - r_0V0[0] * omega_0WRRV[1];
+    d = c_A_0V[0];
+    d1 = c_A_0V[1];
+    d2 = c_A_0V[2];
     r = _mm_loadu_pd(&A_z_tmp[0]);
     r = _mm_mul_pd(r, _mm_set1_pd(d));
     r1 = _mm_loadu_pd(&A_z_tmp[3]);
@@ -4959,194 +4978,194 @@ namespace adtm
     r1 = _mm_loadu_pd(&A_z_tmp[6]);
     r1 = _mm_mul_pd(r1, _mm_set1_pd(d2));
     r = _mm_add_pd(r, r1);
-    r1 = _mm_loadu_pd(&omega_0VV[0]);
+    r1 = _mm_loadu_pd(&b_I_UFRV_tmp[0]);
     r = _mm_sub_pd(r, r1);
-    _mm_storeu_pd(&b_I_UFLV_tmp[0], r);
-    b_I_UFLV_tmp[2] = ((A_z_tmp[2] * d + A_z_tmp[5] * d1) + A_z_tmp[8] * d2) -
-      omega_0VV[2];
-    for (i = 0; i < 14; i++) {
-      d = j_y_tmp[i + 14];
-      d1 = j_y_tmp[i + 28];
-      d2 = (b_dv2[i] + l_y_tmp[i]) + ((j_y_tmp[i] * b_A_0V[0] + d * b_A_0V[1]) +
-        d1 * b_A_0V[2]);
+    _mm_storeu_pd(&d_A_0V[0], r);
+    d_A_0V[2] = ((A_z_tmp[2] * d + A_z_tmp[5] * d1) + A_z_tmp[8] * d2) -
+      b_I_UFRV_tmp[2];
+    for (b_i = 0; b_i < 14; b_i++) {
+      d = j_y_tmp[b_i + 14];
+      d1 = j_y_tmp[b_i + 28];
+      d2 = (dv2[b_i] + l_y_tmp[b_i]) + ((j_y_tmp[b_i] * omega_0VV[0] + d *
+        omega_0VV[1]) + d1 * omega_0VV[2]);
       d3 = 0.0;
-      d4 = d_y_tmp[i];
-      d5 = d_y_tmp[i + 14];
-      d6 = d_y_tmp[i + 28];
-      for (b_i = 0; b_i < 3; b_i++) {
-        e_yFLV_tmp = i + 14 * b_i;
-        d3 += k_y_tmp[e_yFLV_tmp] * b_I_UFLV_tmp[b_i];
-        y_tmp[e_yFLV_tmp] = (d4 * I_UFLV[3 * b_i] + d5 * I_UFLV[3 * b_i + 1]) +
-          d6 * I_UFLV[3 * b_i + 2];
+      d4 = d_y_tmp[b_i];
+      d5 = d_y_tmp[b_i + 14];
+      d6 = d_y_tmp[b_i + 28];
+      for (i = 0; i < 3; i++) {
+        e_yFLV_tmp = b_i + 14 * i;
+        d3 += k_y_tmp[e_yFLV_tmp] * d_A_0V[i];
+        y_tmp[e_yFLV_tmp] = (d4 * I_UFLV[3 * i] + d5 * I_UFLV[3 * i + 1]) + d6 *
+          I_UFLV[3 * i + 2];
       }
 
-      l_y_tmp[i] = d3;
+      l_y_tmp[b_i] = d3;
       d2 += d3;
-      b_dv1[i] = d2;
-      d2 = y_tmp[i];
-      d3 = y_tmp[i + 14];
-      d4 = y_tmp[i + 28];
-      d5 = q_tmp[i];
-      d6 = q_tmp[i + 14];
-      d7 = q_tmp[i + 28];
-      for (b_i = 0; b_i < 14; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        e_yFLV_tmp = i + 14 * b_i;
-        m_y_tmp[e_yFLV_tmp] = (d2 * domUFLdz[3 * b_i] + d3 * domUFLdz[i1]) + d4 *
+      dv1[b_i] = d2;
+      d2 = y_tmp[b_i];
+      d3 = y_tmp[b_i + 14];
+      d4 = y_tmp[b_i + 28];
+      d5 = b_q_tmp[b_i];
+      d6 = b_q_tmp[b_i + 14];
+      d7 = b_q_tmp[b_i + 28];
+      for (i = 0; i < 14; i++) {
+        i1 = 3 * i + 1;
+        i2 = 3 * i + 2;
+        e_yFLV_tmp = b_i + 14 * i;
+        m_y_tmp[e_yFLV_tmp] = (d2 * domUFLdz[3 * i] + d3 * domUFLdz[i1]) + d4 *
           domUFLdz[i2];
-        K[e_yFLV_tmp] = (d5 * dvFLdz[3 * b_i] + d6 * dvFLdz[i1]) + d7 *
-          dvFLdz[i2];
+        K[e_yFLV_tmp] = (d5 * dvFLdz[3 * i] + d6 * dvFLdz[i1]) + d7 * dvFLdz[i2];
       }
 
-      d2 = e_y_tmp[i];
-      d3 = e_y_tmp[i + 14];
-      d4 = e_y_tmp[i + 28];
-      d5 = h_y_tmp[i];
-      d6 = h_y_tmp[i + 14];
-      d7 = h_y_tmp[i + 28];
-      for (b_i = 0; b_i < 3; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        e_yFLV_tmp = i + 14 * b_i;
-        b_y_tmp[e_yFLV_tmp] = (d2 * I_UFRV[3 * b_i] + d3 * I_UFRV[i1]) + d4 *
-          I_UFRV[i2];
-        y_tmp[e_yFLV_tmp] = (d5 * I_WFLV[3 * b_i] + d6 * I_WFLV[i1]) + d7 *
-          I_WFLV[i2];
+      d2 = h_y_tmp[b_i];
+      d3 = h_y_tmp[b_i + 14];
+      d4 = h_y_tmp[b_i + 28];
+      for (i = 0; i < 3; i++) {
+        y_tmp[b_i + 14 * i] = (d2 * I_WFLV[3 * i] + d3 * I_WFLV[3 * i + 1]) + d4
+          * I_WFLV[3 * i + 2];
       }
 
-      d2 = b_y_tmp[i];
-      d3 = b_y_tmp[i + 14];
-      d4 = b_y_tmp[i + 28];
-      d5 = b_q_tmp[i];
-      d6 = b_q_tmp[i + 14];
-      d7 = b_q_tmp[i + 28];
-      for (b_i = 0; b_i < 14; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        e_yFLV_tmp = i + 14 * b_i;
-        n_y_tmp[e_yFLV_tmp] = (d2 * domUFRdz[3 * b_i] + d3 * domUFRdz[i1]) + d4 *
+      d2 = q_tmp[b_i];
+      d3 = q_tmp[b_i + 14];
+      d4 = q_tmp[b_i + 28];
+      d5 = y_tmp[b_i];
+      d6 = y_tmp[b_i + 14];
+      d7 = y_tmp[b_i + 28];
+      for (i = 0; i < 14; i++) {
+        i1 = 3 * i + 1;
+        i2 = 3 * i + 2;
+        dvRRdz_tmp = b_i + 14 * i;
+        f_q_tmp[dvRRdz_tmp] = ((d2 * static_cast<double>(iv5[3 * i]) + d3 *
+          static_cast<double>(iv5[i1])) + d4 * static_cast<double>(iv5[i2])) +
+          static_cast<double>(iv6[dvRRdz_tmp]);
+        g_q_tmp[dvRRdz_tmp] = (K[dvRRdz_tmp] + m_y_tmp[dvRRdz_tmp]) + ((d5 *
+          domWFLdz[3 * i] + d6 * domWFLdz[i1]) + d7 * domWFLdz[i2]);
+      }
+
+      d2 = e_y_tmp[b_i];
+      d3 = e_y_tmp[b_i + 14];
+      d4 = e_y_tmp[b_i + 28];
+      for (i = 0; i < 3; i++) {
+        y_tmp[b_i + 14 * i] = (d2 * I_UFRV[3 * i] + d3 * I_UFRV[3 * i + 1]) + d4
+          * I_UFRV[3 * i + 2];
+      }
+
+      d2 = y_tmp[b_i];
+      d3 = y_tmp[b_i + 14];
+      d4 = y_tmp[b_i + 28];
+      d5 = c_q_tmp[b_i];
+      d6 = c_q_tmp[b_i + 14];
+      d7 = c_q_tmp[b_i + 28];
+      for (i = 0; i < 14; i++) {
+        i1 = 3 * i + 1;
+        i2 = 3 * i + 2;
+        e_yFLV_tmp = b_i + 14 * i;
+        m_y_tmp[e_yFLV_tmp] = (d2 * domUFRdz[3 * i] + d3 * domUFRdz[i1]) + d4 *
           domUFRdz[i2];
-        e_q_tmp[e_yFLV_tmp] = (d5 * dvFRdz[3 * b_i] + d6 * dvFRdz[i1]) + d7 *
-          dvFRdz[i2];
+        K[e_yFLV_tmp] = (d5 * dvFRdz[3 * i] + d6 * dvFRdz[i1]) + d7 * dvFRdz[i2];
       }
 
-      d2 = i_y_tmp[i];
-      d3 = i_y_tmp[i + 14];
-      d4 = i_y_tmp[i + 28];
-      for (b_i = 0; b_i < 3; b_i++) {
-        b_y_tmp[i + 14 * b_i] = (d2 * I_WFRV[3 * b_i] + d3 * I_WFRV[3 * b_i + 1])
-          + d4 * I_WFRV[3 * b_i + 2];
+      d2 = f_y_tmp[b_i];
+      d3 = f_y_tmp[b_i + 14];
+      d4 = f_y_tmp[b_i + 28];
+      d5 = i_y_tmp[b_i];
+      d6 = i_y_tmp[b_i + 14];
+      d7 = i_y_tmp[b_i + 28];
+      for (i = 0; i < 3; i++) {
+        i1 = 3 * i + 1;
+        i2 = 3 * i + 2;
+        e_yFLV_tmp = b_i + 14 * i;
+        b_y_tmp[e_yFLV_tmp] = (d2 * I_URLV[3 * i] + d3 * I_URLV[i1]) + d4 *
+          I_URLV[i2];
+        y_tmp[e_yFLV_tmp] = (d5 * I_WFRV[3 * i] + d6 * I_WFRV[i1]) + d7 *
+          I_WFRV[i2];
       }
 
-      d2 = y_tmp[i];
-      d3 = y_tmp[i + 14];
-      d4 = y_tmp[i + 28];
-      d5 = b_y_tmp[i];
-      d6 = b_y_tmp[i + 14];
-      d7 = b_y_tmp[i + 28];
-      for (b_i = 0; b_i < 14; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        dvRRdz_tmp = i + 14 * b_i;
-        f_q_tmp[dvRRdz_tmp] = ((K[dvRRdz_tmp] + m_y_tmp[dvRRdz_tmp]) + ((d2 *
-          domWFLdz[3 * b_i] + d3 * domWFLdz[i1]) + d4 * domWFLdz[i2])) +
-          dv40[dvRRdz_tmp];
-        K[dvRRdz_tmp] = (e_q_tmp[dvRRdz_tmp] + n_y_tmp[dvRRdz_tmp]) + ((d5 *
-          domWFRdz[3 * b_i] + d6 * domWFRdz[i1]) + d7 * domWFRdz[i2]);
-      }
-
-      d2 = f_y_tmp[i];
-      d3 = f_y_tmp[i + 14];
-      d4 = f_y_tmp[i + 28];
-      for (b_i = 0; b_i < 3; b_i++) {
-        y_tmp[i + 14 * b_i] = (d2 * I_URLV[3 * b_i] + d3 * I_URLV[3 * b_i + 1])
-          + d4 * I_URLV[3 * b_i + 2];
-      }
-
-      d2 = y_tmp[i];
-      d3 = y_tmp[i + 14];
-      d4 = y_tmp[i + 28];
-      d5 = c_q_tmp[i];
-      d6 = c_q_tmp[i + 14];
-      d7 = c_q_tmp[i + 28];
-      for (b_i = 0; b_i < 14; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        e_yFLV_tmp = i + 14 * b_i;
-        m_y_tmp[e_yFLV_tmp] = (d2 * domURLdz[3 * b_i] + d3 * domURLdz[i1]) + d4 *
+      d2 = b_y_tmp[b_i];
+      d3 = b_y_tmp[b_i + 14];
+      d4 = b_y_tmp[b_i + 28];
+      d5 = d_q_tmp[b_i];
+      d6 = d_q_tmp[b_i + 14];
+      d7 = d_q_tmp[b_i + 28];
+      for (i = 0; i < 14; i++) {
+        i1 = 3 * i + 1;
+        i2 = 3 * i + 2;
+        e_yFLV_tmp = b_i + 14 * i;
+        n_y_tmp[e_yFLV_tmp] = (d2 * domURLdz[3 * i] + d3 * domURLdz[i1]) + d4 *
           domURLdz[i2];
-        e_q_tmp[e_yFLV_tmp] = (d5 * dvRLdz[3 * b_i] + d6 * dvRLdz[i1]) + d7 *
+        h_q_tmp[e_yFLV_tmp] = (d5 * dvRLdz[3 * i] + d6 * dvRLdz[i1]) + d7 *
           dvRLdz[i2];
       }
 
-      d2 = g_y_tmp[i];
-      d3 = g_y_tmp[i + 14];
-      d4 = g_y_tmp[i + 28];
-      for (b_i = 0; b_i < 3; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        e_yFLV_tmp = i + 14 * b_i;
-        b_y_tmp[e_yFLV_tmp] = (d2 * I_URRV[3 * b_i] + d3 * I_URRV[i1]) + d4 *
-          I_URRV[i2];
-        y_tmp[e_yFLV_tmp] = (j_y_tmp[i] * I_WRLV[3 * b_i] + d * I_WRLV[i1]) + d1
-          * I_WRLV[i2];
+      for (i = 0; i < 3; i++) {
+        b_y_tmp[b_i + 14 * i] = (j_y_tmp[b_i] * I_WRLV[3 * i] + d * I_WRLV[3 * i
+          + 1]) + d1 * I_WRLV[3 * i + 2];
       }
 
-      d = b_y_tmp[i];
-      d1 = b_y_tmp[i + 14];
-      d2 = b_y_tmp[i + 28];
-      d3 = d_q_tmp[i];
-      d4 = d_q_tmp[i + 14];
-      d5 = d_q_tmp[i + 28];
-      for (b_i = 0; b_i < 14; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        e_yFLV_tmp = i + 14 * b_i;
-        n_y_tmp[e_yFLV_tmp] = (d * domURRdz[3 * b_i] + d1 * domURRdz[i1]) + d2 *
+      d = y_tmp[b_i];
+      d1 = y_tmp[b_i + 14];
+      d2 = y_tmp[b_i + 28];
+      d3 = b_y_tmp[b_i];
+      d4 = b_y_tmp[b_i + 14];
+      d5 = b_y_tmp[b_i + 28];
+      for (i = 0; i < 14; i++) {
+        i1 = 3 * i + 1;
+        i2 = 3 * i + 2;
+        dvRRdz_tmp = b_i + 14 * i;
+        i_q_tmp[dvRRdz_tmp] = (f_q_tmp[dvRRdz_tmp] + g_q_tmp[dvRRdz_tmp]) +
+          ((K[dvRRdz_tmp] + m_y_tmp[dvRRdz_tmp]) + ((d * domWFRdz[3 * i] + d1 *
+             domWFRdz[i1]) + d2 * domWFRdz[i2]));
+        K[dvRRdz_tmp] = (h_q_tmp[dvRRdz_tmp] + n_y_tmp[dvRRdz_tmp]) + ((d3 *
+          domWRLdz[3 * i] + d4 * domWRLdz[i1]) + d5 * domWRLdz[i2]);
+      }
+
+      d = g_y_tmp[b_i];
+      d1 = g_y_tmp[b_i + 14];
+      d2 = g_y_tmp[b_i + 28];
+      for (i = 0; i < 3; i++) {
+        y_tmp[b_i + 14 * i] = (d * I_URRV[3 * i] + d1 * I_URRV[3 * i + 1]) + d2 *
+          I_URRV[3 * i + 2];
+      }
+
+      d = y_tmp[b_i];
+      d1 = y_tmp[b_i + 14];
+      d2 = y_tmp[b_i + 28];
+      d3 = e_q_tmp[b_i];
+      d4 = e_q_tmp[b_i + 14];
+      d5 = e_q_tmp[b_i + 28];
+      for (i = 0; i < 14; i++) {
+        i1 = 3 * i + 1;
+        i2 = 3 * i + 2;
+        e_yFLV_tmp = b_i + 14 * i;
+        m_y_tmp[e_yFLV_tmp] = (d * domURRdz[3 * i] + d1 * domURRdz[i1]) + d2 *
           domURRdz[i2];
-        g_q_tmp[e_yFLV_tmp] = (d3 * dvRRdz[3 * b_i] + d4 * dvRRdz[i1]) + d5 *
+        f_q_tmp[e_yFLV_tmp] = (d3 * dvRRdz[3 * i] + d4 * dvRRdz[i1]) + d5 *
           dvRRdz[i2];
       }
 
-      d = k_y_tmp[i];
-      d1 = k_y_tmp[i + 14];
-      d2 = k_y_tmp[i + 28];
-      for (b_i = 0; b_i < 3; b_i++) {
-        b_y_tmp[i + 14 * b_i] = (d * I_WRRV[3 * b_i] + d1 * I_WRRV[3 * b_i + 1])
-          + d2 * I_WRRV[3 * b_i + 2];
+      d = k_y_tmp[b_i];
+      d1 = k_y_tmp[b_i + 14];
+      d2 = k_y_tmp[b_i + 28];
+      for (i = 0; i < 3; i++) {
+        y_tmp[b_i + 14 * i] = (d * I_WRRV[3 * i] + d1 * I_WRRV[3 * i + 1]) + d2 *
+          I_WRRV[3 * i + 2];
       }
 
-      d = y_tmp[i];
-      d1 = y_tmp[i + 14];
-      d2 = y_tmp[i + 28];
-      d3 = b_y_tmp[i];
-      d4 = b_y_tmp[i + 14];
-      d5 = b_y_tmp[i + 28];
-      for (b_i = 0; b_i < 14; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        dvRRdz_tmp = i + 14 * b_i;
-        h_q_tmp[dvRRdz_tmp] = (f_q_tmp[dvRRdz_tmp] + K[dvRRdz_tmp]) +
-          ((e_q_tmp[dvRRdz_tmp] + m_y_tmp[dvRRdz_tmp]) + ((d * domWRLdz[3 * b_i]
-             + d1 * domWRLdz[i1]) + d2 * domWRLdz[i2]));
-        K[dvRRdz_tmp] = (g_q_tmp[dvRRdz_tmp] + n_y_tmp[dvRRdz_tmp]) + ((d3 *
-          domWRRdz[3 * b_i] + d4 * domWRRdz[i1]) + d5 * domWRRdz[i2]);
+      d = y_tmp[b_i];
+      d1 = y_tmp[b_i + 14];
+      d2 = y_tmp[b_i + 28];
+      for (i = 0; i < 14; i++) {
+        dvRRdz_tmp = b_i + 14 * i;
+        g_q_tmp[dvRRdz_tmp] = (i_q_tmp[dvRRdz_tmp] + K[dvRRdz_tmp]) +
+          ((f_q_tmp[dvRRdz_tmp] + m_y_tmp[dvRRdz_tmp]) + ((d * domWRRdz[3 * i] +
+             d1 * domWRRdz[3 * i + 1]) + d2 * domWRRdz[3 * i + 2]));
       }
+
+      x_dot[b_i] = dv[b_i];
     }
 
-    for (i = 0; i <= 194; i += 2) {
-      r = _mm_loadu_pd(&h_q_tmp[i]);
-      r1 = _mm_loadu_pd(&K[i]);
-      _mm_storeu_pd(&h_q_tmp[i], _mm_add_pd(r, r1));
-    }
-
-    coder::mldivide(h_q_tmp, b_dv1);
-    for (b_i = 0; b_i < 14; b_i++) {
-      x_dot[b_i] = b_dv[b_i];
-      x_dot[b_i + 14] = b_dv1[b_i];
-    }
-
+    coder::mldivide(g_q_tmp, dv1);
+    memcpy(&x_dot[14], &dv1[0], 14U * sizeof(double));
     x_dot[28] = x_TFL_dot[0];
     x_dot[31] = x_TFR_dot[0];
     x_dot[34] = x_TRL_dot[0];
@@ -5173,31 +5192,31 @@ namespace adtm
 
   void adtm_constants(double c[9])
   {
-    static const double b_dv[9] = { 1.9198621771937625, 2.62119,
+    static const double dv[9] = { 1.9198621771937625, 2.62119,
       2.4887362499999997, 0.205, 21.0, 12.421, 42.0, 110.0, 1.53 };
 
     if (!isInitialized_adtm_step) {
       adtm_step_initialize();
     }
 
-    memcpy(&c[0], &b_dv[0], 9U * sizeof(double));
+    memcpy(&c[0], &dv[0], 9U * sizeof(double));
 
     // ADTM_CONSTANTS [steering wheel angle at full lock (rad), front and rear brake torque per bar (Nm), tyre radius (m),
     //    motor torque (Nm), gear ratio, number of states, number of outputs, wheelbase (m)]
   }
 
-  void adtm_init(const double aero[3], double x[42])
+  void adtm_init(const double car[7], double x[42])
   {
     double A_y_tmp[9];
-    double b_dv[9];
-    double b_dv1[3];
+    double dv[9];
+    double dv1[3];
     double pos_0[3];
     double A_x_tmp;
     double F_zAFA;
     double F_zARA;
     double ang;
-    double b_A_x_tmp;
     double b_ang;
+    double m_FA;
     double z_AFA;
     double z_ARA;
     double z_FL_tmp;
@@ -5207,6 +5226,15 @@ namespace adtm
     }
 
     // ADTM_INIT The ADTM standing still at the origin, settled on its springs (f_calcInitState), heading along +x.
+    // ADTM_VEHICLE FS Lap's setup applied to the team's vehicle at run time: the values adtm_step and adtm_init then set.
+    //    car: [C_D, C_LFA, C_LRA with A = 1 m^2 (negative = drag / downforce), mass shift (kg), shift of the mass share on
+    //    the front axle, CoG height shift (m), motor torque factor]. With [C_D C_LFA C_LRA 0 0 0 1] it is the vehicle file's
+    //    car exactly; the shifts move the team's values, so FS Lap's stock setup always drives the team's ADTM.
+    //    v: [m, m_C, l_FA, l_RA, F_SFL0 = F_SFR0, F_SRL0 = F_SRR0, z_cg, T_MMax]
+    //    The callers set the fields themselves: a vehicle struct returned from here is no longer a constant to MATLAB Coder,
+    //    and the model picks its branches (motor, driveline, suspension) by constant fields.
+    //  the unsprung masses stay
+    //  as f_vehicleParameters: the spring pretension carries the chassis
     memset(&x[0], 0, 42U * sizeof(double));
 
     //       Calculation of initial states      %%
@@ -5237,12 +5265,14 @@ namespace adtm
     //  ----------------------------------------- %
     //  Initial states @ t=0
     //  Mass on each axle
+    m_FA = (car[3] + 240.0) * (1.53 * car[4] + 0.765) / 1.53;
+
     //  Road height under each wheel
     //  Lift on each axle
-    F_zAFA = 0.60204237944132111 * aero[1] * 0.0;
+    F_zAFA = 0.60204237944132111 * car[1] * 0.0;
 
     //  Lift front
-    F_zARA = 0.60204237944132111 * aero[2] * 0.0;
+    F_zARA = 0.60204237944132111 * car[2] * 0.0;
 
     //  Lift rear
     //  Wheel travel from aerodynamic lift
@@ -5257,8 +5287,9 @@ namespace adtm
 
     //  Force on each axle center
     //  Wheel center heights
-    z_FL_tmp = 0.5 * (F_zAFA - 1176.798) / 98000.0 + 0.205;
-    z_RL_tmp = 0.5 * (F_zARA - 1176.798) / 98000.0 + 0.205;
+    z_FL_tmp = 0.5 * (F_zAFA - 9.80665 * m_FA) / 98000.0 + 0.205;
+    z_RL_tmp = 0.5 * (F_zARA - 9.80665 * ((car[3] + 240.0) - m_FA)) / 98000.0 +
+      0.205;
 
     //  Chassis angles
     ang = (asin((z_FL_tmp - z_FL_tmp) / 1.24) + asin((z_RL_tmp - z_RL_tmp) / 1.2))
@@ -5268,42 +5299,42 @@ namespace adtm
 
     //  Rotation matrix for angle ang about Y axis
     F_zAFA = sin(b_ang);
-    F_zARA = cos(b_ang);
+    m_FA = cos(b_ang);
 
     //  Rotation matrix for angle ang about X axis
-    A_x_tmp = sin(ang);
-    b_A_x_tmp = cos(ang);
-    A_y_tmp[0] = F_zARA;
+    F_zARA = sin(ang);
+    A_x_tmp = cos(ang);
+    A_y_tmp[0] = m_FA;
     A_y_tmp[3] = 0.0;
     A_y_tmp[6] = F_zAFA;
     A_y_tmp[2] = -F_zAFA;
     A_y_tmp[5] = 0.0;
-    A_y_tmp[8] = F_zARA;
+    A_y_tmp[8] = m_FA;
     A_y_tmp[1] = 0.0;
-    b_dv[0] = 1.0;
+    dv[0] = 1.0;
     A_y_tmp[4] = 1.0;
-    b_dv[3] = 0.0;
+    dv[3] = 0.0;
     A_y_tmp[7] = 0.0;
-    b_dv[6] = 0.0;
-    b_dv[1] = 0.0;
-    b_dv[4] = b_A_x_tmp;
-    b_dv[7] = -A_x_tmp;
-    b_dv[2] = 0.0;
-    b_dv[5] = A_x_tmp;
-    b_dv[8] = b_A_x_tmp;
-    b_dv1[0] = 0.0;
-    b_dv1[1] = 0.0;
-    b_dv1[2] = ((z_AFA + z_ARA) / 2.0 + 0.09) + 0.25 * (((z_FL_tmp + z_FL_tmp) +
-      z_RL_tmp) + z_RL_tmp);
+    dv[6] = 0.0;
+    dv[1] = 0.0;
+    dv[4] = A_x_tmp;
+    dv[7] = -F_zARA;
+    dv[2] = 0.0;
+    dv[5] = F_zARA;
+    dv[8] = A_x_tmp;
+    dv1[0] = 0.0;
+    dv1[1] = 0.0;
+    dv1[2] = ((car[5] + 0.09) + (z_AFA + z_ARA) / 2.0) + 0.25 * (((z_FL_tmp +
+      z_FL_tmp) + z_RL_tmp) + z_RL_tmp);
     for (int i = 0; i < 3; i++) {
       int i1;
       F_zAFA = 0.0;
-      F_zARA = A_y_tmp[i];
+      m_FA = A_y_tmp[i];
       i1 = static_cast<int>(A_y_tmp[i + 3]);
-      A_x_tmp = A_y_tmp[i + 6];
+      F_zARA = A_y_tmp[i + 6];
       for (int i2 = 0; i2 < 3; i2++) {
-        F_zAFA += ((F_zARA * b_dv[3 * i2] + static_cast<double>(i1) * b_dv[3 *
-                    i2 + 1]) + A_x_tmp * b_dv[3 * i2 + 2]) * b_dv1[i2];
+        F_zAFA += ((m_FA * dv[3 * i2] + static_cast<double>(i1) * dv[3 * i2 + 1])
+                   + F_zARA * dv[3 * i2 + 2]) * dv1[i2];
       }
 
       pos_0[i] = F_zAFA;
@@ -5317,7 +5348,7 @@ namespace adtm
     x[4] = b_ang;
   }
 
-  void adtm_step(double x[42], const double u[6], const double aero[3], double,
+  void adtm_step(double x[42], const double u[6], const double car[7], double,
                  double dt, double out[110])
   {
     static const signed char b[3] = { 0, 1, 0 };
@@ -5328,14 +5359,16 @@ namespace adtm
     __m128d r3;
     __m128d r4;
     __m128d r5;
+    struct_T expl_temp;
     double K[196];
     double M[196];
-    double b_q_tmp[196];
     double c_q_tmp[196];
+    double d_q_tmp[196];
     double n_y_tmp[196];
+    double o_y_tmp[196];
     double p_y_tmp[196];
     double q_y_tmp[196];
-    double r_y_tmp[196];
+    double b_q_tmp[42];
     double b_y_tmp[42];
     double c_y_tmp[42];
     double d_y_tmp[42];
@@ -5359,12 +5392,11 @@ namespace adtm
     double j_y_tmp[42];
     double k_y_tmp[42];
     double m_y_tmp[42];
-    double o_y_tmp[42];
     double q_tmp[42];
     double y_tmp[42];
-    double b_dv[14];
     double b_f[14];
     double c_f[14];
+    double dv[14];
     double f[14];
     double l_y_tmp[14];
     double A_0V[9];
@@ -5533,6 +5565,8 @@ namespace adtm
     double gamma_FR;
     double gamma_RL;
     double gamma_RR;
+    double l_FA;
+    double l_RA;
     double r_dynFL;
     double r_dynFR;
     double r_dynRL;
@@ -5541,7 +5575,7 @@ namespace adtm
     double r_stFR;
     double r_stRL;
     double r_stRR;
-    double uFR;
+    double uFL;
     double uRL;
     double uRR;
     double v_0FAV_tmp;
@@ -5557,6 +5591,9 @@ namespace adtm
     double v_0VV_idx_0;
     double v_0VV_idx_1;
     double v_0VV_idx_2;
+    double v_idx_4;
+    double v_idx_5;
+    double v_idx_7;
     double w_RR;
     double z_FL;
     double z_FL_dot;
@@ -5578,7 +5615,25 @@ namespace adtm
 
     // ADTM_STEP One Runge-Kutta step of the team's ADTM (f_vehicleModel), as its own f_solveODE does it.
     //    x: the 42 states, u: [delta_D (rad at the steering wheel), p_BFA, p_BRA (bar), throttle, gear, mu_N],
-    //    aero: [C_D, C_LFA, C_LRA] with A = 1 m^2 (negative = drag / downforce), t: time (s), dt: step (s).
+    //    car: FS Lap's setup, see adtm_vehicle (7 values), t: time (s), dt: step (s).
+    // ADTM_VEHICLE FS Lap's setup applied to the team's vehicle at run time: the values adtm_step and adtm_init then set.
+    //    car: [C_D, C_LFA, C_LRA with A = 1 m^2 (negative = drag / downforce), mass shift (kg), shift of the mass share on
+    //    the front axle, CoG height shift (m), motor torque factor]. With [C_D C_LFA C_LRA 0 0 0 1] it is the vehicle file's
+    //    car exactly; the shifts move the team's values, so FS Lap's stock setup always drives the team's ADTM.
+    //    v: [m, m_C, l_FA, l_RA, F_SFL0 = F_SFR0, F_SRL0 = F_SRR0, z_cg, T_MMax]
+    //    The callers set the fields themselves: a vehicle struct returned from here is no longer a constant to MATLAB Coder,
+    //    and the model picks its branches (motor, driveline, suspension) by constant fields.
+    //  the unsprung masses stay
+    l_FA = 0.765 - 1.53 * car[4];
+    l_RA = 1.53 * car[4] + 0.765;
+
+    //  as f_vehicleParameters: the spring pretension carries the chassis
+    b_u = 9.80665 * (car[3] + 193.60000000000002);
+    uFL = 2.0 * (l_FA + l_RA);
+    v_idx_4 = b_u * l_RA / uFL;
+    v_idx_5 = b_u * l_FA / uFL;
+    v_idx_7 = 21.0 * car[6];
+
     //       Vehicle Model Equations            %%
     //  ----------------------------------------- %
     //  Version: V1.19 - 2026.01.05               %
@@ -5624,8 +5679,8 @@ namespace adtm
     //  Direction vectors
     //  Chassis to earth
     //  Rotation matrix for angle ang about Z axis
-    b_u = sin(x[5]);
-    uFR = cos(x[5]);
+    uFL = sin(x[5]);
+    b_u = cos(x[5]);
 
     //  Rotation matrix for angle ang about Y axis
     uRL = sin(x[4]);
@@ -5634,11 +5689,11 @@ namespace adtm
     //  Rotation matrix for angle ang about X axis
     d = sin(x[3]);
     A_x_tmp_tmp = cos(x[3]);
-    A_z_tmp[0] = uFR;
-    A_z_tmp[3] = -b_u;
+    A_z_tmp[0] = b_u;
+    A_z_tmp[3] = -uFL;
     A_z_tmp[6] = 0.0;
-    A_z_tmp[1] = b_u;
-    A_z_tmp[4] = uFR;
+    A_z_tmp[1] = uFL;
+    A_z_tmp[4] = b_u;
     A_z_tmp[7] = 0.0;
     A_y_tmp[0] = uRR;
     A_y_tmp[3] = 0.0;
@@ -5740,20 +5795,20 @@ namespace adtm
 
     //  Front steering rack travel
     //  Double-Wishbone
-    delta_FL = f_suspensionDWB(0.0034906585039886592, 0.017453292519943295, dv,
-      dv1, dv2, dv3, dv4, dv5, dv6, dv7, dv8, x[6], b_u, A_VQRR, r_VFLV,
+    delta_FL = f_suspensionDWB(0.0034906585039886592, 0.017453292519943295, dv3,
+      dv4, dv5, dv6, dv7, dv8, dv9, dv10, dv11, x[6], b_u, A_VQRR, r_VFLV,
       dvdphi_FL, domdphi_FL, dvdu_FL, domdu_FL);
     delta_FR = f_suspensionDWB(-0.0034906585039886592, -0.017453292519943295,
-      dv9, dv10, dv11, dv12, dv13, dv14, dv15, dv16, dv17, x[7], b_u, A_VQRL,
+      dv12, dv13, dv14, dv15, dv16, dv17, dv18, dv19, dv20, x[7], b_u, A_VQRL,
       r_VFRV, dvdphi_FR, domdphi_FR, dvdu_FR, domdu_FR);
 
     //  Rear axle
     //  Double-Wishbone
     delta_RL = f_suspensionDWB(-0.0087266462599716477, 0.017453292519943295,
-      dv18, dv19, dv20, dv21, dv22, dv23, dv24, dv25, dv26, x[8], A_VRL, r_VRLV,
+      dv21, dv22, dv23, dv24, dv25, dv26, dv27, dv28, dv29, x[8], A_VRL, r_VRLV,
       I_WFRV, I_WFLV);
     delta_RR = f_suspensionDWB(0.0087266462599716477, -0.017453292519943295,
-      dv27, dv28, dv29, dv30, dv31, dv32, dv33, dv34, dv35, x[9], A_VQFR, r_VRRV,
+      dv30, dv31, dv32, dv33, dv34, dv35, dv36, dv37, dv38, x[9], A_VQFR, r_VRRV,
       dvdphi_RR, domdphi_RR);
 
     //  Wheel rot. axis vehicle frame
@@ -5773,8 +5828,8 @@ namespace adtm
         d3 += A_VRL[i1] * static_cast<double>(e_yFLV_tmp);
         d4 += A_VQFR[i1] * static_cast<double>(e_yFLV_tmp);
         I_UFLV_tmp[b_i + 3 * i] = d5;
-        A_z_tmp[i1] = (A_VQRR[i] * dv36[3 * b_i] + A_VQRR[i + 3] * dv36[3 * b_i
-                       + 1]) + A_VQRR[i + 6] * dv36[3 * b_i + 2];
+        A_z_tmp[i1] = (A_VQRR[i] * dv39[3 * b_i] + A_VQRR[i + 3] * dv39[3 * b_i
+                       + 1]) + A_VQRR[i + 6] * dv39[3 * b_i + 2];
       }
 
       e_yRRV[i] = d4;
@@ -5798,8 +5853,8 @@ namespace adtm
       d2 = A_VQRL[i + 3];
       d3 = A_VQRL[i + 6];
       for (b_i = 0; b_i < 3; b_i++) {
-        A_z_tmp[i + 3 * b_i] = (d1 * dv36[3 * b_i] + d2 * dv36[3 * b_i + 1]) +
-          d3 * dv36[3 * b_i + 2];
+        A_z_tmp[i + 3 * b_i] = (d1 * dv39[3 * b_i] + d2 * dv39[3 * b_i + 1]) +
+          d3 * dv39[3 * b_i + 2];
       }
     }
 
@@ -5818,8 +5873,8 @@ namespace adtm
       d2 = A_VRL[i + 3];
       d3 = A_VRL[i + 6];
       for (b_i = 0; b_i < 3; b_i++) {
-        A_z_tmp[i + 3 * b_i] = (d1 * dv36[3 * b_i] + d2 * dv36[3 * b_i + 1]) +
-          d3 * dv36[3 * b_i + 2];
+        A_z_tmp[i + 3 * b_i] = (d1 * dv39[3 * b_i] + d2 * dv39[3 * b_i + 1]) +
+          d3 * dv39[3 * b_i + 2];
       }
     }
 
@@ -5838,8 +5893,8 @@ namespace adtm
       d2 = A_VQFR[i + 3];
       d3 = A_VQFR[i + 6];
       for (b_i = 0; b_i < 3; b_i++) {
-        A_z_tmp[i + 3 * b_i] = (d1 * dv36[3 * b_i] + d2 * dv36[3 * b_i + 1]) +
-          d3 * dv36[3 * b_i + 2];
+        A_z_tmp[i + 3 * b_i] = (d1 * dv39[3 * b_i] + d2 * dv39[3 * b_i + 1]) +
+          d3 * dv39[3 * b_i + 2];
       }
     }
 
@@ -5861,16 +5916,18 @@ namespace adtm
     omega_0VV[2] = x[19];
 
     //  Angular vel. @ CoG
-    v_0FAV_tmp = v_0VV_idx_0 + (omega_0VV[1] * -0.09 - 0.0 * omega_0VV[2]);
+    v_0FAV_tmp = v_0VV_idx_0 + (omega_0VV[1] * -(car[5] + 0.09) - 0.0 *
+      omega_0VV[2]);
     v_0FAV[0] = v_0FAV_tmp;
-    v_0FAV[1] = v_0VV_idx_1 + (0.765 * omega_0VV[2] - omega_0VV[0] * -0.09);
-    v_0FAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - 0.765 * omega_0VV[1]);
+    uFL = omega_0VV[0] * -(car[5] + 0.09);
+    v_0FAV[1] = v_0VV_idx_1 + (l_FA * omega_0VV[2] - uFL);
+    v_0FAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - l_FA * omega_0VV[1]);
 
     //  Vel. @ front axle
     //  Norm of vel. @ front axle
     v_0RAV[0] = v_0FAV_tmp;
-    v_0RAV[1] = v_0VV_idx_1 + (-0.765 * omega_0VV[2] - omega_0VV[0] * -0.09);
-    v_0RAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - -0.765 * omega_0VV[1]);
+    v_0RAV[1] = v_0VV_idx_1 + (-l_RA * omega_0VV[2] - uFL);
+    v_0RAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - -l_RA * omega_0VV[1]);
 
     //  Vel. @ rear axle
     //  Norm of vel. @ rear axle
@@ -5910,8 +5967,8 @@ namespace adtm
       d6 = A_VQRR[b_i + 3];
       d7 = A_VQRR[b_i + 6];
       for (i = 0; i < 3; i++) {
-        A_z_tmp[b_i + 3 * i] = (d5 * dv37[3 * i] + d6 * dv37[3 * i + 1]) + d7 *
-          dv37[3 * i + 2];
+        A_z_tmp[b_i + 3 * i] = (d5 * dv40[3 * i] + d6 * dv40[3 * i + 1]) + d7 *
+          dv40[3 * i + 2];
       }
 
       d5 = A_z_tmp[b_i];
@@ -5926,8 +5983,8 @@ namespace adtm
       d6 = A_VQRL[b_i + 3];
       d7 = A_VQRL[b_i + 6];
       for (i = 0; i < 3; i++) {
-        A_z_tmp[b_i + 3 * i] = (d5 * dv37[3 * i] + d6 * dv37[3 * i + 1]) + d7 *
-          dv37[3 * i + 2];
+        A_z_tmp[b_i + 3 * i] = (d5 * dv40[3 * i] + d6 * dv40[3 * i + 1]) + d7 *
+          dv40[3 * i + 2];
       }
 
       d5 = A_z_tmp[b_i];
@@ -5942,8 +5999,8 @@ namespace adtm
       d6 = A_VRL[b_i + 3];
       d7 = A_VRL[b_i + 6];
       for (i = 0; i < 3; i++) {
-        A_z_tmp[b_i + 3 * i] = (d5 * dv37[3 * i] + d6 * dv37[3 * i + 1]) + d7 *
-          dv37[3 * i + 2];
+        A_z_tmp[b_i + 3 * i] = (d5 * dv40[3 * i] + d6 * dv40[3 * i + 1]) + d7 *
+          dv40[3 * i + 2];
       }
 
       d5 = A_z_tmp[b_i];
@@ -5958,8 +6015,8 @@ namespace adtm
       d6 = A_VQFR[b_i + 3];
       d7 = A_VQFR[b_i + 6];
       for (i = 0; i < 3; i++) {
-        A_z_tmp[b_i + 3 * i] = (d5 * dv37[3 * i] + d6 * dv37[3 * i + 1]) + d7 *
-          dv37[3 * i + 2];
+        A_z_tmp[b_i + 3 * i] = (d5 * dv40[3 * i] + d6 * dv40[3 * i + 1]) + d7 *
+          dv40[3 * i + 2];
       }
 
       d5 = A_z_tmp[b_i];
@@ -6149,8 +6206,8 @@ namespace adtm
         _mm_set1_pd(e_yFLV[i])))));
       e_yFLV_tmp = 3 * i + 2;
       domWFLdz[e_yFLV_tmp] = 0.0;
-      b_u = A_VQRR[e_yFLV_tmp];
-      domWFLdz[b_i + 2] = b_u - e_yFLV[2] * e_yFLV[i];
+      uFL = A_VQRR[e_yFLV_tmp];
+      domWFLdz[b_i + 2] = uFL - e_yFLV[2] * e_yFLV[i];
       domWFLdz[i + 18] = domdphi_FL[i];
       dvRRdz_tmp = 3 * (i + 7);
       domWFLdz[dvRRdz_tmp] = 0.0;
@@ -6165,7 +6222,7 @@ namespace adtm
         _mm_set1_pd(e_yFRV[i])))));
       domWFLdz[i1 + 2] = 0.0;
       domWFRdz[e_yFLV_tmp] = 0.0;
-      domWFRdz[b_i + 2] = b_u - e_yFRV[2] * e_yFRV[i];
+      domWFRdz[b_i + 2] = uFL - e_yFRV[2] * e_yFRV[i];
       domWFRdz[i + 18] = 0.0;
       domWFRdz[i + 21] = domdphi_FR[i];
       e_yFLV_tmp = 3 * (i + 8);
@@ -6384,7 +6441,7 @@ namespace adtm
     b_A_0V[2] = d12;
     b_r_0V0[2] = r_0V0[2] + d11;
     gamma_FL = f_roadContact(b_r_0V0, b_A_0V, c_A_0V, d_A_0V, dvdphi_FL, A_VQRL,
-      r_stFL, b_u, uFR, I_WFRV);
+      r_stFL, uFL, b_u, I_WFRV);
     d1 = r_VFRV[0];
     d2 = r_VFRV[1];
     d3 = r_VFRV[2];
@@ -6561,7 +6618,7 @@ namespace adtm
       c_A_0V[i] = d4;
     }
 
-    r_dynFL = f_tireTMeasy(dvdphi_FL, c_A_0V, r_stFL, b_u, uFR, gamma_FL, 0.7 *
+    r_dynFL = f_tireTMeasy(dvdphi_FL, c_A_0V, r_stFL, uFL, b_u, gamma_FL, 0.7 *
       u[5], &x[28], F_TFL, I_WFLV, s_FL, x_TFL_dot, F_ycFL, dF_x0FL, F_xMFL,
       dF_y0FL, F_yMFL);
     d1 = omega_0WFRV[0];
@@ -6615,29 +6672,30 @@ namespace adtm
 
     //  Suspension forces
     z_FL = f_suspensionForces(r_VFLV, r_VFRV, r_VRLV, r_VRRV, r_VFLV_dot,
-      r_VFRV_dot, r_VRLV_dot, r_VRRV_dot, z_FR, z_RL, z_RR, z_FL_dot, z_FR_dot,
-      z_RL_dot, z_RR_dot, b_u, uFR, uRL, uRR, d, A_x_tmp_tmp, dz_RR, w_RR, F_SFL,
-      F_SFR, F_SRL, F_SRR);
+      r_VFRV_dot, r_VRLV_dot, r_VRRV_dot, car[5] + 0.09, v_idx_4, v_idx_4,
+      v_idx_5, v_idx_5, z_FR, z_RL, z_RR, z_FL_dot, z_FR_dot, z_RL_dot, z_RR_dot,
+      uFL, b_u, uRL, uRR, d, A_x_tmp_tmp, dz_RR, w_RR, F_SFL, F_SFR, F_SRL,
+      F_SRR);
 
     //  Aerodynamic Forces
     d1 = v_0FAV_tmp * v_0FAV_tmp;
     f_aerodynamics(sqrt((d1 + v_0FAV[1] * v_0FAV[1]) + v_0FAV[2] * v_0FAV[2]),
                    v_0FAV, sqrt((d1 + v_0RAV[1] * v_0RAV[1]) + v_0RAV[2] *
-      v_0RAV[2]), v_0RAV, dv38, aero[1], aero[2], aero[0], dvdphi_FL, domdphi_FL,
+      v_0RAV[2]), v_0RAV, dv41, car[1], car[2], car[0], dvdphi_FL, domdphi_FL,
                    dvdphi_FR, domdphi_FR, r_0V0, F_ARAV, out_aero);
 
     //  Applied forces & torques
     //  Wheel rot. friction damping coef.
     //  Powertrain
-    f_powertrain(x[24], x[25], x[26], x[27], x, u[3], uFR, uRL, uRR, T_DFL,
-                 T_DFR, T_DRL, T_DRR);
+    f_powertrain(x[24], x[25], x[26], x[27], x, u[3], v_idx_7, b_u, uRL, uRR,
+                 T_DFL, T_DFR, T_DRL, T_DRR);
 
     //  Brake torques
     T_BFL = -39.111507258094768 * x[24];
-    b_u = u[1] * 2.62119;
+    uFL = u[1] * 2.62119;
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BFL) > b_u) {
+    if (fabs(T_BFL) > uFL) {
       if (rtIsNaN(T_BFL)) {
         uRR = rtNaN;
       } else if (T_BFL < 0.0) {
@@ -6646,13 +6704,13 @@ namespace adtm
         uRR = (T_BFL > 0.0);
       }
 
-      T_BFL = b_u * uRR;
+      T_BFL = uFL * uRR;
     }
 
     T_BFR = -39.111507258094768 * x[25];
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BFR) > b_u) {
+    if (fabs(T_BFR) > uFL) {
       if (rtIsNaN(T_BFR)) {
         uRR = rtNaN;
       } else if (T_BFR < 0.0) {
@@ -6661,14 +6719,14 @@ namespace adtm
         uRR = (T_BFR > 0.0);
       }
 
-      T_BFR = b_u * uRR;
+      T_BFR = uFL * uRR;
     }
 
     T_BRL = -39.111507258094768 * x[26];
-    b_u = u[2] * 2.4887362499999997;
+    uFL = u[2] * 2.4887362499999997;
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BRL) > b_u) {
+    if (fabs(T_BRL) > uFL) {
       if (rtIsNaN(T_BRL)) {
         uRR = rtNaN;
       } else if (T_BRL < 0.0) {
@@ -6677,13 +6735,13 @@ namespace adtm
         uRR = (T_BRL > 0.0);
       }
 
-      T_BRL = b_u * uRR;
+      T_BRL = uFL * uRR;
     }
 
     T_BRR = -39.111507258094768 * x[27];
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BRR) > b_u) {
+    if (fabs(T_BRR) > uFL) {
       if (rtIsNaN(T_BRR)) {
         uRR = rtNaN;
       } else if (T_BRR < 0.0) {
@@ -6692,7 +6750,7 @@ namespace adtm
         uRR = (T_BRR > 0.0);
       }
 
-      T_BRR = b_u * uRR;
+      T_BRR = uFL * uRR;
     }
 
     //  Applied torques
@@ -6813,14 +6871,14 @@ namespace adtm
       e_yFLV[b_i] = -e_yFLV[b_i] * b_u;
       d10 = -d10 * d;
       e_yFRV[b_i] = d10;
-      i = static_cast<int>(dv38[b_i]);
+      i = static_cast<int>(dv41[b_i]);
       domdphi_FR[b_i] = F_SFL * static_cast<double>(i);
       I_WFRV[b_i] = F_SFR * static_cast<double>(i);
       I_WFLV[b_i] = F_SRL * static_cast<double>(i);
     }
 
     //  Applied forces
-    b_u = ((F_SFL + F_SFR) + F_SRL) + F_SRR;
+    uFL = ((F_SFL + F_SFR) + F_SRL) + F_SRR;
 
     //  Chassis
     //  FL
@@ -6829,7 +6887,7 @@ namespace adtm
     //  RR
     //  Applied force vector
     for (b_i = 0; b_i < 3; b_i++) {
-      dvdphi_RR[b_i] = F_SRR * dv38[b_i];
+      dvdphi_RR[b_i] = F_SRR * dv41[b_i];
       v_0RAV[b_i] = r_0V0[b_i] + F_ARAV[b_i];
       F_FL[b_i] -= domdphi_FR[b_i];
       F_FR[b_i] -= I_WFRV[b_i];
@@ -6874,25 +6932,25 @@ namespace adtm
     c_A_0V[0] = r_VRRV[1] * dvdphi_RR[2] - dvdphi_RR[1] * r_VRRV[2];
     c_A_0V[1] = dvdphi_RR[0] * r_VRRV[2] - r_VRRV[0] * dvdphi_RR[2];
     c_A_0V[2] = r_VRRV[0] * dvdphi_RR[1] - dvdphi_RR[0] * r_VRRV[1];
-    b_r_0V0[0] = 0.0 * r_0V0[2] - r_0V0[1] * -0.09;
-    b_r_0V0[1] = r_0V0[0] * -0.09 - 0.765 * r_0V0[2];
-    b_r_0V0[2] = 0.765 * r_0V0[1] - r_0V0[0] * 0.0;
-    b_A_0V[0] = 0.0 * F_ARAV[2] - F_ARAV[1] * -0.09;
-    b_A_0V[1] = F_ARAV[0] * -0.09 - -0.765 * F_ARAV[2];
-    b_A_0V[2] = -0.765 * F_ARAV[1] - F_ARAV[0] * 0.0;
+    b_A_0V[0] = 0.0 * r_0V0[2] - r_0V0[1] * -(car[5] + 0.09);
+    b_A_0V[1] = r_0V0[0] * -(car[5] + 0.09) - l_FA * r_0V0[2];
+    b_A_0V[2] = l_FA * r_0V0[1] - r_0V0[0] * 0.0;
+    b_r_0V0[0] = 0.0 * F_ARAV[2] - F_ARAV[1] * -(car[5] + 0.09);
+    b_r_0V0[1] = F_ARAV[0] * -(car[5] + 0.09) - -l_RA * F_ARAV[2];
+    b_r_0V0[2] = -l_RA * F_ARAV[1] - F_ARAV[0] * 0.0;
     r = _mm_loadu_pd(&v_0RAV[0]);
-    _mm_storeu_pd(&r_MQRR0[0], _mm_add_pd(r, _mm_mul_pd(_mm_set1_pd(b_u),
-      _mm_loadu_pd(&dv38[0]))));
+    _mm_storeu_pd(&r_MQRR0[0], _mm_add_pd(r, _mm_mul_pd(_mm_set1_pd(uFL),
+      _mm_loadu_pd(&dv41[0]))));
     r = _mm_loadu_pd(&b_r_VFLV[0]);
     r1 = _mm_loadu_pd(&r_MQRL0[0]);
     r2 = _mm_loadu_pd(&d_A_0V[0]);
     r3 = _mm_loadu_pd(&c_A_0V[0]);
-    r4 = _mm_loadu_pd(&b_r_0V0[0]);
-    r5 = _mm_loadu_pd(&b_A_0V[0]);
+    r4 = _mm_loadu_pd(&b_A_0V[0]);
+    r5 = _mm_loadu_pd(&b_r_0V0[0]);
     _mm_storeu_pd(&b_r_VFLV[0], _mm_add_pd(_mm_add_pd(_mm_add_pd(_mm_add_pd
       (_mm_add_pd(r, r1), r2), r3), r4), r5));
     b_r_VFLV[2] = ((((b_r_VFLV[2] + r_MQRL0[2]) + d_A_0V[2]) + c_A_0V[2]) +
-                   b_r_0V0[2]) + b_A_0V[2];
+                   b_A_0V[2]) + b_r_0V0[2];
     r = _mm_loadu_pd(&domdphi_FL[0]);
     r1 = _mm_loadu_pd(&I_WFLV[0]);
     _mm_storeu_pd(&I_WFLV[0], _mm_sub_pd(r, r1));
@@ -6908,7 +6966,7 @@ namespace adtm
     _mm_storeu_pd(&b_A_0V[0], _mm_mul_pd(_mm_mul_pd(r, r1), _mm_set1_pd(b_b_tmp)));
     d1 = r_MQRR0[0];
     d2 = r_MQRR0[1];
-    d3 = v_0RAV[2] + b_u;
+    d3 = v_0RAV[2] + uFL;
     d4 = b_r_VFLV[0];
     d5 = b_r_VFLV[1];
     d6 = b_r_VFLV[2];
@@ -6925,7 +6983,7 @@ namespace adtm
     A_x_tmp_tmp = dvdphi_RR[1];
     dz_RR = dvdphi_RR[2];
     w_RR = e_yFLV[0];
-    uFR = e_yFLV[1];
+    uFL = e_yFLV[1];
     uRL = e_yFLV[2];
     uRR = e_yFRV[0];
     b_dvdu_FR = e_yFRV[1];
@@ -6943,8 +7001,8 @@ namespace adtm
     d21 = T_WFR[1];
     d22 = T_WFR[2];
     for (i = 0; i < 14; i++) {
-      f[i] = (((((((((((static_cast<double>(iv3[i]) * d1 + static_cast<double>
-                        (iv3[i + 14]) * d2) + static_cast<double>(iv3[i + 28]) *
+      f[i] = (((((((((((static_cast<double>(iv2[i]) * d1 + static_cast<double>
+                        (iv2[i + 14]) * d2) + static_cast<double>(iv2[i + 28]) *
                        d3) + ((static_cast<double>(iv4[i]) * d4 + static_cast<
         double>(iv4[i + 14]) * d5) + static_cast<double>(iv4[i + 28]) * d6)) +
                      ((dvFLdz[3 * i] * d7 + dvFLdz[3 * i + 1] * d8) + dvFLdz[3 *
@@ -6952,7 +7010,7 @@ namespace adtm
         y_tmp[i + 28] * d12)) + ((b_y_tmp[i] * d13 + b_y_tmp[i + 14] * d14) +
         b_y_tmp[i + 28] * b_u)) + ((c_y_tmp[i] * d + c_y_tmp[i + 14] *
         A_x_tmp_tmp) + c_y_tmp[i + 28] * dz_RR)) + ((d_y_tmp[i] * w_RR +
-        d_y_tmp[i + 14] * uFR) + d_y_tmp[i + 28] * uRL)) + ((e_y_tmp[i] * uRR +
+        d_y_tmp[i + 14] * uFL) + d_y_tmp[i + 28] * uRL)) + ((e_y_tmp[i] * uRR +
                   e_y_tmp[i + 14] * b_dvdu_FR) + e_y_tmp[i + 28] * b_domdu_FL))
                + ((f_y_tmp[i] * b_domdu_FR + f_y_tmp[i + 14] * c_domdu_FL) +
                   f_y_tmp[i + 28] * c_domdu_FR)) + ((g_y_tmp[i] * v_0FAV_tmp +
@@ -7006,6 +7064,37 @@ namespace adtm
     _mm_storeu_pd(&b_A_0V[0], r);
     b_A_0V[2] = (e_yRRV[2] * b_b_tmp + b_r_0V0[2]) + ((A_VQRR[2] * d1 + A_VQRR[5]
       * d2) + A_VQRR[8] * d3);
+    d1 = c_A_0V[0];
+    d2 = c_A_0V[1];
+    d3 = c_A_0V[2];
+    d4 = b_A_0V[0];
+    d5 = b_A_0V[1];
+    d6 = b_A_0V[2];
+    for (i = 0; i <= 12; i += 2) {
+      r = _mm_loadu_pd(&f[i]);
+      r2 = _mm_loadu_pd(&l_y_tmp[i]);
+      r = _mm_add_pd(r, r2);
+      r2 = _mm_loadu_pd(&j_y_tmp[i]);
+      r2 = _mm_mul_pd(r2, _mm_set1_pd(d1));
+      r3 = _mm_loadu_pd(&j_y_tmp[i + 14]);
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(d2));
+      r2 = _mm_add_pd(r2, r3);
+      r3 = _mm_loadu_pd(&j_y_tmp[i + 28]);
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(d3));
+      r2 = _mm_add_pd(r2, r3);
+      r = _mm_add_pd(r, r2);
+      r2 = _mm_loadu_pd(&k_y_tmp[i]);
+      r2 = _mm_mul_pd(r2, _mm_set1_pd(d4));
+      r3 = _mm_loadu_pd(&k_y_tmp[i + 14]);
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(d5));
+      r2 = _mm_add_pd(r2, r3);
+      r3 = _mm_loadu_pd(&k_y_tmp[i + 28]);
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(d6));
+      r2 = _mm_add_pd(r2, r3);
+      _mm_storeu_pd(&l_y_tmp[i], r2);
+      r = _mm_add_pd(r, r2);
+      _mm_storeu_pd(&c_f[i], r);
+    }
 
     //       % Chassis force
     //       % Chassis torque
@@ -7022,22 +7111,14 @@ namespace adtm
     //  % Wheel torque RL
     //  Wheel torque RR
     //  Generalized force vector
-    d1 = c_A_0V[0];
-    d2 = c_A_0V[1];
-    d3 = c_A_0V[2];
-    d4 = b_A_0V[0];
-    d5 = b_A_0V[1];
-    d6 = b_A_0V[2];
+    for (i = 0; i < 42; i++) {
+      q_tmp[i] = static_cast<double>(iv2[i]) * (car[3] + 193.60000000000002);
+    }
+
     for (i = 0; i < 14; i++) {
-      d7 = (f[i] + l_y_tmp[i]) + ((j_y_tmp[i] * d1 + j_y_tmp[i + 14] * d2) +
-        j_y_tmp[i + 28] * d3);
-      d8 = (k_y_tmp[i] * d4 + k_y_tmp[i + 14] * d5) + k_y_tmp[i + 28] * d6;
-      l_y_tmp[i] = d8;
-      d7 += d8;
-      c_f[i] = d7;
-      q_tmp[i] = dvFLdz[3 * i] * 11.6;
-      q_tmp[i + 14] = dvFLdz[3 * i + 1] * 11.6;
-      q_tmp[i + 28] = dvFLdz[3 * i + 2] * 11.6;
+      b_q_tmp[i] = dvFLdz[3 * i] * 11.6;
+      b_q_tmp[i + 14] = dvFLdz[3 * i + 1] * 11.6;
+      b_q_tmp[i + 28] = dvFLdz[3 * i + 2] * 11.6;
     }
 
     r = _mm_set1_pd(11.6);
@@ -7235,87 +7316,89 @@ namespace adtm
       d1 = m_y_tmp[i];
       d2 = m_y_tmp[i + 14];
       d3 = m_y_tmp[i + 28];
-      d4 = q_tmp[i];
-      d5 = q_tmp[i + 14];
-      d6 = q_tmp[i + 28];
+      d4 = b_q_tmp[i];
+      d5 = b_q_tmp[i + 14];
+      d6 = b_q_tmp[i + 28];
       for (b_i = 0; b_i < 14; b_i++) {
         i1 = 3 * b_i + 1;
         i2 = 3 * b_i + 2;
         e_yFLV_tmp = i + 14 * b_i;
         n_y_tmp[e_yFLV_tmp] = (d1 * domUFLdz[3 * b_i] + d2 * domUFLdz[i1]) + d3 *
           domUFLdz[i2];
-        b_q_tmp[e_yFLV_tmp] = (d4 * dvFLdz[3 * b_i] + d5 * dvFLdz[i1]) + d6 *
+        c_q_tmp[e_yFLV_tmp] = (d4 * dvFLdz[3 * b_i] + d5 * dvFLdz[i1]) + d6 *
           dvFLdz[i2];
+      }
+
+      d1 = h_y_tmp[i];
+      d2 = h_y_tmp[i + 14];
+      d3 = h_y_tmp[i + 28];
+      for (b_i = 0; b_i < 3; b_i++) {
+        m_y_tmp[i + 14 * b_i] = (d1 * b_I_WFLV[3 * b_i] + d2 * b_I_WFLV[3 * b_i
+          + 1]) + d3 * b_I_WFLV[3 * b_i + 2];
+      }
+
+      d1 = q_tmp[i];
+      d2 = q_tmp[i + 14];
+      d3 = q_tmp[i + 28];
+      d4 = m_y_tmp[i];
+      d5 = m_y_tmp[i + 14];
+      d6 = m_y_tmp[i + 28];
+      for (b_i = 0; b_i < 14; b_i++) {
+        i1 = 3 * b_i + 1;
+        i2 = 3 * b_i + 2;
+        dvRRdz_tmp = i + 14 * b_i;
+        M[dvRRdz_tmp] = ((d1 * static_cast<double>(iv5[3 * b_i]) + d2 *
+                          static_cast<double>(iv5[i1])) + d3 * static_cast<
+                         double>(iv5[i2])) + static_cast<double>(iv6[dvRRdz_tmp]);
+        d_q_tmp[dvRRdz_tmp] = (c_q_tmp[dvRRdz_tmp] + n_y_tmp[dvRRdz_tmp]) + ((d4
+          * domWFLdz[3 * b_i] + d5 * domWFLdz[i1]) + d6 * domWFLdz[i2]);
       }
 
       d1 = e_y_tmp[i];
       d2 = e_y_tmp[i + 14];
       d3 = e_y_tmp[i + 28];
-      d4 = h_y_tmp[i];
-      d5 = h_y_tmp[i + 14];
-      d6 = h_y_tmp[i + 28];
       for (b_i = 0; b_i < 3; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        e_yFLV_tmp = i + 14 * b_i;
-        o_y_tmp[e_yFLV_tmp] = (d1 * I_UFRV[3 * b_i] + d2 * I_UFRV[i1]) + d3 *
-          I_UFRV[i2];
-        m_y_tmp[e_yFLV_tmp] = (d4 * b_I_WFLV[3 * b_i] + d5 * b_I_WFLV[i1]) + d6 *
-          b_I_WFLV[i2];
+        m_y_tmp[i + 14 * b_i] = (d1 * I_UFRV[3 * b_i] + d2 * I_UFRV[3 * b_i + 1])
+          + d3 * I_UFRV[3 * b_i + 2];
       }
 
-      d1 = o_y_tmp[i];
-      d2 = o_y_tmp[i + 14];
-      d3 = o_y_tmp[i + 28];
-      d4 = y_tmp[i];
-      d5 = y_tmp[i + 14];
-      d6 = y_tmp[i + 28];
+      d1 = y_tmp[i];
+      d2 = y_tmp[i + 14];
+      d3 = y_tmp[i + 28];
       for (b_i = 0; b_i < 14; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        e_yFLV_tmp = i + 14 * b_i;
-        q_y_tmp[e_yFLV_tmp] = (d1 * domUFRdz[3 * b_i] + d2 * domUFRdz[i1]) + d3 *
-          domUFRdz[i2];
-        p_y_tmp[e_yFLV_tmp] = (d4 * dvFRdz[3 * b_i] + d5 * dvFRdz[i1]) + d6 *
-          dvFRdz[i2];
+        n_y_tmp[i + 14 * b_i] = (d1 * dvFRdz[3 * b_i] + d2 * dvFRdz[3 * b_i + 1])
+          + d3 * dvFRdz[3 * b_i + 2];
       }
+    }
 
-      d1 = i_y_tmp[i];
-      d2 = i_y_tmp[i + 14];
-      d3 = i_y_tmp[i + 28];
-      for (b_i = 0; b_i < 3; b_i++) {
-        o_y_tmp[i + 14 * b_i] = (d1 * b_I_WFRV[3 * b_i] + d2 * b_I_WFRV[3 * b_i
-          + 1]) + d3 * b_I_WFRV[3 * b_i + 2];
-      }
-
+    for (i = 0; i < 14; i++) {
       d1 = m_y_tmp[i];
       d2 = m_y_tmp[i + 14];
       d3 = m_y_tmp[i + 28];
-      d4 = o_y_tmp[i];
-      d5 = o_y_tmp[i + 14];
-      d6 = o_y_tmp[i + 28];
       for (b_i = 0; b_i < 14; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        dvRRdz_tmp = i + 14 * b_i;
-        c_q_tmp[dvRRdz_tmp] = ((b_q_tmp[dvRRdz_tmp] + n_y_tmp[dvRRdz_tmp]) +
-          ((d1 * domWFLdz[3 * b_i] + d2 * domWFLdz[i1]) + d3 * domWFLdz[i2])) +
-          dv40[dvRRdz_tmp];
-        n_y_tmp[dvRRdz_tmp] = (p_y_tmp[dvRRdz_tmp] + q_y_tmp[dvRRdz_tmp]) + ((d4
-          * domWFRdz[3 * b_i] + d5 * domWFRdz[i1]) + d6 * domWFRdz[i2]);
+        o_y_tmp[i + 14 * b_i] = (d1 * domUFRdz[3 * b_i] + d2 * domUFRdz[3 * b_i
+          + 1]) + d3 * domUFRdz[3 * b_i + 2];
       }
 
       d1 = f_y_tmp[i];
       d2 = f_y_tmp[i + 14];
       d3 = f_y_tmp[i + 28];
+      d4 = i_y_tmp[i];
+      d5 = i_y_tmp[i + 14];
+      d6 = i_y_tmp[i + 28];
       for (b_i = 0; b_i < 3; b_i++) {
-        m_y_tmp[i + 14 * b_i] = (d1 * I_URLV[3 * b_i] + d2 * I_URLV[3 * b_i + 1])
-          + d3 * I_URLV[3 * b_i + 2];
+        i1 = 3 * b_i + 1;
+        i2 = 3 * b_i + 2;
+        e_yFLV_tmp = i + 14 * b_i;
+        domWFLdz[e_yFLV_tmp] = (d1 * I_URLV[3 * b_i] + d2 * I_URLV[i1]) + d3 *
+          I_URLV[i2];
+        m_y_tmp[e_yFLV_tmp] = (d4 * b_I_WFRV[3 * b_i] + d5 * b_I_WFRV[i1]) + d6 *
+          b_I_WFRV[i2];
       }
 
-      d1 = m_y_tmp[i];
-      d2 = m_y_tmp[i + 14];
-      d3 = m_y_tmp[i + 28];
+      d1 = domWFLdz[i];
+      d2 = domWFLdz[i + 14];
+      d3 = domWFLdz[i + 28];
       d4 = b_y_tmp[i];
       d5 = b_y_tmp[i + 14];
       d6 = b_y_tmp[i + 28];
@@ -7329,25 +7412,42 @@ namespace adtm
           dvRLdz[i2];
       }
 
+      d1 = j_y_tmp[i];
+      d2 = j_y_tmp[i + 14];
+      d3 = j_y_tmp[i + 28];
+      for (b_i = 0; b_i < 3; b_i++) {
+        domWFLdz[i + 14 * b_i] = (d1 * I_WRLV[3 * b_i] + d2 * I_WRLV[3 * b_i + 1])
+          + d3 * I_WRLV[3 * b_i + 2];
+      }
+
+      d1 = m_y_tmp[i];
+      d2 = m_y_tmp[i + 14];
+      d3 = m_y_tmp[i + 28];
+      d4 = domWFLdz[i];
+      d5 = domWFLdz[i + 14];
+      d6 = domWFLdz[i + 28];
+      for (b_i = 0; b_i < 14; b_i++) {
+        i1 = 3 * b_i + 1;
+        i2 = 3 * b_i + 2;
+        dvRRdz_tmp = i + 14 * b_i;
+        c_q_tmp[dvRRdz_tmp] = (M[dvRRdz_tmp] + d_q_tmp[dvRRdz_tmp]) +
+          ((n_y_tmp[dvRRdz_tmp] + o_y_tmp[dvRRdz_tmp]) + ((d1 * domWFRdz[3 * b_i]
+             + d2 * domWFRdz[i1]) + d3 * domWFRdz[i2]));
+        n_y_tmp[dvRRdz_tmp] = (p_y_tmp[dvRRdz_tmp] + q_y_tmp[dvRRdz_tmp]) + ((d4
+          * domWRLdz[3 * b_i] + d5 * domWRLdz[i1]) + d6 * domWRLdz[i2]);
+      }
+
       d1 = g_y_tmp[i];
       d2 = g_y_tmp[i + 14];
       d3 = g_y_tmp[i + 28];
-      d4 = j_y_tmp[i];
-      d5 = j_y_tmp[i + 14];
-      d6 = j_y_tmp[i + 28];
       for (b_i = 0; b_i < 3; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
-        e_yFLV_tmp = i + 14 * b_i;
-        o_y_tmp[e_yFLV_tmp] = (d1 * I_URRV[3 * b_i] + d2 * I_URRV[i1]) + d3 *
-          I_URRV[i2];
-        m_y_tmp[e_yFLV_tmp] = (d4 * I_WRLV[3 * b_i] + d5 * I_WRLV[i1]) + d6 *
-          I_WRLV[i2];
+        m_y_tmp[i + 14 * b_i] = (d1 * I_URRV[3 * b_i] + d2 * I_URRV[3 * b_i + 1])
+          + d3 * I_URRV[3 * b_i + 2];
       }
 
-      d1 = o_y_tmp[i];
-      d2 = o_y_tmp[i + 14];
-      d3 = o_y_tmp[i + 28];
+      d1 = m_y_tmp[i];
+      d2 = m_y_tmp[i + 14];
+      d3 = m_y_tmp[i + 28];
       d4 = c_y_tmp[i];
       d5 = c_y_tmp[i + 14];
       d6 = c_y_tmp[i + 28];
@@ -7355,9 +7455,9 @@ namespace adtm
         i1 = 3 * b_i + 1;
         i2 = 3 * b_i + 2;
         e_yFLV_tmp = i + 14 * b_i;
-        r_y_tmp[e_yFLV_tmp] = (d1 * domURRdz[3 * b_i] + d2 * domURRdz[i1]) + d3 *
+        p_y_tmp[e_yFLV_tmp] = (d1 * domURRdz[3 * b_i] + d2 * domURRdz[i1]) + d3 *
           domURRdz[i2];
-        b_q_tmp[e_yFLV_tmp] = (d4 * dvRRdz[3 * b_i] + d5 * dvRRdz[i1]) + d6 *
+        o_y_tmp[e_yFLV_tmp] = (d4 * dvRRdz[3 * b_i] + d5 * dvRRdz[i1]) + d6 *
           dvRRdz[i2];
       }
 
@@ -7365,32 +7465,19 @@ namespace adtm
       d2 = k_y_tmp[i + 14];
       d3 = k_y_tmp[i + 28];
       for (b_i = 0; b_i < 3; b_i++) {
-        o_y_tmp[i + 14 * b_i] = (d1 * I_WRRV[3 * b_i] + d2 * I_WRRV[3 * b_i + 1])
+        m_y_tmp[i + 14 * b_i] = (d1 * I_WRRV[3 * b_i] + d2 * I_WRRV[3 * b_i + 1])
           + d3 * I_WRRV[3 * b_i + 2];
       }
 
       d1 = m_y_tmp[i];
       d2 = m_y_tmp[i + 14];
       d3 = m_y_tmp[i + 28];
-      d4 = o_y_tmp[i];
-      d5 = o_y_tmp[i + 14];
-      d6 = o_y_tmp[i + 28];
       for (b_i = 0; b_i < 14; b_i++) {
-        i1 = 3 * b_i + 1;
-        i2 = 3 * b_i + 2;
         dvRRdz_tmp = i + 14 * b_i;
         M[dvRRdz_tmp] = (c_q_tmp[dvRRdz_tmp] + n_y_tmp[dvRRdz_tmp]) +
-          ((p_y_tmp[dvRRdz_tmp] + q_y_tmp[dvRRdz_tmp]) + ((d1 * domWRLdz[3 * b_i]
-             + d2 * domWRLdz[i1]) + d3 * domWRLdz[i2]));
-        n_y_tmp[dvRRdz_tmp] = (b_q_tmp[dvRRdz_tmp] + r_y_tmp[dvRRdz_tmp]) + ((d4
-          * domWRRdz[3 * b_i] + d5 * domWRRdz[i1]) + d6 * domWRRdz[i2]);
+          ((o_y_tmp[dvRRdz_tmp] + p_y_tmp[dvRRdz_tmp]) + ((d1 * domWRRdz[3 * b_i]
+             + d2 * domWRRdz[3 * b_i + 1]) + d3 * domWRRdz[3 * b_i + 2]));
       }
-    }
-
-    for (i = 0; i <= 194; i += 2) {
-      r = _mm_loadu_pd(&M[i]);
-      r2 = _mm_loadu_pd(&n_y_tmp[i]);
-      _mm_storeu_pd(&M[i], _mm_add_pd(r, r2));
     }
 
     //  % Chassis
@@ -7422,13 +7509,13 @@ namespace adtm
       domdphi_FL[i] = (I_URRV[i] * d7 + I_URRV[i + 3] * d8) + I_URRV[i + 6] * d9;
       dvdphi_FL[i] = (I_URLV[i] * d10 + I_URLV[i + 3] * d11) + I_URLV[i + 6] *
         d12;
-      dvdphi_RR[i] = (static_cast<double>(iv2[i]) * d13 + static_cast<double>
-                      (iv2[i + 3]) * d14) + static_cast<double>(iv2[i + 6]) *
+      dvdphi_RR[i] = (static_cast<double>(iv3[i]) * d13 + static_cast<double>
+                      (iv3[i + 3]) * d14) + static_cast<double>(iv3[i + 6]) *
         b_u;
     }
 
-    memcpy(&b_dv[0], &x[14], 14U * sizeof(double));
-    coder::mldivide(K, b_dv);
+    memcpy(&dv[0], &x[14], 14U * sizeof(double));
+    coder::mldivide(K, dv);
     d1 = g_V[0] - (omega_0VV[1] * v_0VV_idx_2 - v_0VV_idx_1 * omega_0VV[2]);
     d2 = g_V[1] - (v_0VV_idx_0 * omega_0VV[2] - omega_0VV[0] * v_0VV_idx_2);
     d3 = g_V[2] - (omega_0VV[0] * v_0VV_idx_1 - v_0VV_idx_0 * omega_0VV[1]);
@@ -7442,10 +7529,11 @@ namespace adtm
     d11 = r_MQFR0[1];
     d12 = r_MQFR0[2];
     for (i = 0; i < 14; i++) {
-      f[i] = ((c_f[i] + ((dv39[i] * d1 + dv39[i + 14] * d2) + dv39[i + 28] * d3))
-              + ((static_cast<double>(iv4[i]) * d4 + static_cast<double>(iv4[i +
-                 14]) * d5) + static_cast<double>(iv4[i + 28]) * d6)) +
-        ((q_tmp[i] * d7 + q_tmp[i + 14] * d8) + q_tmp[i + 28] * d9);
+      f[i] = ((c_f[i] + ((q_tmp[i] * d1 + q_tmp[i + 14] * d2) + q_tmp[i + 28] *
+                         d3)) + ((static_cast<double>(iv4[i]) * d4 +
+                static_cast<double>(iv4[i + 14]) * d5) + static_cast<double>
+               (iv4[i + 28]) * d6)) + ((b_q_tmp[i] * d7 + b_q_tmp[i + 14] * d8)
+        + b_q_tmp[i + 28] * d9);
       l_y_tmp[i] = (y_tmp[i] * d10 + y_tmp[i + 14] * d11) + y_tmp[i + 28] * d12;
     }
 
@@ -7491,7 +7579,7 @@ namespace adtm
                     domdphi_FL[2]);
     dz_RR = -(omega_0URRV[0] * domdphi_FL[1] - domdphi_FL[0] * omega_0URRV[1]);
     w_RR = I_WFLV[0];
-    uFR = I_WFLV[1];
+    uFL = I_WFLV[1];
     uRL = I_WFLV[2];
     uRR = I_WFRV[0];
     b_dvdu_FR = I_WFRV[1];
@@ -7557,7 +7645,7 @@ namespace adtm
       r2 = _mm_loadu_pd(&h_y_tmp[i]);
       r2 = _mm_mul_pd(r2, _mm_set1_pd(w_RR));
       r3 = _mm_loadu_pd(&h_y_tmp[i + 14]);
-      r3 = _mm_mul_pd(r3, _mm_set1_pd(uFR));
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(uFL));
       r2 = _mm_add_pd(r2, r3);
       r3 = _mm_loadu_pd(&h_y_tmp[i + 28]);
       r3 = _mm_mul_pd(r3, _mm_set1_pd(uRL));
@@ -7689,7 +7777,7 @@ namespace adtm
 
     coder::mldivide(M, b_f);
     for (i = 0; i < 14; i++) {
-      dvFLdz[i] = b_dv[i];
+      dvFLdz[i] = dv[i];
       dvFLdz[i + 14] = b_f[i];
     }
 
@@ -7726,7 +7814,7 @@ namespace adtm
       d = 2.2204460492503131E-16;
     }
 
-    b_u = coder::b_hypot(fabs(F_TFL[0]) / uRR, fabs(F_TFL[1]) / d);
+    uFL = coder::b_hypot(fabs(F_TFL[0]) / uRR, fabs(F_TFL[1]) / d);
     if (F_xMFR >= 2.2204460492503131E-16) {
       uRR = F_xMFR;
     } else {
@@ -7739,7 +7827,7 @@ namespace adtm
       d = 2.2204460492503131E-16;
     }
 
-    uFR = coder::b_hypot(fabs(F_TFR[0]) / uRR, fabs(F_TFR[1]) / d);
+    b_u = coder::b_hypot(fabs(F_TFR[0]) / uRR, fabs(F_TFR[1]) / d);
     if (F_xMRL >= 2.2204460492503131E-16) {
       uRR = F_xMRL;
     } else {
@@ -7798,12 +7886,12 @@ namespace adtm
       c_domdu_FR += d4 * I_WFRV[i];
     }
 
-    double uFL[4];
+    double b_uFL[4];
     coder::mldivide(A_z_tmp, &c_f[0], dvdphi_FL);
-    uFL[0] = b_u;
-    uFL[1] = uFR;
-    uFL[2] = uRL;
-    uFL[3] = uRR;
+    b_uFL[0] = uFL;
+    b_uFL[1] = b_u;
+    b_uFL[2] = uRL;
+    b_uFL[3] = uRR;
     out[0] = dvdphi_FL[0];
     out[3] = F_TFL[0];
     out[6] = F_TFR[0];
@@ -7899,41 +7987,50 @@ namespace adtm
     out[92] = (((((((((d + A_x_tmp_tmp) + dz_RR) + w_RR) + v_0FAV_tmp) +
                    b_dvdu_FR) + b_domdu_FL) + b_domdu_FR) + c_domdu_FL) +
                c_domdu_FR) * 0.014584380239693683;
-    out[93] = b_u;
-    out[94] = uFR;
+    out[93] = uFL;
+    out[94] = b_u;
     out[95] = uRL;
     out[96] = uRR;
-    out[97] = coder::internal::maximum(uFL);
-    out[98] = (b_u * F_TFL[2] + uFR * F_TFR[2]) / (F_TFL[2] + F_TFR[2]);
+    out[97] = coder::internal::maximum(b_uFL);
+    out[98] = (uFL * F_TFL[2] + b_u * F_TFR[2]) / (F_TFL[2] + F_TFR[2]);
     out[99] = (uRL * F_TRL[2] + uRR * F_TRR[2]) / (F_TRL[2] + F_TRR[2]);
     memcpy(&out[100], &out_aero[0], 8U * sizeof(double));
     out[108] = u[0];
     out[109] = u[3];
     b_u = dt / 2.0;
+    expl_temp.T_MMax = v_idx_7;
+    expl_temp.C_D = car[0];
+    expl_temp.C_LRA = car[2];
+    expl_temp.C_LFA = car[1];
+    expl_temp.F_SRR0 = v_idx_5;
+    expl_temp.F_SRL0 = v_idx_5;
+    expl_temp.F_SFR0 = v_idx_4;
+    expl_temp.F_SFL0 = v_idx_4;
+    expl_temp.l_RA = l_RA;
+    expl_temp.l_FA = l_FA;
+    expl_temp.z_cg = car[5] + 0.09;
+    expl_temp.m_C = car[3] + 193.60000000000002;
     for (i = 0; i <= 40; i += 2) {
       r = _mm_loadu_pd(&dvFLdz[i]);
       r1 = _mm_loadu_pd(&x[i]);
       _mm_storeu_pd(&domWFLdz[i], _mm_add_pd(r1, _mm_mul_pd(_mm_set1_pd(b_u), r)));
     }
 
-    f_vehicleModel(u[0], u[1], u[2], u[3], u[5], domWFLdz, aero[1], aero[2],
-                   aero[0], dvFRdz);
+    f_vehicleModel(u[0], u[1], u[2], u[3], u[5], domWFLdz, expl_temp, dvFRdz);
     for (i = 0; i <= 40; i += 2) {
       r = _mm_loadu_pd(&dvFRdz[i]);
       r1 = _mm_loadu_pd(&x[i]);
       _mm_storeu_pd(&domWFLdz[i], _mm_add_pd(r1, _mm_mul_pd(_mm_set1_pd(b_u), r)));
     }
 
-    f_vehicleModel(u[0], u[1], u[2], u[3], u[5], domWFLdz, aero[1], aero[2],
-                   aero[0], dvRLdz);
+    f_vehicleModel(u[0], u[1], u[2], u[3], u[5], domWFLdz, expl_temp, dvRLdz);
     for (i = 0; i <= 40; i += 2) {
       r = _mm_loadu_pd(&dvRLdz[i]);
       r1 = _mm_loadu_pd(&x[i]);
       _mm_storeu_pd(&domWFLdz[i], _mm_add_pd(r1, _mm_mul_pd(_mm_set1_pd(dt), r)));
     }
 
-    f_vehicleModel(u[0], u[1], u[2], u[3], u[5], domWFLdz, aero[1], aero[2],
-                   aero[0], dvRRdz);
+    f_vehicleModel(u[0], u[1], u[2], u[3], u[5], domWFLdz, expl_temp, dvRRdz);
     r = _mm_set1_pd(2.0);
     for (i = 0; i <= 40; i += 2) {
       r1 = _mm_loadu_pd(&dvFRdz[i]);

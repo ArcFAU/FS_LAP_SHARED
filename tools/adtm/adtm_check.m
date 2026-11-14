@@ -3,7 +3,7 @@ function adtm_check()
 %   over 3 s of throttle, steering and braking from 15 m/s, and measures how fast the compiled step is.
 %   Run after adtm_codegen whenever the ADTM changes; the C++ in the game comes from the same generated code.
 P = adtm_load_params();
-aero = [P.veh.C_D; P.veh.C_LFA; P.veh.C_LRA];
+aero = [P.veh.C_D; P.veh.C_LFA; P.veh.C_LRA; 0; 0; 0; 1];   % the vehicle file's car (adtm_vehicle)
 x0 = adtm_init(aero);
 x0(15) = 15; x0(25:28) = 15 / P.tFL.r_0;
 dt = 1 / 600;

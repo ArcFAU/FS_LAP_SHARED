@@ -212,8 +212,8 @@ bool FFSLapWheel::Read(const FString& Preferred, TArray<float>& Axes, int32 Forc
 	{
 		Axes[i] = Raw[i] / 1000.0f;
 	}
-	// temporary (owner, 2026-11-14: no cable for the pedals): the buttons follow as axes 0 or 1, so the wheel setup can
-	// take a held button as throttle or brake like a pedal; remove this block with the pedals connected
+	// the buttons follow as axes 0 or 1: the wheel setup binds them to back on track and the camera, and (temporary,
+	// owner 2026-11-14: no cable for the pedals) takes a held button as throttle or brake like a pedal
 	for (int32 i = 0; i < Buttons; ++i)
 	{
 		Axes.Add(State.rgbButtons[i] & 0x80 ? 1.0f : 0.0f);

@@ -77,6 +77,22 @@ int main(int argc, char** argv)
 	for (int k = 0; k < 10 * 600; ++k) drag.Step(&full);
 	std::printf("free roam flat out: 0-100 km/h %.3f s, 75 m %.3f s, top %.1f km/h (FS Lap's own model: 1.577 s, 3.075 s)\n", drag.fr.t100, drag.fr.t75, drag.fr.top * 3.6);
 
+	// the setup reaches the ADTM (adtm_vehicle.m): more mass and less motor torque both slow the standing start
+	const auto to100 = [&](const Setup& changed)
+	{
+		Simulation run(track, changed, Mode::Free);
+		const std::unique_ptr<Simulation::VehicleModel> model = MakeAdtm(changed);
+		run.external = model.get();
+		for (int k = 0; k < 10 * 600; ++k) run.Step(&full);
+		return run.fr.t100;
+	};
+	Setup heavy, weak;
+	heavy.mCar += 40;
+	weak.Tm *= 0.75;
+	const double heavy100 = to100(heavy), weak100 = to100(weak);
+	const bool setupActs = heavy100 > drag.fr.t100 + 0.05 && weak100 > drag.fr.t100 + 0.05;
+	std::printf("setup on the ADTM: 0-100 km/h %.3f s stock, %.3f s with 40 kg more, %.3f s with 75 %% motor torque\n", drag.fr.t100, heavy100, weak100);
+
 	// a steering wheel with Wheel rotation set: no smoothing, and a fixed ratio at any speed; the keys stay smoothed
 	Input wheel = full;
 	wheel.steer = 0.1; wheel.wheel = wheel.direct = true;
@@ -90,7 +106,7 @@ int main(int argc, char** argv)
 
 	const bool pass = !sim.laps.empty() && finite && follows && realTime > 2 && drag.fr.t100 > 0 && std::abs(drag.fr.t100 - 1.577) > 0.002
 		&& maxSteerT > 0 && aligningShare > 50   // the ADTM really drove
-		&& direct && smoothed;
+		&& direct && smoothed && setupActs;
 	std::printf(pass ? "PASS\n" : "FAIL\n");
 	return pass ? 0 : 1;
 }

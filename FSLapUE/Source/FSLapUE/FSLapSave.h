@@ -46,4 +46,13 @@ public:
 
 	UPROPERTY()
 	int32 WheelRotation = 0;   // degrees lock to lock as set in the wheel's driver: steering 1:1 with the car; 0: the calibrated lock
+
+	UPROPERTY()
+	TArray<FName> Keys;   // the keys of the driving actions the settings screen changed, in its order; none: the default
+
+	UPROPERTY()
+	int32 MasterVolume = 100;   // %
+
+	UPROPERTY()
+	int32 OnboardFov = 0;   // the onboard camera's vertical field of view in degrees, fixed; 0: the default that widens with speed
 };

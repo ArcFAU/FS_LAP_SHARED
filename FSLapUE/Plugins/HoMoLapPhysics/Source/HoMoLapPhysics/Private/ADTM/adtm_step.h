@@ -20,9 +20,9 @@
 namespace adtm {
 extern void adtm_constants(double c[9]);
 
-extern void adtm_init(const double aero[3], double x[42]);
+extern void adtm_init(const double car[7], double x[42]);
 
-extern void adtm_step(double x[42], const double u[6], const double aero[3],
+extern void adtm_step(double x[42], const double u[6], const double car[7],
                       double t, double dt, double out[110]);
 
 extern void adtm_step_initialize();

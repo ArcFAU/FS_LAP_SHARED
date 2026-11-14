@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `a899408` on 2026-11-14.
+> Synced from development commit `73ebde2` on 2026-11-14.
 
 ---
 
@@ -97,18 +97,27 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 | Menu: choose / change / confirm | arrow keys, Enter | D-pad, A |
 | Menus with the mouse | point at a row and click; in **SETUP**, click raises a value and right-click lowers it; **BACK** at the top right; the pause menu's items are buttons | |
 | Close FS Lap | menu → **QUIT** | |
+| Display, sound and keys | menu → **SETTINGS** | |
+
+**Settings (menu → SETTINGS):**
+- **Display:** window (borderless full screen or a window), resolution, graphics quality (low to epic; `custom` when the quality groups differ), VSync and a frame rate limit. Each change applies at once and is saved by the engine (`GameUserSettings.ini`); the game starts the way it was left, and on a first run in borderless full screen. Borderless full screen always uses the desktop's resolution; the resolution row sizes the window. Exclusive full screen is not offered: the game hangs in it when another window takes the focus.
+- **Sound:** master volume in steps of 10 %.
+- **Keys:** throttle, brake, steer left and right, handbrake, back on track / restart, camera, pause, replay and menu-from-pause. Select a key row, press **Enter**, then the new key; **Esc** keeps the old one. A key another row uses is refused, and so are the menu keys (arrows, Enter) and the numpad view keys. The arrow keys keep driving, **Esc** keeps pausing, and the gamepad keeps its buttons. The last row puts all keys back. The key help on screen shows your keys.
+- Volume and keys are saved with the best laps. The keyboard tests press the default keys and ignore saved keys.
 
 **Steering wheel (DirectInput wheels such as the Moza R3):**
 1. Plug the wheel in. The game finds it within about 2 seconds, also while it is running.
 2. Menu → **SETUP** → row **Steering wheel** → press **Right** to open the wheel setup.
-3. Follow the four steps, pressing **Enter** after each: hands off the wheel and feet off the pedals; turn the wheel right as far as you want full steering lock; press the throttle fully; press the brake fully. **No pedals connected:** press **Enter** on the throttle and brake steps without pressing anything; then **W / S** (or a gamepad's triggers) are throttle and brake while the wheel steers. **Wheel buttons as pedals (temporary):** on the throttle step, hold the wheel button you want for throttle and press **Enter**; the same on the brake step. A button gives full throttle or full brake, nothing in between. The screen lists the buttons held.
+3. Follow the six steps, pressing **Enter** after each: hands off the wheel and feet off the pedals; turn the wheel right as far as you want full steering lock; press the throttle fully; press the brake fully; hold the wheel button you want for **back on track** (the R key); hold the wheel button you want for the **camera** (the C key). On the two button steps, **Enter** with nothing held means no button. **No pedals connected:** press **Enter** on the throttle and brake steps without pressing anything; then **W / S** (or a gamepad's triggers) are throttle and brake while the wheel steers. **Wheel buttons as pedals (temporary):** on the throttle step, hold the wheel button you want for throttle and press **Enter**; the same on the brake step. A button gives full throttle or full brake, nothing in between. The screen lists the buttons held.
 4. **Esc** goes back. The setup is saved and used from then on. The keyboard and gamepad keep working and win while they are pressed.
 
 **Wheel rotation (steering 1:1 with the car):** setup row **Wheel rotation**, off by default. Set it to the rotation your wheel's software uses, lock to lock (Moza Pit House, Fanatec), from 180° to 1080° in steps of 90°. Then your wheel angle is the car's steering wheel angle: the car reaches full lock at ±110° (220° lock to lock, the ADTM's value), at any speed, with a fixed ratio and no steering assist. On the ADTM the angle goes straight into the model. On FS Lap's own model, full lock gives the setup's maximum road wheel angle. Best: set the wheel's software to 220° too, so its end stop is the car's lock.
 
 With **Wheel rotation off**, the calibrated right turn is full steering lock, and FS Lap's speed-dependent lock (and the steering assist, when it is on) shape the steering, as before.
 
-The wheel steers the car without any smoothing; the keys and the gamepad are smoothed. The wheel's buttons are not used yet.
+The wheel steers the car without any smoothing; the keys and the gamepad are smoothed. Two wheel buttons can be bound in the wheel setup (back on track, camera); a wheel setup saved before 2026-11-14 keeps working without them.
+
+**Onboard view angle (for a rig):** setup row **Onboard view angle**. By default the onboard camera shows 60° vertically and widens to 63° with speed. For a true-to-scale view, set the angle your screen really covers: 2 × atan(screen height / (2 × distance from your eyes to the screen)). A screen 34 cm high at 70 cm is 27°, for example. **Right** from default starts at 60°, then **Left / Right** change it in steps of 2° between 16° and 90°; below 16° it goes back to default. The angle is then fixed at every speed, and it is saved. The chase camera is not affected.
 
 **Force feedback (ADTM only):** setup row **Force feedback**, off by default. Also set **Vehicle model** to **ADTM**: it starts on FS Lap's own model each time the game starts, and that model sends no force (the row says so).
 - **What you feel:** the ADTM's steering torque (`T_Steering`, section 4b) while you drive. There is no force in menus, the pause menu, replays, with the autopilot, or on FS Lap's own model.
@@ -221,9 +230,10 @@ You can drive the team's Advanced Dual Track Model (ADTM) itself, live, with the
 - **Moving the car:** when the game moves the car (restart, back on track, a wall), the ADTM starts again from there, settled on its springs.
 
 **What comes from where:**
-- **From FS Lap's setup:** aero (ClA, CdA, balance), brake force and split, and system power.
-- **From the ADTM vehicle file baked in at generation:** everything else, including mass, tyres, suspension and motors. Today that is `FAUmaxTau.m` with `default_mu0.7`.
-- **Not used by the ADTM:** FS Lap's mass, tyre, roll and torque-vectoring rows.
+- **From FS Lap's setup, as it is:** aero (ClA, CdA, balance), brake force and split, and system power.
+- **From FS Lap's setup, as a change to the team's value:** car and driver mass, weight on the front axle, CoG height, motor torque and the tyres' peak μ. FS Lap's stock setup drives the team's ADTM exactly as its vehicle file has it (240 kg, for example, although the row shows 172 + 80 kg). Each step away from stock moves the ADTM's value by the same amount (mass, weight share, CoG height) or the same factor (motor torque; peak μ scales the road friction). The spring pretension follows the mass and the weight split, as in `f_vehicleParameters`.
+- **From the ADTM vehicle file baked in at generation:** everything else, including tyres, suspension, inertias and the motors' power and speed. Today that is `FAUmaxTau.m` with `default_mu0.7`.
+- **Not used by the ADTM:** gear ratio, load sensitivity, peak slip angle, roll stiffness and torque vectoring. With the ADTM chosen, these setup rows say `(not on the ADTM)`.
 - **No handbrake:** the handbrake does nothing on the ADTM, as on the real car.
 - **Force feedback:** from the ADTM's `T_Steering` (section 3). On the AI hot lap it peaks at 25.5 Nm and pulls the wheel back towards the centre 89 % of the steered time.
 
@@ -302,9 +312,10 @@ All tests run from PowerShell in the repository root. Close the Unreal Editor fi
 | `tools\validate.ps1` | Builds the vehicle model alone and runs the AI in sim, arcade, free roam and city mode. The lap times must match (sim 77.405 s, arcade 75.367 s, city 89.633 s) with no wall contacts. No Unreal needed. |
 | `tools\validate.ps1 -Game` | The above, plus the in-game tests below |
 | `tools\slice_test.ps1 -Mode sim` (or `arcade`, `city`, `free`) | Starts the real game, lets the AI drive a lap and takes photos from around the car. Results in `FSLapUE\Saved\SliceTest\<mode>\results.txt`: lap times, fps, average and 95th-percentile frame time, the longest frame and the number of frames over 100 ms (hitches). |
-| `tools\slice_test.ps1 -Mode keys` | Presses every key through the game and checks what each did, the mouse in the menus included (62 steps). Each line also reports the frame rate and the car's speed. |
+| `tools\slice_test.ps1 -Mode keys` | Presses every key through the game and checks what each did, the mouse in the menus and the key rebinding and the window and resolution settings included (97 steps). Each line also reports the frame rate and the car's speed. |
+| `python tools\logs\validate.py` | Compares the car's logged test days with both vehicle models: standing starts, powertrain, braking, grip against speed, the FSG endurance. Needs the logs and the DBC; see `tools\logs\README.md` for the setup and the findings. |
 | `tools\slice_test.ps1 -Mode lts` | Has the real LTS compute the single-track reference for the stock car (needs MATLAB, section 4a), then lets the AI drive a hot lap against it. Checks the reference (`reference=LTS 1-track 74.952`) and the lap files (`lap_log=`). |
-| `tools\physics_test\adtm.bat` | The ADTM in the game's core without Unreal: the AI laps the FSG track (77.620 s), the car is moved and must carry on, and a free-roam standing start (0–100 km/h in 2.185 s, with the assists on). The steering torque must pull back towards the centre most of the time. It must run faster than real time. Needs the generated code. |
+| `tools\physics_test\adtm.bat` | The ADTM in the game's core without Unreal: the AI laps the FSG track (77.620 s), the car is moved and must carry on, and a free-roam standing start (0–100 km/h in 2.185 s, with the assists on). The steering torque must pull back towards the centre most of the time. The setup must reach the ADTM: 40 kg more and 75 % motor torque both slow the standing start (2.418 s and 2.402 s). A wheel with **Wheel rotation** set must steer 1:1. It must run faster than real time. Needs the generated code. |
 | `tools\slice_test.ps1 -Mode adtm` | The in-game hot lap with the ADTM as the vehicle model (`vehicle_model=ADTM ...`). Add `-Adtm` to any other mode to run it with the ADTM. |
 
 Add `-Engine <UE>` if your engine is not at `D:\UE\UE_5.8`.
@@ -326,12 +337,14 @@ The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_I
 
 ## 10. Limits and plans
 
-**Not there yet:** force feedback on FS Lap's own model (it has none; only the ADTM gives it), a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, real-car data overlays, the wheel's buttons, and a field of view set from the rig's screen size. The LTS reference covers the FSG endurance track only, and the lap files are not yet in .mat format.
+**Not there yet:** force feedback on FS Lap's own model (it has none; only the ADTM gives it), a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, real-car data overlays, more wheel buttons (two can be bound), and triple-screen or curved-screen views (the onboard view angle for one flat screen can be set). The LTS reference covers the FSG endurance track only, and the lap files are not yet in .mat format.
+
+**Compared with the car's logs (2026-11-14):** see `tools\logs\README.md`. Open from it: the real FSG 2026 track rebuilt from the log, the as-logged power and torque as a preset, and the steering lock (the logs show about ±100°, the simulator uses ±110°).
 
 **Proposed next, in order, pending the team's answers:**
 1. **Force feedback, tried on the Moza R3:** check the direction and the strength with a driver (section 3).
-2. **Rig basics:** a field of view from the screen geometry. (The 1:1 steering is there: setup row **Wheel rotation**, section 3.)
-3. **The ADTM's vehicle data from FS Lap's setup:** mass and tyres editable in the setup screen, not only at generation.
+2. **Rig basics, tried on the rig:** the 1:1 steering (setup row **Wheel rotation**) and the onboard view angle (setup row **Onboard view angle**) are there (section 3); both need a driver's check on the R3 rig.
+3. **The ADTM's tyres and suspension from FS Lap's setup.** (Mass, weight split, CoG height, motor torque and peak μ are there, section 4b.)
 4. **Better vehicle model:** a four-wheel model and the tyre model, or live co-simulation with the team's Simulink model.
 5. **VD tools:** standard test manoeuvres with automatic metrics, setup A/B blind tests, and real-car data overlays.
 
@@ -349,6 +362,15 @@ Ask the simulator's maintainer if you need any of these.
 
 Newest first.
 
+- **2026-11-14 (morning):**
+  - **The setup reaches the ADTM:** car and driver mass, weight on the front axle, CoG height, motor torque and peak μ now act on the ADTM, as changes to the team's values (section 4b). Rows that cannot act on it say `(not on the ADTM)`. The stock car is unchanged (AI lap 77.620 s). The ADTM code was regenerated: `adtm_step` and `adtm_init` take 7 values instead of the 3 aero values.
+  - **Settings screen:** menu → **SETTINGS** has display, sound and key settings, with rebinding of the driving keys (section 3).
+  - **No exclusive full screen any more:** `Play FS Lap.bat` no longer passes `-fullscreen`, and the game always uses borderless full screen. In exclusive full screen the game hung at the menu (flickering, frozen) whenever another window took the focus while it started, for example a click on a second monitor.
+  - **Map:** the car is an arrow that points along its heading.
+  - **Onboard view angle:** a new setup row fixes the onboard camera's vertical angle to what the rig's screen covers (section 3).
+  - **Wheel buttons:** the wheel setup has two more steps that bind a wheel button to back on track and to the camera (section 3).
+
+- **2026-11-14 (night):** first comparison with the car's logs: `tools\logs` decodes the CAN logs and compares them with the simulator. Findings in `tools\logs\README.md`: the skidpad grip and top speed agree; the simulator has more power and torque than the car showed (80 kW and 21 Nm against about 66 kW and 18.9 Nm) and launches harder; the car's steering ratio is 3.9-4.1 against the simulator's 4.25-4.38; downforce and limit braking are not confirmed by the logs; the simulator's FSG track is not the 2026 layout.
 - **2026-11-14 (later):** temporary: the wheel's buttons can be throttle and brake, chosen in the wheel setup's pedal steps (section 3).
 - **2026-11-14 (driver feedback):**
   - **Steering lag fixed:** the wheel went through the keyboard's smoothing, so the car followed it up to 0.24 s late. A wheel now steers directly.

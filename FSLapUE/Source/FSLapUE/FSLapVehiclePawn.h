@@ -15,7 +15,10 @@ class UCameraComponent;
 class UInstancedStaticMeshComponent;
 class UStaticMeshComponent;
 
-enum class EFSLapFlow : uint8 { Menu, Setup, Countdown, Race, Paused, Replay, Wheel };   // Wheel: the steering wheel setup, from the setup screen
+enum class EFSLapFlow : uint8 { Menu, Setup, Countdown, Race, Paused, Replay, Wheel, Settings };   // Wheel: the steering wheel setup, from the setup screen; Settings: display, sound and keys, from the menu
+
+// The driving actions whose key the settings screen can change (the order of its key rows and of the saved keys).
+namespace EFSLapKey { enum Type { Throttle, Brake, SteerLeft, SteerRight, Handbrake, Reset, Camera, Pause, Replay, Menu, Count }; }
 
 UCLASS()
 class FSLAPUE_API AFSLapVehiclePawn : public APawn
@@ -45,9 +48,11 @@ public:
 	void StopReplay();
 	bool IsOnboard() const { return bOnboard; }
 	int32 GetHeldView() const { return HeldView; }   // numpad key held: 4 left, 6 right, 8 front; 0 none
+	// The setup screen's rows; in the Settings flow, the settings screen's (FSLapSettings.cpp): the HUD draws both the same way.
 	int32 GetSetupRowCount() const;
-	int32 GetSetupRow() const { return SetupRow; }
+	int32 GetSetupRow() const { return Flow == EFSLapFlow::Settings ? SettingsRow : SetupRow; }
 	FString GetSetupRowText(int32 Row) const;
+	FString GetKeyName(int32 Item) const;   // the key a driving action has now (EFSLapKey order), for the HUD's key help
 	FString GetWheelText() const;   // the wheel setup screen: the step, what the wheel reads now
 	FString GetLtsLabel() const;    // the HUD's name for the reference lap
 
@@ -106,6 +111,14 @@ private:
 	void MenuLeft();
 	void MenuRight();
 	void ChangeSetup(int32 Direction);
+	// FSLapSettings.cpp: the settings screen (display, sound, keys)
+	int32 GetSettingsRowCount() const;
+	FString GetSettingsRowText(int32 Row) const;
+	void ChangeSettings(int32 Direction);
+	void ApplySavedSettings();    // the saved volume and keys, once the save and the player's input exist
+	void ApplyKeys();
+	void UpdateKeyCapture();      // while a key row waits for its new key
+	bool IsCapturingKey() const { return CaptureItem >= 0; }
 	void ClearEffects();
 	void ReplayPressed();
 	void MakeSounds();
@@ -203,6 +216,11 @@ private:
 	int32 PuffHead = 0;
 	bool bPuffsActive = false;
 	int32 SetupRow = 0;
+	int32 SettingsRow = 0;
+	TArray<FName> Keys;        // the key of each driving action (EFSLapKey order); none: the project's default
+	int32 CaptureItem = -1;    // the action whose key row waits for a key press
+	bool bCaptureFresh = false;   // the ENTER that started the capture is still down this frame
+	FString KeyMessage;        // why the last key was refused
 	bool bDriverAssist = true;
 	int32 PresetIndex = 0;   // -1 once the aero rows have been changed by hand
 	EFSLapFlow Flow = EFSLapFlow::Menu;
@@ -241,6 +259,7 @@ private:
 	FString ReferenceJson() const;
 	TArray<float> WheelAxes, WheelRest, WheelNew;   // WheelNew: the calibration being recorded
 	bool bWheelLive = false;
+	bool bWheelButtonDown[2] = {};   // back on track, camera: last frame's state, to act on the press
 	float WheelSteer = 0, WheelThrottle = 0, WheelBrake = 0;
 	float WheelForce = 0;   // force feedback sent last frame, -1..1 of the wheel's strongest
 	int32 WheelStep = 0;

@@ -147,13 +147,14 @@ void AFSLapHUD::UpdateMouse(AFSLapVehiclePawn& Vehicle, bool bMenus)
 
 void AFSLapHUD::DrawMenu(const AFSLapVehiclePawn& Vehicle)
 {
-	static const TCHAR* const Names[] = { TEXT("HOT LAP"), TEXT("ARCADE"), TEXT("CITY"), TEXT("FREE ROAM"), TEXT("SETUP"), TEXT("QUIT") };
+	static const TCHAR* const Names[] = { TEXT("HOT LAP"), TEXT("ARCADE"), TEXT("CITY"), TEXT("FREE ROAM"), TEXT("SETUP"), TEXT("SETTINGS"), TEXT("QUIT") };
 	static const TCHAR* const Notes[] = {
 		TEXT("Team data and FS Rules penalties."),
 		TEXT("More grip and power on the FSG track.\nHandbrake to slide. No penalties."),
 		TEXT("A made-up city about 3 km across, with traffic\nand ring roads. A timed circuit runs through the middle."),
 		TEXT("Open paddock with skidpad and acceleration strip.\n0-100 km/h and 75 m timed."),
 		TEXT("Change the aero package, mass, power, tyres,\nbrakes and chassis."),
+		TEXT("Display, sound and the keys."),
 		TEXT("Close FS Lap."),
 	};
 	Slant(-40, 0, 680, ScreenH, Ink, 60);
@@ -178,22 +179,24 @@ void AFSLapHUD::DrawSetup(const AFSLapVehiclePawn& Vehicle)
 {
 	Box(0, 0, 860, ScreenH, Ink);
 	Box(856, 0, 4, ScreenH, Signal);
-	Label(TEXT("SETUP"), 56, 40, 52, Paper, true);
+	const bool bSettings = Vehicle.GetFlow() == EFSLapFlow::Settings;   // the same list, with the pawn's settings rows
+	Label(bSettings ? TEXT("SETTINGS") : TEXT("SETUP"), 56, 40, 52, Paper, true);
 	const int32 Rows = Vehicle.GetSetupRowCount();
 	for (int32 Row = 0; Row < Rows; ++Row)
 	{
-		const float Y = 112 + Row * 36;   // 25 rows above the key help
+		const float Y = 110 + Row * 34.5f;   // 26 rows above the key help
 		const bool bSelected = Row == Vehicle.GetSetupRow();
 		if (bSelected)
 		{
-			Box(44, Y - 3, 780, 34, Chip);
-			Box(44, Y - 3, 4, 34, Signal);
+			Box(44, Y - 3, 780, 33, Chip);
+			Box(44, Y - 3, 4, 33, Signal);
 		}
 		Label(Vehicle.GetSetupRowText(Row), 64, Y, 24, bSelected ? Paper : Muted, bSelected);
-		Targets.Add({ FBox2f(FVector2f(44, Y - 3), FVector2f(824, Y + 31)), Row });
+		Targets.Add({ FBox2f(FVector2f(44, Y - 3), FVector2f(824, Y + 30)), Row });
 	}
 	Button(TEXT("BACK"), 684, 44, 140, 48, AFSLapVehiclePawn::MouseBack);
-	Label(TEXT("UP/DOWN  choose    LEFT/RIGHT or RIGHT-CLICK/CLICK  change    R  stock car    ENTER  back"), 58, ScreenH - 62, 18, Muted);
+	Label(bSettings ? TEXT("UP/DOWN  choose    LEFT/RIGHT, ENTER or CLICK  change    ESC  back")
+		: TEXT("UP/DOWN  choose    LEFT/RIGHT or RIGHT-CLICK/CLICK  change    R  stock car    ENTER  back"), 58, ScreenH - 62, 18, Muted);
 }
 
 void AFSLapHUD::DrawWheel(const AFSLapVehiclePawn& Vehicle)
@@ -356,7 +359,14 @@ void AFSLapHUD::DrawMinimap(const HoMoLap::Simulation& Sim)
 	}
 	const FVector2D Start = Point(T.x[0], T.y[0]), Car = Point(Sim.c.x, Sim.c.y);
 	DrawRect(Gold, Start.X - 3 * S, Start.Y - 6 * S, 6 * S, 12 * S);
-	DrawRect(Signal, Car.X - 6 * S, Car.Y - 6 * S, 12 * S, 12 * S);
+	// the car: an arrow along its heading (the map has x to the right and y down, as the world seen from above)
+	const FVector2D Ahead(FMath::Cos(Sim.c.h), FMath::Sin(Sim.c.h)), Side(-Ahead.Y, Ahead.X);
+	const FVector2D Tip = Car + Ahead * 15 * S, Notch = Car - Ahead * 4 * S, Tail = Car - Ahead * 9 * S;
+	FCanvasTriangleItem LeftHalf(Tip, Tail - Side * 9 * S, Notch, GWhiteTexture), RightHalf(Tip, Notch, Tail + Side * 9 * S, GWhiteTexture);
+	LeftHalf.SetColor(Signal);
+	RightHalf.SetColor(Signal);
+	Canvas->DrawItem(LeftHalf);
+	Canvas->DrawItem(RightHalf);
 	Label(FString::Printf(TEXT("%s  -  %s m"), T.ltsLap > 0 ? TEXT("FSG endurance") : TEXT("City circuit"), *FString::FormatAsNumber(FMath::RoundToInt32(T.LEN))), Left, Top + Height + 12, 16, Muted);
 }
 
@@ -544,14 +554,14 @@ void AFSLapHUD::DrawHUD()
 	ScreenH = 1080.0f;
 	const float DeltaSeconds = GetWorld()->GetDeltaSeconds();
 	const EFSLapFlow Flow = Vehicle->GetFlow();
-	ON_SCOPE_EXIT { UpdateMouse(*Vehicle, Flow == EFSLapFlow::Menu || Flow == EFSLapFlow::Setup || Flow == EFSLapFlow::Wheel || Flow == EFSLapFlow::Paused); };
+	ON_SCOPE_EXIT { UpdateMouse(*Vehicle, Flow == EFSLapFlow::Menu || Flow == EFSLapFlow::Setup || Flow == EFSLapFlow::Settings || Flow == EFSLapFlow::Wheel || Flow == EFSLapFlow::Paused); };
 
 	if (Vehicle->GetFlow() == EFSLapFlow::Menu)
 	{
 		DrawMenu(*Vehicle);
 		return;
 	}
-	if (Vehicle->GetFlow() == EFSLapFlow::Setup)
+	if (Vehicle->GetFlow() == EFSLapFlow::Setup || Vehicle->GetFlow() == EFSLapFlow::Settings)
 	{
 		DrawSetup(*Vehicle);
 		return;
@@ -608,7 +618,10 @@ void AFSLapHUD::DrawHUD()
 		Label(MessageTitle, ScreenW / 2, 238, bMessageSmall ? 46 : 86, MessageColor, true, true);
 		Label(MessageSub, ScreenW / 2, bMessageSmall ? 298 : 342, 24, Paper, true, true);
 	}
-	if (FMath::Abs(Sim->c.vx) < 2) Label(TEXT("WASD / ARROWS  drive     SPACE  handbrake     C  chase / onboard     NUMPAD 4 6 8 (hold)  side / front     R  back on track     ESC  pause"), ScreenW / 2, ScreenH - 36, 16, Muted, false, true);
+	// the key help with the keys as the settings screen has them
+	const auto Key = [Vehicle](int32 Item) { return Vehicle->GetKeyName(Item); };
+	if (FMath::Abs(Sim->c.vx) < 2) Label(FString::Printf(TEXT("%s %s %s %s / ARROWS  drive     %s  handbrake     %s  chase / onboard     NUMPAD 4 6 8 (hold)  side / front     %s  back on track     ESC  pause"),
+		*Key(EFSLapKey::Throttle), *Key(EFSLapKey::SteerLeft), *Key(EFSLapKey::Brake), *Key(EFSLapKey::SteerRight), *Key(EFSLapKey::Handbrake), *Key(EFSLapKey::Camera), *Key(EFSLapKey::Reset)), ScreenW / 2, ScreenH - 36, 16, Muted, false, true);
 
 	if (Vehicle->GetFlow() == EFSLapFlow::Countdown)
 	{
@@ -619,7 +632,7 @@ void AFSLapHUD::DrawHUD()
 		Box(0, 0, ScreenW, ScreenH, FLinearColor(0, 0, 0, 0.6f));
 		Label(TEXT("PAUSED"), ScreenW / 2, 400, 96, Paper, true, true);
 		// the pause items in the pawn's MouseClick order: ENTER, R, B, M
-		static const TCHAR* const Items[] = { TEXT("ENTER  resume"), TEXT("R  restart"), TEXT("B  replay best lap"), TEXT("M  menu") };
+		const FString Items[] = { TEXT("ENTER  resume"), Key(EFSLapKey::Reset) + TEXT("  restart"), Key(EFSLapKey::Replay) + TEXT("  replay best lap"), Key(EFSLapKey::Menu) + TEXT("  menu") };
 		float Y = 530;
 		for (int32 i = 0; i < UE_ARRAY_COUNT(Items); ++i)
 		{

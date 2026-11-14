@@ -27,18 +27,23 @@ namespace
 		explicit Adtm(const Setup& V)
 		{
 			adtm::adtm_step_initialize();
-			aero[0] = -V.CdA; aero[1] = -V.ClA * V.bal; aero[2] = -V.ClA * (1 - V.bal);
+			// FS Lap's setup on the team's vehicle (tools/adtm/adtm_vehicle.m): the aero as it is; mass, weight split, CoG
+			// height and motor torque as their change from FS Lap's stock car, so the stock setup is the team's ADTM exactly
+			const Setup stock;
+			car[0] = -V.CdA; car[1] = -V.ClA * V.bal; car[2] = -V.ClA * (1 - V.bal);
+			car[3] = (V.mCar + V.mDrv) - (stock.mCar + stock.mDrv); car[4] = V.wf - stock.wf; car[5] = V.h - stock.h; car[6] = V.Tm / stock.Tm;
+			tyreGrip = V.mu0 / stock.mu0;   // the tyres' friction scales the ADTM's road friction
 			brakeFront = V.brakeFront; brakeForce = V.Fb; systemPower = V.Pmax * 1000;
 			double k[9];
 			adtm::adtm_constants(k);
-			handMax = k[0]; torquePerBarF = k[1]; torquePerBarR = k[2]; r0 = k[3]; motorTorque = k[4]; gear = k[5];
+			handMax = k[0]; torquePerBarF = k[1]; torquePerBarR = k[2]; r0 = k[3]; motorTorque = k[4] * car[6]; gear = k[5];
 			// the ADTM's steering kinematics: mean front wheel angle against steering wheel angle (a step of length 0 only evaluates it)
-			adtm::adtm_init(aero, x);
+			adtm::adtm_init(car, x);
 			for (int i = 0; i <= 80; ++i)
 			{
 				double probe[nStates], u[6] = { handMax * (i / 40.0 - 1), 0, 0, 0, 1, 1 };
 				std::copy(x, x + nStates, probe);
-				adtm::adtm_step(probe, u, aero, 0, 0, out);
+				adtm::adtm_step(probe, u, car, 0, 0, out);
 				hand.push_back(u[0]);
 				road.push_back((out[out_delta_FL] + out[out_delta_FR]) / 2);
 			}
@@ -55,8 +60,8 @@ namespace
 			const double brake = std::clamp(c.brk, 0.0, 1.0) * brakeForce;
 			double throttle = std::clamp(c.thr, 0.0, 1.0) * std::min(1.0, systemPower / (4 * motorTorque * gear * std::max(c.vx, 0.1) / r0));
 			if (c.brk > 0.05 && c.vx > 0.3) throttle = 0;   // as FS Lap: the brake wins
-			double u[6] = { c.direct ? std::clamp(c.st, -1.0, 1.0) * handMax : HandAngle(c.delta), brake * brakeFront / 2 * r0 / torquePerBarF, brake * (1 - brakeFront) / 2 * r0 / torquePerBarR, throttle, 1, Grip };
-			adtm::adtm_step(x, u, aero, t, Dt, out);
+			double u[6] = { c.direct ? std::clamp(c.st, -1.0, 1.0) * handMax : HandAngle(c.delta), brake * brakeFront / 2 * r0 / torquePerBarF, brake * (1 - brakeFront) / 2 * r0 / torquePerBarR, throttle, 1, Grip * tyreGrip };
+			adtm::adtm_step(x, u, car, t, Dt, out);
 			t += Dt;
 			if (!std::all_of(x, x + nStates, [](double v) { return std::isfinite(v); }))
 			{
@@ -89,16 +94,16 @@ namespace
 		// the ADTM settled on its springs where FS Lap has the car, with FS Lap's velocities
 		void Follow(const Car& c)
 		{
-			adtm::adtm_init(aero, x);
+			adtm::adtm_init(car, x);
 			x[x_x_V] = c.x; x[x_y_V] = c.y; x[x_psi] = c.h;
 			x[x_v_x] = c.vx; x[x_v_y] = c.vy; x[x_omega_z] = c.r;
 			x[x_omega_FL] = x[x_omega_FR] = x[x_omega_RL] = x[x_omega_RR] = c.vx / r0;
 			synced = true;
 		}
 
-		double x[nStates] = {}, out[nOutputs] = {}, aero[3] = {};
+		double x[nStates] = {}, out[nOutputs] = {}, car[7] = {};
 		double handMax = 0, torquePerBarF = 1, torquePerBarR = 1, r0 = 0.2, motorTorque = 21, gear = 12.421;
-		double brakeFront = 0.7, brakeForce = 9000, systemPower = 80000, t = 0;
+		double brakeFront = 0.7, brakeForce = 9000, systemPower = 80000, tyreGrip = 1, t = 0;
 		std::vector<double> hand, road;
 		Car last;
 		bool synced = false;
