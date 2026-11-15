@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `1b9d33f` on 2026-11-15.
+> Synced from development commit `2c507bd` on 2026-11-15.
 
 ---
 
