@@ -41,12 +41,13 @@ public:
 	double GetBestSplit(int32 Index) const { return Index == 0 ? CurrentBest().Split1 : CurrentBest().Split2; }   // 0 if the best lap has none
 	bool GetGapToBest(double& Gap) const;   // live time against the best lap; false when there is none
 	void StartRace(HoMoLap::Mode NewMode);
-	void CycleCamera();   // chase or onboard
+	void CycleCamera();   // chase, cockpit, hood, nose
 	float GetMotorTone() const { return MotorTone; }   // the upper gear tone in Hz, which the motor sound follows
 	bool CanReplay() const { return CurrentBest().Ghost.size() > 30; }
 	void StartReplay();   // the best lap of this mode and setup, seen from roadside cameras
 	void StopReplay();
-	bool IsOnboard() const { return bOnboard; }
+	bool IsOnboard() const { return CameraView == 1; }   // the cockpit view
+	int32 GetCameraView() const { return CameraView; }   // 0 chase, 1 cockpit, 2 hood, 3 nose
 	int32 GetHeldView() const { return HeldView; }   // numpad key held: 4 left, 6 right, 8 front; 0 none
 	// The setup screen's rows; in the Settings flow, the settings screen's (FSLapSettings.cpp): the HUD draws both the same way.
 	int32 GetSetupRowCount() const;
@@ -262,6 +263,7 @@ private:
 	bool bWheelButtonDown[2] = {};   // back on track, camera: last frame's state, to act on the press
 	float WheelSteer = 0, WheelThrottle = 0, WheelBrake = 0;
 	float WheelForce = 0;   // force feedback sent last frame, -1..1 of the wheel's strongest
+	float ForceTestTime = 0;   // the wheel setup's test force: seconds left of a gentle push each way
 	int32 WheelStep = 0;
 	FString WheelMessage;
 	bool IsWheelSetUp() const;
@@ -275,7 +277,7 @@ private:
 	double FixedAccumulator = 0;
 	float WheelRotation = 0;
 	float BodyPitch = 0, BodyRoll = 0, BodyPitchRate = 0, BodyRollRate = 0;
-	bool bOnboard = false;
+	int32 CameraView = 0;   // 0 chase, 1 cockpit (the driver's eyes), 2 hood, 3 nose
 	int32 HeldView = 0;   // while numpad 4, 6 or 8 is held: the car from its left, right or front
 	bool bCameraSnap = true;
 	double CameraYaw = 0;

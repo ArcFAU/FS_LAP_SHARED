@@ -7,6 +7,7 @@
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
 #include "FSLapVehiclePawn.h"
+#include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
 #include "Misc/ScopeExit.h"
 
@@ -127,9 +128,12 @@ void AFSLapHUD::UpdateMouse(AFSLapVehiclePawn& Vehicle, bool bMenus)
 	{
 		HoverTarget = Target.Key.IsInside(Mouse) ? Target.Value : HoverTarget;
 	}
-	// only a moving mouse selects, so a cursor resting on a row never fights the arrow keys
-	const bool bMoved = LastMouse.X >= 0 && !Mouse.Equals(LastMouse, 2);
-	LastMouse = Mouse;
+	// only a moving mouse selects, so a cursor resting on a row never fights the arrow keys. Moving is judged on the
+	// screen, not in the window: a window that changes size or place (the display settings) moves under a resting cursor.
+	const FVector2f OnScreen(FSlateApplication::Get().GetCursorPos());
+	const bool bMoved = bMouseSeen && !OnScreen.Equals(LastMouse, 2);
+	LastMouse = OnScreen;
+	bMouseSeen = true;
 	if (HoverTarget < AFSLapVehiclePawn::MouseBack)
 	{
 		return;
@@ -207,7 +211,8 @@ void AFSLapHUD::DrawWheel(const AFSLapVehiclePawn& Vehicle)
 	Label(Vehicle.GetWheelText(), 58, 130, 24, Paper);
 	Button(TEXT("BACK"), 684, 44, 140, 48, AFSLapVehiclePawn::MouseBack);
 	Button(TEXT("NEXT STEP"), 58, ScreenH - 140, 240, 52, 0);
-	Label(TEXT("ENTER  next step     ESC  back to setup"), 58, ScreenH - 62, 18, Muted);
+	Button(TEXT("TEST FORCE"), 318, ScreenH - 140, 240, 52, 1);
+	Label(TEXT("ENTER  next step     RIGHT  test force (hands off the wheel)     ESC  back to setup"), 58, ScreenH - 62, 18, Muted);
 }
 
 void AFSLapHUD::DrawTower(const AFSLapVehiclePawn& Vehicle, const HoMoLap::Simulation& Sim)
@@ -620,7 +625,7 @@ void AFSLapHUD::DrawHUD()
 	}
 	// the key help with the keys as the settings screen has them
 	const auto Key = [Vehicle](int32 Item) { return Vehicle->GetKeyName(Item); };
-	if (FMath::Abs(Sim->c.vx) < 2) Label(FString::Printf(TEXT("%s %s %s %s / ARROWS  drive     %s  handbrake     %s  chase / onboard     NUMPAD 4 6 8 (hold)  side / front     %s  back on track     ESC  pause"),
+	if (FMath::Abs(Sim->c.vx) < 2) Label(FString::Printf(TEXT("%s %s %s %s / ARROWS  drive     %s  handbrake     %s  camera     NUMPAD 4 6 8 (hold)  side / front     %s  back on track     ESC  pause"),
 		*Key(EFSLapKey::Throttle), *Key(EFSLapKey::SteerLeft), *Key(EFSLapKey::Brake), *Key(EFSLapKey::SteerRight), *Key(EFSLapKey::Handbrake), *Key(EFSLapKey::Camera), *Key(EFSLapKey::Reset)), ScreenW / 2, ScreenH - 36, 16, Muted, false, true);
 
 	if (Vehicle->GetFlow() == EFSLapFlow::Countdown)

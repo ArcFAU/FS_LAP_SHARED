@@ -4,7 +4,7 @@ These scripts live in `tools/cad` and expect their working folder at `D:\FSLap_C
 
 Made 2026-11-12. Everything here is derived from a **copy** of the SVN model. The SVN checkout (`D:\SVN\...`) is never opened for writing, and NX never saves a part here either.
 
-- `Gesamtmodell\`: a copy of `D:\SVN\2026\1_Gesamtteam\000_EV_CAD_Gesamtmodell` (2026 car, FAUmax τ), 2,379 files, 2.9 GB, without `.svn`. Copied with `robocopy /E /XD .svn`. To refresh it, copy again; nothing here is edited.
+- `Gesamtmodell\`: **not kept** (deleted 2026-11-14). It was a copy of `D:\SVN\2026\1_Gesamtteam\000_EV_CAD_Gesamtmodell` (2026 car, FAUmax τ), 2,379 files, 2.9 GB, without `.svn`. The exports in `out\` do not need it. `flat\` still holds every part file once (2,151 files, 2.9 GB): its files were hard links into the copy, so they keep the data, and deleting the copy freed almost no disk space. Deleting `flat\` as well frees the 2.9 GB. Before running `make_jobs.py`, `dump_part.py`, `dump_tree.py`, `export_stl.py` or `make_flat.py` again, make the copy again: `robocopy D:\SVN\2026\1_Gesamtteam\000_EV_CAD_Gesamtmodell D:\FSLap_CAD\Gesamtmodell /E /XD .svn` (and then `make_flat.py` for `flat\`). Nothing in the copy is edited, and the SVN checkout is only read.
 - `tools\`: the scripts.
   - `dump_part.py`: an NX Open journal that writes one part's expressions, points, lines, sketches and features to JSON.
   - `dump_tree.py`: an NX Open journal that writes the assembly tree with every component's position in car coordinates.

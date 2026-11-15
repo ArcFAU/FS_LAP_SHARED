@@ -32,6 +32,7 @@ namespace
 	const HoMoLap::Mode MenuModes[] = { HoMoLap::Mode::Sim, HoMoLap::Mode::Arcade, HoMoLap::Mode::City, HoMoLap::Mode::Free };
 	const FVector SteeringWheelPosition(32.7, 0, 52);   // cm from the mid-axle ground point: the team's wheel where the CAD has it (data\car\steering_wheel.json)
 	const TCHAR* const SaveSlot = TEXT("FSLap");
+	const FVector HoodCamera(42, 0, 82), NoseCamera(182, 0, 34);   // cm from the mid-axle ground point; the front axle is at x = 76.5, and the nose camera is ahead of the front wing
 	const FVector DriverEye(-12, 0, 85);              // the headrest cushion ends at x = -35 cm and is centred at z = 73 cm
 	constexpr float SteeringWheelTilt = -11.8f, SteeringWheelTravel = 140;   // tilt: the CAD's column angle
 	constexpr float CarLock = 110;   // the car's steering wheel at full lock (°), the ADTM's constant: Wheel rotation maps 1:1 onto it
@@ -454,6 +455,11 @@ void AFSLapVehiclePawn::Tick(float DeltaSeconds)
 		// 100 %: the largest torque on the ADTM's AI hot lap (25.5 Nm) is the wheel's strongest force; + of steerT is to the right
 		ForceWanted = FMath::Clamp(Simulation->c.steerT / 25.5, -1.0, 1.0) * Ffb / 100.0f * FMath::Sign(Cal[2] - Cal[1]);
 	}
+	if (ForceTestTime > 0)   // the wheel setup's test: 15 % one way for 0.6 s, then the other way, whatever the vehicle model
+	{
+		ForceTestTime = Flow == EFSLapFlow::Wheel ? ForceTestTime - DeltaSeconds : 0;
+		ForceWanted = ForceTestTime > 0.7f ? 0.15f : ForceTestTime > 0.1f ? -0.15f : 0.0f;
+	}
 	WheelForce += FMath::Clamp(ForceWanted - WheelForce, -5 * DeltaSeconds, 5 * DeltaSeconds);   // never a jolt: full force takes 0.2 s
 	Wheel.SetForce(WheelForce);
 	if (!Simulation)
@@ -769,7 +775,7 @@ int32 AFSLapVehiclePawn::GetSetupRowCount() const
 	{
 		return GetSettingsRowCount();
 	}
-	return 8 + UE_ARRAY_COUNT(SetupFields);   // the aero package, the fields, the onboard view angle, the vehicle model, the LTS reference, the steering wheel, its rotation, force feedback, driver assist
+	return 7 + UE_ARRAY_COUNT(SetupFields);   // the aero package, the fields, the vehicle model, the LTS reference, the steering wheel, its rotation, force feedback, driver assist
 }
 
 FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
@@ -785,11 +791,6 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 	if (Row == GetSetupRowCount() - 1)
 	{
 		return FString::Printf(TEXT("Driver assist:  %s"), bDriverAssist ? TEXT("On") : TEXT("Off"));
-	}
-	if (Row == GetSetupRowCount() - 7)
-	{
-		const int32 Fov = SaveData ? SaveData->OnboardFov : 0;
-		return Fov == 0 ? FString(TEXT("Onboard view angle:  default (60-63° with speed)")) : FString::Printf(TEXT("Onboard view angle:  %d° vertical, fixed"), Fov);
 	}
 	if (Row == GetSetupRowCount() - 6)
 	{
@@ -814,7 +815,7 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 			return TEXT("Force feedback:  off (from the ADTM)");
 		}
 		return FString::Printf(TEXT("Force feedback:  %d %%%s%s"), FMath::Abs(Ffb), Ffb < 0 ? TEXT(", reversed") : TEXT(""),
-			bWheelLive && !Wheel.HasForce() ? TEXT(", this controller has none") : !bAdtm || !*HoMoLap::AdtmSource() ? TEXT(", only on the ADTM vehicle model") : TEXT(""));
+			bWheelLive && !Wheel.HasForce() ? TEXT(", not active: see the steering wheel row") : !bAdtm || !*HoMoLap::AdtmSource() ? TEXT(", only on the ADTM vehicle model") : TEXT(""));
 	}
 	if (Row == GetSetupRowCount() - 3)
 	{
@@ -836,16 +837,6 @@ void AFSLapVehiclePawn::ChangeSetup(int32 Direction)
 	if (SetupRow == GetSetupRowCount() - 1)
 	{
 		bDriverAssist = !bDriverAssist;
-	}
-	else if (SetupRow == GetSetupRowCount() - 7)
-	{
-		if (SaveData)
-		{
-			// default, then 16 to 90 degrees in steps of 2: on a rig, 2 x atan(screen height / (2 x eye distance))
-			const int32 Next = SaveData->OnboardFov == 0 ? (Direction > 0 ? 60 : 0) : SaveData->OnboardFov + Direction * 2;
-			SaveData->OnboardFov = Next < 16 ? 0 : FMath::Min(Next, 90);
-			UGameplayStatics::SaveGameToSlot(SaveData, SaveSlot, 0);
-		}
 	}
 	else if (SetupRow == GetSetupRowCount() - 6)
 	{
@@ -930,6 +921,10 @@ void AFSLapVehiclePawn::MenuRight()
 	else if (Flow == EFSLapFlow::Settings)
 	{
 		ChangeSettings(1);
+	}
+	else if (Flow == EFSLapFlow::Wheel)
+	{
+		ForceTestTime = 1.3f;   // RIGHT in the wheel setup: the test force (only moves a wheel whose force feedback is running)
 	}
 }
 
@@ -1250,6 +1245,8 @@ FString AFSLapVehiclePawn::GetWheelText() const
 	{
 		Text += FString::Printf(TEXT("\nNow: steer %+.2f   throttle %.2f   brake %.2f"), WheelSteer, WheelThrottle, WheelBrake);
 	}
+	// where force feedback stands, so "nothing happens" can be told apart: unsupported, taken by another program, refused
+	Text += FString::Printf(TEXT("\n\nForce feedback: %s\nSending now: %+.2f"), *Wheel.ForceReport(), WheelForce);
 	return Text;
 }
 
@@ -1342,6 +1339,10 @@ void AFSLapVehiclePawn::MouseClick(int32 Target, bool bRightButton)
 		default: break;
 		}
 	}
+	else if (Flow == EFSLapFlow::Wheel && Target == 1)
+	{
+		MenuRight();   // the TEST FORCE button
+	}
 	else if (!bRightButton)
 	{
 		Confirm();   // the menu row, or the wheel setup's next step
@@ -1350,7 +1351,7 @@ void AFSLapVehiclePawn::MouseClick(int32 Target, bool bRightButton)
 
 void AFSLapVehiclePawn::CycleCamera()
 {
-	bOnboard = !bOnboard;
+	CameraView = (CameraView + 1) % 4;
 	bCameraSnap = true;
 }
 
@@ -1399,11 +1400,24 @@ void AFSLapVehiclePawn::UpdateCamera(float DeltaSeconds)
 		ChaseCamera->SetWorldLocationAndRotation(Position, (CarPoint + FVector(0, 0, 50) - Position).Rotation());
 		VerticalFov = 50.0f;
 	}
-	else if (bOnboard)
+	else if (CameraView != 0)
 	{
-		// the driver's head: pushed around by the g-forces, and holding the horizon better than the car does
-		const FVector Eye = DriverEye + FVector(FMath::Clamp(-Car.axp * 0.25, -3.0, 6.0), FMath::Clamp(-Car.ayp * 0.3, -6.0, 6.0), 0);
-		const FRotator Look(BodyPitch * 0.5f - 5.0f, FMath::RadiansToDegrees(Car.h + Car.delta * 0.18), BodyRoll * 0.5f);
+		FVector Eye;
+		FRotator Look;
+		if (CameraView == 1)
+		{
+			// the driver's head: pushed around by the g-forces, and holding the horizon better than the car does;
+			// moved to the driver's own seat position by the settings (mm)
+			Eye = DriverEye + FVector(FMath::Clamp(-Car.axp * 0.25, -3.0, 6.0), FMath::Clamp(-Car.ayp * 0.3, -6.0, 6.0), 0)
+				+ (SaveData ? FVector(SaveData->EyeForward, 0, SaveData->EyeHeight) / 10.0 : FVector::ZeroVector);
+			Look = FRotator(BodyPitch * 0.5f - 5.0f, FMath::RadiansToDegrees(Car.h + Car.delta * 0.18), BodyRoll * 0.5f);
+		}
+		else
+		{
+			// fixed to the car, moving with its body: above the front bulkhead (hood) or low on the nose
+			Eye = CameraView == 2 ? HoodCamera : NoseCamera;
+			Look = FRotator(BodyPitch - (CameraView == 2 ? 6.0f : 1.0f), FMath::RadiansToDegrees(Car.h), BodyRoll);
+		}
 		ChaseCamera->SetWorldLocationAndRotation(Body->GetComponentTransform().TransformPosition(Eye), Look);
 		// a rig sets the angle its screen really covers (setup row Onboard view angle); otherwise it widens a little with speed
 		VerticalFov = SaveData && SaveData->OnboardFov > 0 ? SaveData->OnboardFov : 60.0f + 3.0f * FMath::Clamp(static_cast<float>(Speed) / 34.0f, 0.0f, 1.0f);
@@ -1669,7 +1683,7 @@ void AFSLapVehiclePawn::UpdateGhosts()
 	const auto Place = [this](USceneComponent* Ghost, bool bShow, double X, double Y, double H)
 	{
 		const FVector At(X * MetersToCentimeters, Y * MetersToCentimeters, 0);
-		const bool bVisible = bShow && !(bOnboard && FVector::Dist2D(At, GetActorLocation()) < 1500);   // from the cockpit, a ghost this close fills the whole view
+		const bool bVisible = bShow && !(CameraView != 0 && FVector::Dist2D(At, GetActorLocation()) < 1500);   // from the cockpit, a ghost this close fills the whole view
 		Ghost->SetVisibility(bVisible, true);
 		if (bVisible)
 		{

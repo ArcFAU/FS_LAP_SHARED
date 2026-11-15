@@ -104,7 +104,15 @@ int main(int argc, char** argv)
 	const bool smoothed = drag.c.st > -0.5 && !drag.c.direct;
 	std::printf("wheel 1:1 at %.0f km/h: st %.3f, road angle %.3f deg; keys after one step: st %.3f (asked -0.5)\n", drag.c.vx * 3.6, 0.1, 0.1 * drag.C.delMax * 180 / 3.14159265358979, drag.c.st);
 
-	const bool pass = !sim.laps.empty() && finite && follows && realTime > 2 && drag.fr.t100 > 0 && std::abs(drag.fr.t100 - 1.577) > 0.002
+	// a wheel without Wheel rotation, driver assist on, on the track: the steering assist must not reshape it
+	Input assisted;
+	assisted.human = assisted.assist = assisted.wheel = true;
+	assisted.steer = 0.3;
+	sim.Step(&assisted);
+	const bool linear = std::abs(sim.c.delta - 0.3 * sim.c.dLim) < 1e-12;
+	std::printf("wheel with driver assist at %.0f km/h: road angle %.4f rad for 30 %% of the usable lock %.4f rad\n", sim.c.vx * 3.6, sim.c.delta, sim.c.dLim);
+
+	const bool pass = linear && !sim.laps.empty() && finite && follows && realTime > 2 && drag.fr.t100 > 0 && std::abs(drag.fr.t100 - 1.577) > 0.002
 		&& maxSteerT > 0 && aligningShare > 50   // the ADTM really drove
 		&& direct && smoothed && setupActs;
 	std::printf(pass ? "PASS\n" : "FAIL\n");

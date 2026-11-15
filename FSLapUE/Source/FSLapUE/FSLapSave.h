@@ -55,4 +55,10 @@ public:
 
 	UPROPERTY()
 	int32 OnboardFov = 0;   // the onboard camera's vertical field of view in degrees, fixed; 0: the default that widens with speed
+
+	UPROPERTY()
+	int32 EyeHeight = 0;    // the cockpit view's eye point against the model driver's, mm up
+
+	UPROPERTY()
+	int32 EyeForward = 0;   // and mm forward
 };

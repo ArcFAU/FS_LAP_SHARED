@@ -38,7 +38,8 @@ private:
 	void UpdateMouse(AFSLapVehiclePawn& Vehicle, bool bMenus);   // the cursor in the menus; hover and clicks go to the pawn
 
 	TArray<TPair<FBox2f, int32>> Targets;   // what this frame drew that the mouse can click, in layout units
-	FVector2f LastMouse = FVector2f(-1, -1);
+	FVector2f LastMouse = FVector2f::ZeroVector;   // on the screen (a second monitor can be at negative positions)
+	bool bMouseSeen = false;
 	int32 HoverTarget = -2;   // under the mouse last frame; -2: nothing (MouseBack is -1)
 
 	UPROPERTY()

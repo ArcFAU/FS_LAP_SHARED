@@ -83,19 +83,31 @@ FFSLapWheel::FOpened FFSLapWheel::Open(const FString& Preferred, void* Window, i
 	DIDEVCAPS Caps = {};
 	Caps.dwSize = sizeof(Caps);
 	// force feedback needs exclusive access; a controller without it (pedals) stays shared as before
-	bool bForce = ForceAxis >= 0 && ForceAxis < 8 && SUCCEEDED(D->GetCapabilities(&Caps)) && (Caps.dwFlags & DIDC_FORCEFEEDBACK);
-	if (Window)
-	{
-		// background: the pedals keep working while another window (Moza Pit House) has the focus
-		bForce = bForce && SUCCEEDED(D->SetCooperativeLevel(static_cast<HWND>(Window), DISCL_BACKGROUND | DISCL_EXCLUSIVE));
-		if (!bForce)
-		{
-			D->SetCooperativeLevel(static_cast<HWND>(Window), DISCL_BACKGROUND | DISCL_NONEXCLUSIVE);
-		}
-	}
-	else
+	bool bForce = ForceAxis >= 0 && ForceAxis < 8;
+	Result.ForceStatus = bForce ? TEXT("") : TEXT("off (set Force feedback above 0 and do the wheel setup)");
+	if (bForce && !(SUCCEEDED(D->GetCapabilities(&Caps)) && (Caps.dwFlags & DIDC_FORCEFEEDBACK)))
 	{
 		bForce = false;
+		Result.ForceStatus = TEXT("this controller reports no force feedback to Windows (driver installed?)");
+	}
+	if (bForce && !Window)
+	{
+		bForce = false;
+		Result.ForceStatus = TEXT("no game window yet");
+	}
+	if (bForce)
+	{
+		// background: the pedals keep working while another window (Moza Pit House) has the focus
+		const HRESULT Exclusive = D->SetCooperativeLevel(static_cast<HWND>(Window), DISCL_BACKGROUND | DISCL_EXCLUSIVE);
+		if (FAILED(Exclusive))
+		{
+			bForce = false;
+			Result.ForceStatus = FString::Printf(TEXT("no exclusive access (0x%08x): another program holds the wheel"), static_cast<uint32>(Exclusive));
+		}
+	}
+	if (!bForce && Window)
+	{
+		D->SetCooperativeLevel(static_cast<HWND>(Window), DISCL_BACKGROUND | DISCL_NONEXCLUSIVE);
 	}
 	if (bForce)
 	{
@@ -113,9 +125,13 @@ FFSLapWheel::FOpened FFSLapWheel::Open(const FString& Preferred, void* Window, i
 	Range.lMin = -1000;
 	Range.lMax = 1000;
 	D->SetProperty(DIPROP_RANGE, &Range.diph);
-	D->Acquire();
+	const HRESULT Acquired = D->Acquire();
 	if (bForce)
 	{
+		// a clean start, as force feedback programs do: drop whatever effects the device still holds (a wheel pulling to
+		// one side with no force asked for), and switch the motor on (a wheel that does nothing)
+		const HRESULT Reset = D->SendForceFeedbackCommand(DISFFC_RESET);
+		const HRESULT Motors = D->SendForceFeedbackCommand(DISFFC_SETACTUATORSON);
 		static const DWORD Offsets[] = { DIJOFS_X, DIJOFS_Y, DIJOFS_Z, DIJOFS_RX, DIJOFS_RY, DIJOFS_RZ, DIJOFS_SLIDER(0), DIJOFS_SLIDER(1) };   // Read's axis order
 		DWORD Axis = Offsets[ForceAxis];
 		LONG Direction = 0;
@@ -132,14 +148,25 @@ FFSLapWheel::FOpened FFSLapWheel::Open(const FString& Preferred, void* Window, i
 		Effect.cbTypeSpecificParams = sizeof(DICONSTANTFORCE);
 		Effect.lpvTypeSpecificParams = &Constant;
 		IDirectInputEffect* E = nullptr;
-		if (SUCCEEDED(D->CreateEffect(GUID_ConstantForce, &Effect, &E, nullptr)))
+		const HRESULT Created = D->CreateEffect(GUID_ConstantForce, &Effect, &E, nullptr);
+		HRESULT Started = E_FAIL;
+		if (SUCCEEDED(Created))
 		{
 			Result.Effect = E;
-			E->Start(1, 0);
+			Started = E->Start(1, 0);
 		}
+		// each step's result code, 0 = fine
+		Result.ForceStatus = FString::Printf(TEXT("%s (acquire %x, reset %x, motor on %x, effect %x, start %x)"),
+			FAILED(Created) ? TEXT("the constant force effect was refused") : FAILED(Started) ? TEXT("effect made, start refused (retried on every send)") : TEXT("running"),
+			static_cast<uint32>(Acquired), static_cast<uint32>(Reset), static_cast<uint32>(Motors), static_cast<uint32>(Created), static_cast<uint32>(Started));
 	}
 #endif
 	return Result;
+}
+
+FString FFSLapWheel::ForceReport() const
+{
+	return Current.Device ? Current.ForceStatus + (Current.Effect ? FString::Printf(TEXT(", last send %x"), static_cast<uint32>(LastSend)) : FString()) : FString(TEXT("no controller"));
 }
 
 void FFSLapWheel::SetForce(float Force)
@@ -155,7 +182,7 @@ void FFSLapWheel::SetForce(float Force)
 	Effect.dwFlags = DIEFF_CARTESIAN | DIEFF_OBJECTOFFSETS;
 	Effect.cbTypeSpecificParams = sizeof(DICONSTANTFORCE);
 	Effect.lpvTypeSpecificParams = &Constant;
-	static_cast<IDirectInputEffect*>(Current.Effect)->SetParameters(&Effect, DIEP_TYPESPECIFICPARAMS | DIEP_START);
+	LastSend = static_cast<IDirectInputEffect*>(Current.Effect)->SetParameters(&Effect, DIEP_TYPESPECIFICPARAMS | DIEP_START);
 #endif
 }
 

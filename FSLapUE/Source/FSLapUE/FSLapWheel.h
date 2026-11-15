@@ -24,13 +24,17 @@ public:
 
 	bool HasForce() const { return Current.Effect != nullptr; }
 
+	// How far force feedback got when the controller was opened, and the result of the last force sent: for the wheel
+	// setup screen, so a driver can tell why a wheel gives nothing.
+	FString ForceReport() const;
+
 	static constexpr int32 AxisCount = 8;   // Read gives these axes first, then Buttons buttons as axes (0 or 1)
 	static constexpr int32 Buttons = 32;
 
 	FString Name;   // the product name of the controller being read
 
 private:
-	struct FOpened { void* Input = nullptr; void* Device = nullptr; void* Effect = nullptr; FString Name; int32 ForceAxis = -1; };
+	struct FOpened { void* Input = nullptr; void* Device = nullptr; void* Effect = nullptr; FString Name; int32 ForceAxis = -1; FString ForceStatus; };
 	// Slow (DirectInput's device search takes 0.3 to 0.6 s on the team laptop), so it runs on a worker thread:
 	// on the game thread it froze the game every 2 s while no wheel was attached.
 	static FOpened Open(const FString& Preferred, void* Window, int32 ForceAxis);
@@ -40,4 +44,5 @@ private:
 	FOpened Current;
 	TFuture<FOpened> Search;
 	double NextTry = 0;
+	long LastSend = 0;   // the HRESULT of the last SetForce
 };

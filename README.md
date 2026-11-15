@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `73ebde2` on 2026-11-14.
+> Synced from development commit `d680d9e` on 2026-11-15.
 
 ---
 
@@ -70,7 +70,7 @@ cd FS_LAP_SHARED
 
 ### Run it
 
-- **Double-click `Play FS Lap.bat`.** It starts the game full screen. If your engine is not at `D:\UE\UE_5.8`, set the `UE_ROOT` environment variable to your engine folder first. The first start compiles shaders and takes several minutes; later starts take about a minute.
+- **Double-click `Play FS Lap.bat`.** It starts the game the way its settings say: borderless full screen on a first run. If your engine is not at `D:\UE\UE_5.8`, set the `UE_ROOT` environment variable to your engine folder first. The first start compiles shaders and takes several minutes; later starts take about a minute.
 - **Or open `FSLapUE\FSLapUE.uproject`** in the Unreal Editor and press Play.
 
 ### Make a stand-alone build
@@ -89,7 +89,7 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 | Steer | A / D or Left / Right | left stick |
 | Handbrake | Space | A |
 | Back on track (pause menu: restart) | R | |
-| Camera: chase / onboard | C | |
+| Camera: chase, cockpit, hood, nose (each press goes to the next) | C | |
 | Look at the car from its left / right / front (while held; back to your camera on release; Num Lock on) | Numpad 4 / 6 / 8 | |
 | Pause | Esc or P | Start |
 | Replay of the best lap (in the pause menu) | B | Y |
@@ -115,9 +115,13 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 
 With **Wheel rotation off**, the calibrated right turn is full steering lock, and FS Lap's speed-dependent lock (and the steering assist, when it is on) shape the steering, as before.
 
-The wheel steers the car without any smoothing; the keys and the gamepad are smoothed. Two wheel buttons can be bound in the wheel setup (back on track, camera); a wheel setup saved before 2026-11-14 keeps working without them.
+The wheel steers the car without any smoothing; the keys and the gamepad are smoothed. With a wheel, **Driver assist** no longer reshapes the steering (it still brakes for bends and limits wheelspin): the steering assist gave little steering around the centre and then a lot into a bend, which suits keys and felt numb and then sudden on a wheel. Two wheel buttons can be bound in the wheel setup (back on track, camera); a wheel setup saved before 2026-11-14 keeps working without them.
 
-**Onboard view angle (for a rig):** setup row **Onboard view angle**. By default the onboard camera shows 60° vertically and widens to 63° with speed. For a true-to-scale view, set the angle your screen really covers: 2 × atan(screen height / (2 × distance from your eyes to the screen)). A screen 34 cm high at 70 cm is 27°, for example. **Right** from default starts at 60°, then **Left / Right** change it in steps of 2° between 16° and 90°; below 16° it goes back to default. The angle is then fixed at every speed, and it is saved. The chase camera is not affected.
+**The driver's view (menu → SETTINGS):** three rows set the cockpit camera to your seat and screen.
+- **Cockpit view, eye height** and **eye forward:** move the eye point from the model driver's, in steps of 10 mm (±200 mm up or down, ±300 mm forward or back).
+- **Onboard view angle:** see the next paragraph; it applies to the cockpit, hood and nose cameras.
+
+**Onboard view angle (for a rig):** SETTINGS row **Onboard view angle**. By default the onboard camera shows 60° vertically and widens to 63° with speed. For a true-to-scale view, set the angle your screen really covers: 2 × atan(screen height / (2 × distance from your eyes to the screen)). A screen 34 cm high at 70 cm is 27°, for example. **Right** from default starts at 60°, then **Left / Right** change it in steps of 2° between 16° and 90°; below 16° it goes back to default. The angle is then fixed at every speed, and it is saved. The chase camera is not affected.
 
 **Force feedback (ADTM only):** setup row **Force feedback**, off by default. Also set **Vehicle model** to **ADTM**: it starts on FS Lap's own model each time the game starts, and that model sends no force (the row says so).
 - **What you feel:** the ADTM's steering torque (`T_Steering`, section 4b) while you drive. There is no force in menus, the pause menu, replays, with the autopilot, or on FS Lap's own model.
@@ -125,6 +129,12 @@ The wheel steers the car without any smoothing; the keys and the gamepad are smo
 - **First try:** hold the wheel and start at 10 %. In a corner the wheel must pull back towards the centre. If it pulls further into the corner, go back to off and press **Left** once more: `10 %, reversed`. Wheel drivers do not all push the same way.
 - **Exclusive access:** while force feedback is on, FS Lap takes the wheel exclusively, so other programs cannot send it effects. A controller without force feedback stays shared, and the row says so.
 - **Not usable yet on the Fanatec Porsche 911 GT3 RS:** as soon as the force effect starts, the wheel runs to the right lock and holds there, even at zero force and in the pause menu. That comes from the wheel's driver, not from the ADTM's torque. Keep force feedback off on that wheel. Not yet tried on the R3.
+- **If you feel nothing, or the wheel pulls by itself:** open the wheel setup (SETUP → **Steering wheel** → **Right**) with **Force feedback** above 0. The screen shows a line `Force feedback: ...` with how far it got:
+  - `this controller reports no force feedback to Windows`: the wheel's driver is missing or the wheel has no force feedback;
+  - `no exclusive access ...: another program holds the wheel`: close the other program that uses the wheel and start FS Lap again;
+  - `the constant force effect was refused` or `start refused`: the wheel did not accept the force; the numbers behind it are each step's result code (0 is fine);
+  - `running ..., last send 0`: FS Lap is sending. Then press **Right** or click **TEST FORCE**, hands off the wheel: it pushes gently one way for 0.6 s and then the other (15 % of the wheel's strongest force). The test does not need the ADTM.
+  - Send a photo of that screen to the maintainer if it does not work: the line says where it stops.
 - **Known effect:** with the front tyres locked or sliding at full lock, the ADTM's torque pushes further into the turn (up to about 3.6 Nm). That is the model, not a fault.
 
 ## 4. The vehicle model
@@ -291,7 +301,7 @@ tools/                            conversion, import and test scripts
   adtm/                           MATLAB Coder generation of the ADTM for the game (adtm_codegen.m) and its check (adtm_check.m)
   lts/                            MATLAB: compareLaps.m (driven laps against LTS laps), adtmReplay.m (driven laps through the ADTM)
 vehicle-data/                     suspension hardpoints and design table
-Play FS Lap.bat                   starts the game full screen
+Play FS Lap.bat                   starts the game
 ```
 
 The main classes:
@@ -343,7 +353,7 @@ The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_I
 
 **Proposed next, in order, pending the team's answers:**
 1. **Force feedback, tried on the Moza R3:** check the direction and the strength with a driver (section 3).
-2. **Rig basics, tried on the rig:** the 1:1 steering (setup row **Wheel rotation**) and the onboard view angle (setup row **Onboard view angle**) are there (section 3); both need a driver's check on the R3 rig.
+2. **Rig basics, tried on the rig:** the 1:1 steering (setup row **Wheel rotation**) and the onboard view angle (SETTINGS row **Onboard view angle**) are there (section 3); both need a driver's check on the R3 rig.
 3. **The ADTM's tyres and suspension from FS Lap's setup.** (Mass, weight split, CoG height, motor torque and peak μ are there, section 4b.)
 4. **Better vehicle model:** a four-wheel model and the tyre model, or live co-simulation with the team's Simulink model.
 5. **VD tools:** standard test manoeuvres with automatic metrics, setup A/B blind tests, and real-car data overlays.
@@ -361,6 +371,14 @@ Ask the simulator's maintainer if you need any of these.
 ## 12. Change log
 
 Newest first.
+
+- **2026-11-15 (driver feedback):**
+  - **Force feedback:** the wheel is reset and its motor switched on when force feedback starts (two standard commands that were missing); the wheel setup shows a status line and has a **TEST FORCE** button (section 3).
+  - **Mouse:** a window that changes size or place no longer selects the row that ends up under a resting cursor.
+  - **Cameras:** **C** cycles chase, cockpit, hood and nose.
+  - **The driver's view:** SETTINGS has eye height, eye forward and the onboard view angle (moved there from SETUP).
+  - **Steering on a wheel:** the steering assist no longer reshapes wheel input; it felt numb around the centre and then turned in sharply.
+  - **Crashes while recording the screen:** most likely the exclusive full-screen problem fixed on 2026-11-14; update and start with `Play FS Lap.bat`.
 
 - **2026-11-14 (morning):**
   - **The setup reaches the ADTM:** car and driver mass, weight on the front axle, CoG height, motor torque and peak μ now act on the ADTM, as changes to the team's values (section 4b). Rows that cannot act on it say `(not on the ADTM)`. The stock car is unchanged (AI lap 77.620 s). The ADTM code was regenerated: `adtm_step` and `adtm_init` take 7 values instead of the 3 aero values.

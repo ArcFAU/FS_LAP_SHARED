@@ -92,8 +92,6 @@ namespace FSLapSliceTestLocal
 			{ EKeys::Up, 0.2, TEXT("setup row up to the vehicle model"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 6 && C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("Vehicle model")); } },
 			{ EKeys::Right, 0.5, TEXT("with the ADTM chosen, the gear ratio row says it does not act"), [](const Pawn& C) { return !C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("ADTM (team")) || C.GetSetupRowText(10).Contains(TEXT("(not on the ADTM)")); }, -2, TEXT("setup_adtm.png") },
 			{ EKeys::Right, 0.2, TEXT("back on FS Lap's model the mark is gone"), [](const Pawn& C) { return C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("FS Lap")) && !C.GetSetupRowText(10).Contains(TEXT("(not on the ADTM)")) && C.GetSetupRowText(10).Contains(TEXT("Gear ratio")); } },
-			{ EKeys::Up, 0.2, TEXT("setup row up to the onboard view angle"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 7 && C.GetSetupRowText(C.GetSetupRow()).Contains(TEXT("Onboard view angle")); } },   // not changed: it is the owner's saved setting
-			{ EKeys::Down, 0.2, TEXT("setup row down"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 6; } },
 			{ EKeys::Down, 0.2, TEXT("setup row down"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 5; } },
 			{ EKeys::Down, 0.2, TEXT("setup row down to the steering wheel"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 4; } },
 			{ EKeys::Right, 0.5, TEXT("right opens the wheel setup"), FlowIs(EFSLapFlow::Wheel), -2, TEXT("wheel.png") },
@@ -132,8 +130,10 @@ namespace FSLapSliceTestLocal
 			{ EKeys::Down, 0.2, TEXT("menu wraps to the top"), Menu(0) },
 			{ EKeys::Down, 0.2, TEXT("choose arcade"), Menu(1) },
 			{ EKeys::Enter, 0.2, TEXT("enter starts arcade"), [](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Countdown && C.GetRaceMode() == HoMoLap::Mode::Arcade; } },
-			{ EKeys::C, 0.2, TEXT("c switches to onboard"), [](const Pawn& C) { return C.IsOnboard(); } },
-			{ EKeys::C, 0.2, TEXT("c switches to chase"), [](const Pawn& C) { return !C.IsOnboard(); } },
+			{ EKeys::C, 0.2, TEXT("c switches to the cockpit"), [](const Pawn& C) { return C.IsOnboard(); } },
+			{ EKeys::C, 0.2, TEXT("c switches to the hood"), [](const Pawn& C) { return C.GetCameraView() == 2; } },
+			{ EKeys::C, 0.2, TEXT("c switches to the nose"), [](const Pawn& C) { return C.GetCameraView() == 3; } },
+			{ EKeys::C, 0.2, TEXT("c switches to chase"), [](const Pawn& C) { return C.GetCameraView() == 0; } },
 			{ EKeys::NumPadFour, 0.5, TEXT("numpad 4 held shows the left side"), [](const Pawn& C) { return C.GetHeldView() == 4; }, -2, TEXT("view_left.png") },
 			{ EKeys::NumPadSix, 0.5, TEXT("numpad 6 held shows the right side"), [](const Pawn& C) { return C.GetHeldView() == 6; }, -2, TEXT("view_right.png") },
 			{ EKeys::NumPadEight, 0.5, TEXT("numpad 8 held shows the front"), [](const Pawn& C) { return C.GetHeldView() == 8; }, -2, TEXT("view_front.png") },
@@ -430,10 +430,18 @@ void UFSLapSliceTest::Tick(float DeltaTime)
 				FScreenshotRequest::RequestScreenshot(OutputDir() / TEXT("onboard.png"), false, false);
 				OnboardStep = 2;
 			}
-			else if (OnboardStep == 2 && Now - PhaseStart >= 46.0)
+			else if (OnboardStep >= 2 && OnboardStep <= 6 && Now - PhaseStart >= 46.0 + (OnboardStep - 2) * 2.5)
 			{
-				Car->CycleCamera();
-				OnboardStep = 3;
+				// 2: to the hood, 3: its photo, 4: to the nose, 5: its photo, 6: back to chase
+				if (OnboardStep == 3 || OnboardStep == 5)
+				{
+					FScreenshotRequest::RequestScreenshot(OutputDir() / (OnboardStep == 3 ? TEXT("hood.png") : TEXT("nose.png")), false, false);
+				}
+				else
+				{
+					Car->CycleCamera();
+				}
+				++OnboardStep;
 			}
 		}
 		else if (Car->GetSimulation()->CurrentLapTime() > 20.0 && (FMath::Abs(Car->GetSimulation()->c.delta) > 0.12 || Car->GetSimulation()->CurrentLapTime() > 45.0))   // in a bend if there is one sharp enough, so the steered wheels show, with the ghosts well apart

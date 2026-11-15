@@ -36,7 +36,7 @@ namespace
 		return Items[Item];
 	}
 
-	enum ERow { Window, Resolution, Quality, VSync, FrameLimit, Volume, FirstKey, ResetKeys = FirstKey + EFSLapKey::Count, RowCount };
+	enum ERow { Window, Resolution, Quality, VSync, FrameLimit, Volume, ViewAngle, EyeHeight, EyeForward, FirstKey, ResetKeys = FirstKey + EFSLapKey::Count, RowCount };
 	const int32 FrameLimits[] = { 0, 30, 60, 90, 120, 144, 165, 240 };
 
 	// Full screen is always borderless, at the desktop's size. True if a setting was changed.
@@ -102,6 +102,15 @@ FString AFSLapVehiclePawn::GetSettingsRowText(int32 Row) const
 		return Display->GetFrameRateLimit() <= 0 ? FString(TEXT("Frame rate limit:  off")) : FString::Printf(TEXT("Frame rate limit:  %.0f fps"), Display->GetFrameRateLimit());
 	case Volume:
 		return FString::Printf(TEXT("Master volume:  %d %%"), SaveData ? SaveData->MasterVolume : 100);
+	case ViewAngle:
+	{
+		const int32 Fov = SaveData ? SaveData->OnboardFov : 0;
+		return Fov == 0 ? FString(TEXT("Onboard view angle:  default (60-63\u00B0 with speed)")) : FString::Printf(TEXT("Onboard view angle:  %d\u00B0 vertical, fixed"), Fov);
+	}
+	case EyeHeight:
+		return FString::Printf(TEXT("Cockpit view, eye height:  %+d mm"), SaveData ? SaveData->EyeHeight : 0);
+	case EyeForward:
+		return FString::Printf(TEXT("Cockpit view, eye forward:  %+d mm"), SaveData ? SaveData->EyeForward : 0);
 	default:
 		return TEXT("Keys back to their defaults (ENTER)");
 	}
@@ -158,6 +167,28 @@ void AFSLapVehiclePawn::ChangeSettings(int32 Direction)
 		Display->SetFrameRateLimit(FrameLimits[FMath::Clamp(Index + Direction, 0, static_cast<int32>(UE_ARRAY_COUNT(FrameLimits)) - 1)]);
 		break;
 	}
+	case ViewAngle:
+	case EyeHeight:
+	case EyeForward:
+		if (SaveData)
+		{
+			if (SettingsRow == ViewAngle)
+			{
+				// default, then 16 to 90 degrees in steps of 2: on a rig, 2 x atan(screen height / (2 x eye distance))
+				const int32 Next = SaveData->OnboardFov == 0 ? (Direction > 0 ? 60 : 0) : SaveData->OnboardFov + Direction * 2;
+				SaveData->OnboardFov = Next < 16 ? 0 : FMath::Min(Next, 90);
+			}
+			else if (SettingsRow == EyeHeight)
+			{
+				SaveData->EyeHeight = FMath::Clamp(SaveData->EyeHeight + Direction * 10, -200, 200);
+			}
+			else
+			{
+				SaveData->EyeForward = FMath::Clamp(SaveData->EyeForward + Direction * 10, -300, 300);
+			}
+			UGameplayStatics::SaveGameToSlot(SaveData, SaveSlot, 0);
+		}
+		return;
 	case Volume:
 		if (SaveData)
 		{

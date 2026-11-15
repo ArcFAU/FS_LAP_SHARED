@@ -497,7 +497,9 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 			dCmd = Clamp(dCmd + Clamp(Pick(drift, 0.45, 0.8) * bx, -0.35, 0.35), -C.delMax, C.delMax);
 		}
 	}
-	else if (In.assist && In.human && !c.direct && !isFree && std::abs(c.vx) > 2.5)
+	// not for a wheel: 55 % of the lock off a bend and the bend's own lock into it felt numb around the centre and then
+	// turned in sharply (a team driver, 2026-11-14); the keys need it, a wheel is its own fine control
+	else if (In.assist && In.human && !In.wheel && !isFree && std::abs(c.vx) > 2.5)
 	{
 		// steering assist: into the bend gives the lock the bend needs plus a margin, otherwise a gentler lock
 		const double iA = std::floor(c.s + 1 + 0.12 * v);
