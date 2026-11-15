@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `2c507bd` on 2026-11-15.
+> Synced from development commit `5c380e3` on 2026-11-15.
 
 ---
 
@@ -259,9 +259,10 @@ You can drive the team's Advanced Dual Track Model (ADTM) itself, live, with the
 
 **What comes from where:**
 - **From FS Lap's setup, as it is:** aero (ClA, CdA, balance), brake force and split, and system power.
-- **From FS Lap's setup, as a change to the team's value:** car and driver mass, weight on the front axle, CoG height, motor torque and the tyres' peak μ. FS Lap's stock setup drives the team's ADTM exactly as its vehicle file has it (240 kg, for example, although the row shows 172 + 80 kg). Each step away from stock moves the ADTM's value by the same amount (mass, weight share, CoG height) or the same factor (motor torque; peak μ scales the road friction). The spring pretension follows the mass and the weight split, as in `f_vehicleParameters`.
+- **From FS Lap's setup, as a change to the team's value:** car and driver mass, weight on the front axle, CoG height, motor torque, the tyres' peak μ, the front share of the roll stiffness and the gear ratio. FS Lap's stock setup drives the team's ADTM exactly as its vehicle file has it (240 kg, for example, although the row shows 172 + 80 kg). Each step away from stock moves the ADTM's value by the same amount (mass, weight share, CoG height) or the same factor (motor torque, gear ratio; peak μ scales the road friction). The spring pretension follows the mass and the weight split, as in `f_vehicleParameters`.
+  - **Roll stiffness, front:** each axle's roll stiffness in the ADTM is (corner spring / 2 + roll spring) × track². The team's car has no roll springs, and its corner springs give the front 64.4 % of the roll stiffness. A change of the row moves stiffness from one axle's roll spring to the other's: the total roll stiffness and the ride rates stay, only the split changes, as on FS Lap's own model. One of the two roll springs then has a negative rate, so that axle is softer in roll than its corner springs alone would be. A real car gets the same split by adding an anti-roll bar at the stiffer end, which also raises the total.
 - **From the ADTM vehicle file baked in at generation:** everything else, including tyres, suspension, inertias and the motors' power and speed. Today that is `FAUmaxTau.m` with `default_mu0.7`.
-- **Not used by the ADTM:** gear ratio, load sensitivity, peak slip angle, roll stiffness and torque vectoring. With the ADTM chosen, these setup rows say `(not on the ADTM)`.
+- **Not used by the ADTM:** load sensitivity and peak slip angle (the TMeasy tyres have their own data, not these two numbers) and torque vectoring (the ADTM gives every motor the same slip control). With the ADTM chosen, these setup rows say `(not on the ADTM)`.
 - **No handbrake:** the handbrake does nothing on the ADTM, as on the real car.
 - **Four motor torques (for the VCU, not used in the game yet):** the core's input can carry four motor torque commands (`Input::motorTorques`, `Tm`, Nm at each motor, FL FR RL RR) instead of the throttle. The ADTM then runs `adtm_step_torque`: the ADTM's own input path for torque commands from outside (its Simulink mode), which skips its own torque control and keeps the motor limits. The hydraulic brakes still come from the pedal. This is the input the car's VCU firmware will drive through the SIL; FS Lap's own model ignores it.
 - **Force feedback:** from the ADTM's `T_Steering` (section 3). On the AI hot lap it peaks at 25.5 Nm and pulls the wheel back towards the centre 89 % of the steered time.
@@ -376,7 +377,7 @@ The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_I
 **Proposed next, in order, pending the team's answers:**
 1. **Force feedback, tried on the Moza R3:** check the direction and the strength with a driver (section 3).
 2. **Rig basics, tried on the rig:** the 1:1 steering (setup row **Wheel rotation**) and the onboard view angle (SETTINGS row **Onboard view angle**) are there (section 3); both need a driver's check on the R3 rig.
-3. **The ADTM's tyres and suspension from FS Lap's setup.** (Mass, weight split, CoG height, motor torque and peak μ are there, section 4b.)
+3. **The ADTM's tyres from FS Lap's setup.** (Mass, weight split, CoG height, motor torque, peak μ, roll stiffness split and gear ratio are there, section 4b.)
 4. **Better vehicle model:** a four-wheel model and the tyre model, or live co-simulation with the team's Simulink model.
 5. **VD tools:** standard test manoeuvres with automatic metrics, setup A/B blind tests, and real-car data overlays.
 
@@ -393,6 +394,8 @@ Ask the simulator's maintainer if you need any of these.
 ## 12. Change log
 
 Newest first.
+
+- **2026-11-15 (setup on the ADTM):** the front roll stiffness share and the gear ratio now act on the ADTM too (section 4b); the stock car is unchanged. The ADTM code was regenerated: its setup input has 9 values instead of 7.
 
 - **2026-11-15 (lap collection):** `Submit runs.bat` sends your laps to the team (the branch `runs` of this repository), and `Update FS Lap.bat` updates and rebuilds the game without touching your laps or settings (section 2). Every lap file now names the FS Lap version it was driven with (`fslapVersion`, from the new `VERSION.txt`).
 

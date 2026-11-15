@@ -26,6 +26,8 @@ namespace adtm
     double z_cg;
     double l_FA;
     double l_RA;
+    double c_RollFA;
+    double c_RollRA;
     double F_SFL0;
     double F_SFR0;
     double F_SRL0;
@@ -34,6 +36,7 @@ namespace adtm
     double C_LRA;
     double C_D;
     double T_MMax;
+    double i_G;
   };
 }
 
@@ -169,6 +172,7 @@ namespace adtm
 // Function Declarations
 namespace adtm
 {
+  static void adtm_vehicle(const double car[9], double v[10]);
   namespace coder
   {
     static double b_atan2(double y, double x);
@@ -194,12 +198,12 @@ namespace adtm
     out_aero[8]);
   static double f_powertrain(double omega_FL, double omega_FR, double omega_RL,
     double omega_RR, const double x[42], double throttle, double veh_T_MMax,
-    double &T_MFR, double &T_MRL, double &T_MRR, double &T_DFL, double &T_DFR,
-    double &T_DRL, double &T_DRR);
+    double veh_i_G, double &T_MFR, double &T_MRL, double &T_MRR, double &T_DFL,
+    double &T_DFR, double &T_DRL, double &T_DRR);
   static double f_powertrain(double omega_FL, double omega_FR, double omega_RL,
     double omega_RR, double T_MCmdFL, double T_MCmdFR, double T_MCmdRL, double
-    T_MCmdRR, double veh_T_MMax, double &T_MFR, double &T_MRL, double &T_MRR,
-    double &T_DFL, double &T_DFR, double &T_DRL, double &T_DRR);
+    T_MCmdRR, double veh_T_MMax, double veh_i_G, double &T_MFR, double &T_MRL,
+    double &T_MRR, double &T_DFL, double &T_DFR, double &T_DRL, double &T_DRR);
   static double f_roadContact(const double r_0M0[3], const double v_0M0[3],
     const double omega_0U0[3], const double e_yR0[3], double v_0QQ[3], double
     A_0Q[9], double &r_st, double &dz, double &w, double r_MQ0[3]);
@@ -218,12 +222,12 @@ namespace adtm
   static double f_suspensionForces(const double r_VFLV[3], const double r_VFRV[3],
     const double r_VRLV[3], const double r_VRRV[3], const double r_VFLV_dot[3],
     const double r_VFRV_dot[3], const double r_VRLV_dot[3], const double
-    r_VRRV_dot[3], double veh_z_cg, double veh_F_SFL0, double veh_F_SFR0, double
-    veh_F_SRL0, double veh_F_SRR0, double &z_FR, double &z_RL, double &z_RR,
-    double &z_FL_dot, double &z_FR_dot, double &z_RL_dot, double &z_RR_dot,
-    double &F_CrSFL, double &F_CrSFR, double &F_CrSRL, double &F_CrSRR, double
-    &F_HvSFA, double &F_HvSRA, double &F_RoSFA, double &F_RoSRA, double &F_SFL,
-    double &F_SFR, double &F_SRL, double &F_SRR);
+    r_VRRV_dot[3], double veh_z_cg, double veh_c_RollFA, double veh_c_RollRA,
+    double veh_F_SFL0, double veh_F_SFR0, double veh_F_SRL0, double veh_F_SRR0,
+    double &z_FR, double &z_RL, double &z_RR, double &z_FL_dot, double &z_FR_dot,
+    double &z_RL_dot, double &z_RR_dot, double &F_CrSFL, double &F_CrSFR, double
+    &F_CrSRL, double &F_CrSRR, double &F_HvSFA, double &F_HvSRA, double &F_RoSFA,
+    double &F_RoSRA, double &F_SFL, double &F_SFR, double &F_SRL, double &F_SRR);
   static double f_tireTMeasy(const double v_0QQ[3], const double omega_0WW[3],
     double r_st, double dz, double w, double b_gamma, double mu_n, const double
     x_T[3], double F_T[3], double T_T[3], double s[4], double x_T_dot[3], double
@@ -240,6 +244,44 @@ namespace adtm
 // Function Definitions
 namespace adtm
 {
+  static void adtm_vehicle(const double car[9], double v[10])
+  {
+    double b_v_tmp;
+    double l_FA;
+    double l_RA;
+    double v_tmp;
+
+    // ADTM_VEHICLE FS Lap's setup applied to the team's vehicle at run time: the values adtm_step and adtm_init then set.
+    //    car: [C_D, C_LFA, C_LRA with A = 1 m^2 (negative = drag / downforce), mass shift (kg), shift of the mass share on
+    //    the front axle, CoG height shift (m), motor torque factor, shift of the front share of the roll stiffness, gear
+    //    ratio factor]. With [C_D C_LFA C_LRA 0 0 0 1 0 1] it is the vehicle file's car exactly; the shifts move the team's
+    //    values, so FS Lap's stock setup always drives the team's ADTM.
+    //    v: [m, m_C, l_FA, l_RA, F_SFL0 = F_SFR0, F_SRL0 = F_SRR0, z_cg, T_MMax, c_RollFA, c_RollRA]
+    //    The callers set the fields themselves: a vehicle struct returned from here is no longer a constant to MATLAB Coder,
+    //    and the model picks its branches (motor, driveline, suspension) by constant fields.
+    //  the unsprung masses stay
+    l_FA = 0.765 - 1.53 * car[4];
+    l_RA = 1.53 * car[4] + 0.765;
+
+    //  roll stiffness per axle (N m/rad) as f_suspensionForces has it: (corner spring / 2 + roll spring) * track^2. The
+    //  shift moves stiffness from one axle's roll spring to the other's, so the total and the ride rates stay: a change of
+    //  the split only, as on FS Lap's own model. The team's car has no roll springs, so one of them becomes negative (that
+    //  axle softer in roll than its corner springs alone); the axle stays stiff in roll for a front share between 0 and 1.
+    //  as f_vehicleParameters: the spring pretension carries the chassis
+    v[0] = car[3] + 240.0;
+    v[1] = car[3] + 193.60000000000002;
+    v[2] = l_FA;
+    v[3] = l_RA;
+    v_tmp = 9.80665 * (car[3] + 193.60000000000002);
+    b_v_tmp = 2.0 * (l_FA + l_RA);
+    v[4] = v_tmp * l_RA / b_v_tmp;
+    v[5] = v_tmp * l_FA / b_v_tmp;
+    v[6] = car[5] + 0.09;
+    v[7] = 21.0 * car[6];
+    v[8] = car[7] * 126866.32283582429 / 1.5376;
+    v[9] = 0.0 - car[7] * 126866.32283582429 / 1.44;
+  }
+
   namespace coder
   {
     static double b_atan2(double y, double x)
@@ -705,8 +747,8 @@ namespace adtm
 
   static double f_powertrain(double omega_FL, double omega_FR, double omega_RL,
     double omega_RR, const double x[42], double throttle, double veh_T_MMax,
-    double &T_MFR, double &T_MRL, double &T_MRR, double &T_DFL, double &T_DFR,
-    double &T_DRL, double &T_DRR)
+    double veh_i_G, double &T_MFR, double &T_MRL, double &T_MRR, double &T_DFL,
+    double &T_DFR, double &T_DRL, double &T_DRR)
   {
     double b_veh_T_MMax[3];
     double dv[2];
@@ -728,7 +770,7 @@ namespace adtm
     //  Modified by: Tim Braungardt               %
     //  ----------------------------------------- %
     //  Hub-Motors
-    T_MFL = 0.1 * (168.61726933364429 - omega_FL);
+    T_MFL = 0.1 * (2094.3951023931954 / veh_i_G - omega_FL);
 
     //  Limit each absolute value of val0 to limit
     if (fabs(T_MFL) > 1.0) {
@@ -741,7 +783,7 @@ namespace adtm
       }
     }
 
-    facOmegaMLimFR = 0.1 * (168.61726933364429 - omega_FR);
+    facOmegaMLimFR = 0.1 * (2094.3951023931954 / veh_i_G - omega_FR);
 
     //  Limit each absolute value of val0 to limit
     if (fabs(facOmegaMLimFR) > 1.0) {
@@ -754,7 +796,7 @@ namespace adtm
       }
     }
 
-    facOmegaMLimRL = 0.1 * (168.61726933364429 - omega_RL);
+    facOmegaMLimRL = 0.1 * (2094.3951023931954 / veh_i_G - omega_RL);
 
     //  Limit each absolute value of val0 to limit
     if (fabs(facOmegaMLimRL) > 1.0) {
@@ -767,7 +809,7 @@ namespace adtm
       }
     }
 
-    facOmegaMLimRR = 0.1 * (168.61726933364429 - omega_RR);
+    facOmegaMLimRR = 0.1 * (2094.3951023931954 / veh_i_G - omega_RR);
 
     //  Limit each absolute value of val0 to limit
     if (fabs(facOmegaMLimRR) > 1.0) {
@@ -878,7 +920,7 @@ namespace adtm
     }
 
     //  Power Limit
-    d = fabs(omega_FL * 12.421);
+    d = fabs(omega_FL * veh_i_G);
     b_veh_T_MMax[0] = veh_T_MMax;
     if (!(d >= 2.2204460492503131E-16)) {
       d = 2.2204460492503131E-16;
@@ -895,7 +937,7 @@ namespace adtm
     }
 
     T_MFL = T_MFL * d1 * coder::internal::b_minimum(b_veh_T_MMax);
-    d = fabs(omega_FR * 12.421);
+    d = fabs(omega_FR * veh_i_G);
     b_veh_T_MMax[0] = veh_T_MMax;
     if (!(d >= 2.2204460492503131E-16)) {
       d = 2.2204460492503131E-16;
@@ -912,7 +954,7 @@ namespace adtm
     }
 
     T_MFR = facOmegaMLimFR * d1 * coder::internal::b_minimum(b_veh_T_MMax);
-    d = fabs(omega_RL * 12.421);
+    d = fabs(omega_RL * veh_i_G);
     b_veh_T_MMax[0] = veh_T_MMax;
     if (!(d >= 2.2204460492503131E-16)) {
       d = 2.2204460492503131E-16;
@@ -929,7 +971,7 @@ namespace adtm
     }
 
     T_MRL = facOmegaMLimRL * d1 * coder::internal::b_minimum(b_veh_T_MMax);
-    d = fabs(omega_RR * 12.421);
+    d = fabs(omega_RR * veh_i_G);
     b_veh_T_MMax[0] = veh_T_MMax;
     if (!(d >= 2.2204460492503131E-16)) {
       d = 2.2204460492503131E-16;
@@ -946,10 +988,10 @@ namespace adtm
     }
 
     T_MRR = facOmegaMLimRR * d1 * coder::internal::b_minimum(b_veh_T_MMax);
-    T_DFL = 12.048369999999998 * T_MFL - omega_FL * 0.000954929658551372;
-    T_DFR = 12.048369999999998 * T_MFR - omega_FR * 0.000954929658551372;
-    T_DRL = 12.048369999999998 * T_MRL - omega_RL * 0.000954929658551372;
-    T_DRR = 12.048369999999998 * T_MRR - omega_RR * 0.000954929658551372;
+    T_DFL = veh_i_G * 0.97 * T_MFL - omega_FL * 0.000954929658551372;
+    T_DFR = veh_i_G * 0.97 * T_MFR - omega_FR * 0.000954929658551372;
+    T_DRL = veh_i_G * 0.97 * T_MRL - omega_RL * 0.000954929658551372;
+    T_DRR = veh_i_G * 0.97 * T_MRR - omega_RR * 0.000954929658551372;
 
     //  No single motor
     return T_MFL;
@@ -957,8 +999,8 @@ namespace adtm
 
   static double f_powertrain(double omega_FL, double omega_FR, double omega_RL,
     double omega_RR, double T_MCmdFL, double T_MCmdFR, double T_MCmdRL, double
-    T_MCmdRR, double veh_T_MMax, double &T_MFR, double &T_MRL, double &T_MRR,
-    double &T_DFL, double &T_DFR, double &T_DRL, double &T_DRR)
+    T_MCmdRR, double veh_T_MMax, double veh_i_G, double &T_MFR, double &T_MRL,
+    double &T_MRR, double &T_DFL, double &T_DFR, double &T_DRL, double &T_DRR)
   {
     double b_veh_T_MMax[3];
     double T_MFL;
@@ -975,7 +1017,7 @@ namespace adtm
     //  Modified by: Tim Braungardt               %
     //  ----------------------------------------- %
     //  Hub-Motors
-    T_MFL = 0.1 * (168.61726933364429 - omega_FL);
+    T_MFL = 0.1 * (2094.3951023931954 / veh_i_G - omega_FL);
 
     //  Limit each absolute value of val0 to limit
     if (fabs(T_MFL) > 1.0) {
@@ -988,7 +1030,7 @@ namespace adtm
       }
     }
 
-    facOmegaMLimFR = 0.1 * (168.61726933364429 - omega_FR);
+    facOmegaMLimFR = 0.1 * (2094.3951023931954 / veh_i_G - omega_FR);
 
     //  Limit each absolute value of val0 to limit
     if (fabs(facOmegaMLimFR) > 1.0) {
@@ -1001,7 +1043,7 @@ namespace adtm
       }
     }
 
-    facOmegaMLimRL = 0.1 * (168.61726933364429 - omega_RL);
+    facOmegaMLimRL = 0.1 * (2094.3951023931954 / veh_i_G - omega_RL);
 
     //  Limit each absolute value of val0 to limit
     if (fabs(facOmegaMLimRL) > 1.0) {
@@ -1014,7 +1056,7 @@ namespace adtm
       }
     }
 
-    facOmegaMLimRR = 0.1 * (168.61726933364429 - omega_RR);
+    facOmegaMLimRR = 0.1 * (2094.3951023931954 / veh_i_G - omega_RR);
 
     //  Limit each absolute value of val0 to limit
     if (fabs(facOmegaMLimRR) > 1.0) {
@@ -1027,7 +1069,7 @@ namespace adtm
       }
     }
 
-    d = fabs(omega_FL * 12.421);
+    d = fabs(omega_FL * veh_i_G);
     b_veh_T_MMax[0] = veh_T_MMax;
     if (!(d >= 2.2204460492503131E-16)) {
       d = 2.2204460492503131E-16;
@@ -1044,7 +1086,7 @@ namespace adtm
     }
 
     T_MFL = T_MFL * d * coder::internal::b_minimum(b_veh_T_MMax);
-    d = fabs(omega_FR * 12.421);
+    d = fabs(omega_FR * veh_i_G);
     b_veh_T_MMax[0] = veh_T_MMax;
     if (!(d >= 2.2204460492503131E-16)) {
       d = 2.2204460492503131E-16;
@@ -1061,7 +1103,7 @@ namespace adtm
     }
 
     T_MFR = facOmegaMLimFR * d * coder::internal::b_minimum(b_veh_T_MMax);
-    d = fabs(omega_RL * 12.421);
+    d = fabs(omega_RL * veh_i_G);
     b_veh_T_MMax[0] = veh_T_MMax;
     if (!(d >= 2.2204460492503131E-16)) {
       d = 2.2204460492503131E-16;
@@ -1078,7 +1120,7 @@ namespace adtm
     }
 
     T_MRL = facOmegaMLimRL * d * coder::internal::b_minimum(b_veh_T_MMax);
-    d = fabs(omega_RR * 12.421);
+    d = fabs(omega_RR * veh_i_G);
     b_veh_T_MMax[0] = veh_T_MMax;
     if (!(d >= 2.2204460492503131E-16)) {
       d = 2.2204460492503131E-16;
@@ -1095,10 +1137,10 @@ namespace adtm
     }
 
     T_MRR = facOmegaMLimRR * d * coder::internal::b_minimum(b_veh_T_MMax);
-    T_DFL = 12.048369999999998 * T_MFL - omega_FL * 0.000954929658551372;
-    T_DFR = 12.048369999999998 * T_MFR - omega_FR * 0.000954929658551372;
-    T_DRL = 12.048369999999998 * T_MRL - omega_RL * 0.000954929658551372;
-    T_DRR = 12.048369999999998 * T_MRR - omega_RR * 0.000954929658551372;
+    T_DFL = veh_i_G * 0.97 * T_MFL - omega_FL * 0.000954929658551372;
+    T_DFR = veh_i_G * 0.97 * T_MFR - omega_FR * 0.000954929658551372;
+    T_DRL = veh_i_G * 0.97 * T_MRL - omega_RL * 0.000954929658551372;
+    T_DRR = veh_i_G * 0.97 * T_MRR - omega_RR * 0.000954929658551372;
 
     //  No single motor
     return T_MFL;
@@ -2515,12 +2557,12 @@ namespace adtm
   static double f_suspensionForces(const double r_VFLV[3], const double r_VFRV[3],
     const double r_VRLV[3], const double r_VRRV[3], const double r_VFLV_dot[3],
     const double r_VFRV_dot[3], const double r_VRLV_dot[3], const double
-    r_VRRV_dot[3], double veh_z_cg, double veh_F_SFL0, double veh_F_SFR0, double
-    veh_F_SRL0, double veh_F_SRR0, double &z_FR, double &z_RL, double &z_RR,
-    double &z_FL_dot, double &z_FR_dot, double &z_RL_dot, double &z_RR_dot,
-    double &F_CrSFL, double &F_CrSFR, double &F_CrSRL, double &F_CrSRR, double
-    &F_HvSFA, double &F_HvSRA, double &F_RoSFA, double &F_RoSRA, double &F_SFL,
-    double &F_SFR, double &F_SRL, double &F_SRR)
+    r_VRRV_dot[3], double veh_z_cg, double veh_c_RollFA, double veh_c_RollRA,
+    double veh_F_SFL0, double veh_F_SFR0, double veh_F_SRL0, double veh_F_SRR0,
+    double &z_FR, double &z_RL, double &z_RR, double &z_FL_dot, double &z_FR_dot,
+    double &z_RL_dot, double &z_RR_dot, double &F_CrSFL, double &F_CrSFR, double
+    &F_CrSRL, double &F_CrSRR, double &F_HvSFA, double &F_HvSRA, double &F_RoSFA,
+    double &F_RoSRA, double &F_SFL, double &F_SFR, double &F_SRL, double &F_SRR)
   {
     static const double b_dv[5] = { -246.10336341263329, -164.06890894175552,
       0.0, 164.06890894175552, 246.10336341263329 };
@@ -2572,8 +2614,8 @@ namespace adtm
     F_HvSRA = 0.5 * (z_RL + z_RR) * 0.0;
 
     //  Suspension roll spring & damper forces
-    F_RoSFA = (z_FL - z_FR) * 0.0;
-    F_RoSRA = (z_RL - z_RR) * 0.0;
+    F_RoSFA = (z_FL - z_FR) * veh_c_RollFA;
+    F_RoSRA = (z_RL - z_RR) * veh_c_RollRA;
 
     //  Pretension + spring & damper forces
     F_SFL = ((veh_F_SFL0 + F_CrSFL) + F_RoSFA) + 0.5 * F_HvSFA;
@@ -4196,11 +4238,11 @@ namespace adtm
 
     //  Suspension forces
     f_suspensionForces(r_VFLV, r_VFRV, r_VRLV, r_VRRV, r_VFLV_dot, r_VFRV_dot,
-                       r_VRLV_dot, r_VRRV_dot, veh.z_cg, veh.F_SFL0, veh.F_SFR0,
-                       veh.F_SRL0, veh.F_SRR0, A_x_tmp_tmp, T_BFL, T_BFR, T_BRL,
-                       T_BRR, gamma_FL, r_stFL, dz_FL, w_FL, gamma_FR, r_stFR,
-                       dz_FR, w_FR, gamma_RL, r_stRL, dz_RL, w_RL, gamma_RR,
-                       r_stRR);
+                       r_VRLV_dot, r_VRRV_dot, veh.z_cg, veh.c_RollFA,
+                       veh.c_RollRA, veh.F_SFL0, veh.F_SFR0, veh.F_SRL0,
+                       veh.F_SRR0, A_x_tmp_tmp, T_BFL, T_BFR, T_BRL, T_BRR,
+                       gamma_FL, r_stFL, dz_FL, w_FL, gamma_FR, r_stFR, dz_FR,
+                       w_FR, gamma_RL, r_stRL, dz_RL, w_RL, gamma_RR, r_stRR);
 
     //  Aerodynamic Forces
     d = v_0FAV_tmp * v_0FAV_tmp;
@@ -4213,7 +4255,8 @@ namespace adtm
     //  Wheel rot. friction damping coef.
     //  Powertrain
     f_powertrain(x[24], x[25], x[26], x[27], x, inputs_throttle, veh.T_MMax,
-                 T_BFL, T_BFR, T_BRL, A_x_tmp_tmp, gamma_FL, r_stFL, dz_FL);
+                 veh.i_G, T_BFL, T_BFR, T_BRL, A_x_tmp_tmp, gamma_FL, r_stFL,
+                 dz_FL);
 
     //  Brake torques
     T_BFL = -39.111507258094768 * x[24];
@@ -6576,11 +6619,11 @@ namespace adtm
 
     //  Suspension forces
     f_suspensionForces(r_VFLV, r_VFRV, r_VRLV, r_VRRV, r_VFLV_dot, r_VFRV_dot,
-                       r_VRLV_dot, r_VRRV_dot, veh.z_cg, veh.F_SFL0, veh.F_SFR0,
-                       veh.F_SRL0, veh.F_SRR0, A_x_tmp_tmp, T_BFL, T_BFR, T_BRL,
-                       T_BRR, gamma_FL, r_stFL, dz_FL, w_FL, gamma_FR, r_stFR,
-                       dz_FR, w_FR, gamma_RL, r_stRL, dz_RL, w_RL, gamma_RR,
-                       r_stRR);
+                       r_VRLV_dot, r_VRRV_dot, veh.z_cg, veh.c_RollFA,
+                       veh.c_RollRA, veh.F_SFL0, veh.F_SFR0, veh.F_SRL0,
+                       veh.F_SRR0, A_x_tmp_tmp, T_BFL, T_BFR, T_BRL, T_BRR,
+                       gamma_FL, r_stFL, dz_FL, w_FL, gamma_FR, r_stFR, dz_FR,
+                       w_FR, gamma_RL, r_stRL, dz_RL, w_RL, gamma_RR, r_stRR);
 
     //  Aerodynamic Forces
     d = v_0FAV_tmp * v_0FAV_tmp;
@@ -6593,8 +6636,8 @@ namespace adtm
     //  Wheel rot. friction damping coef.
     //  Powertrain
     f_powertrain(x[24], x[25], x[26], x[27], inputs_T_MCmdFL, inputs_T_MCmdFR,
-                 inputs_T_MCmdRL, inputs_T_MCmdRR, veh.T_MMax, T_BFL, T_BFR,
-                 T_BRL, A_x_tmp_tmp, gamma_FL, r_stFL, dz_FL);
+                 inputs_T_MCmdRL, inputs_T_MCmdRR, veh.T_MMax, veh.i_G, T_BFL,
+                 T_BFR, T_BRL, A_x_tmp_tmp, gamma_FL, r_stFL, dz_FL);
 
     //  Brake torques
     T_BFL = -39.111507258094768 * x[24];
@@ -7743,7 +7786,7 @@ namespace adtm
     //    motor torque (Nm), gear ratio, number of states, number of outputs, wheelbase (m)]
   }
 
-  void adtm_init(const double car[7], double x[42])
+  void adtm_init(const double car[9], double x[42])
   {
     double A_y_tmp[9];
     double dv[9];
@@ -7766,12 +7809,17 @@ namespace adtm
     // ADTM_INIT The ADTM standing still at the origin, settled on its springs (f_calcInitState), heading along +x.
     // ADTM_VEHICLE FS Lap's setup applied to the team's vehicle at run time: the values adtm_step and adtm_init then set.
     //    car: [C_D, C_LFA, C_LRA with A = 1 m^2 (negative = drag / downforce), mass shift (kg), shift of the mass share on
-    //    the front axle, CoG height shift (m), motor torque factor]. With [C_D C_LFA C_LRA 0 0 0 1] it is the vehicle file's
-    //    car exactly; the shifts move the team's values, so FS Lap's stock setup always drives the team's ADTM.
-    //    v: [m, m_C, l_FA, l_RA, F_SFL0 = F_SFR0, F_SRL0 = F_SRR0, z_cg, T_MMax]
+    //    the front axle, CoG height shift (m), motor torque factor, shift of the front share of the roll stiffness, gear
+    //    ratio factor]. With [C_D C_LFA C_LRA 0 0 0 1 0 1] it is the vehicle file's car exactly; the shifts move the team's
+    //    values, so FS Lap's stock setup always drives the team's ADTM.
+    //    v: [m, m_C, l_FA, l_RA, F_SFL0 = F_SFR0, F_SRL0 = F_SRR0, z_cg, T_MMax, c_RollFA, c_RollRA]
     //    The callers set the fields themselves: a vehicle struct returned from here is no longer a constant to MATLAB Coder,
     //    and the model picks its branches (motor, driveline, suspension) by constant fields.
     //  the unsprung masses stay
+    //  roll stiffness per axle (N m/rad) as f_suspensionForces has it: (corner spring / 2 + roll spring) * track^2. The
+    //  shift moves stiffness from one axle's roll spring to the other's, so the total and the ride rates stay: a change of
+    //  the split only, as on FS Lap's own model. The team's car has no roll springs, so one of them becomes negative (that
+    //  axle softer in roll than its corner springs alone); the axle stays stiff in roll for a front share between 0 and 1.
     //  as f_vehicleParameters: the spring pretension carries the chassis
     memset(&x[0], 0, 42U * sizeof(double));
 
@@ -7886,7 +7934,7 @@ namespace adtm
     x[4] = b_ang;
   }
 
-  void adtm_step(double x[42], const double u[6], const double car[7], double,
+  void adtm_step(double x[42], const double u[6], const double car[9], double,
                  double dt, double out[110])
   {
     static const signed char b[3] = { 0, 1, 0 };
@@ -7937,6 +7985,7 @@ namespace adtm
     double dv[14];
     double f[14];
     double l_y_tmp[14];
+    double v[10];
     double A_0V[9];
     double A_VQFR[9];
     double A_VQRL[9];
@@ -8103,8 +8152,6 @@ namespace adtm
     double gamma_FR;
     double gamma_RL;
     double gamma_RR;
-    double l_FA;
-    double l_RA;
     double r_dynFL;
     double r_dynFR;
     double r_dynRL;
@@ -8113,7 +8160,7 @@ namespace adtm
     double r_stFR;
     double r_stRL;
     double r_stRR;
-    double uFL;
+    double uFR;
     double uRL;
     double uRR;
     double v_0FAV_tmp;
@@ -8129,9 +8176,7 @@ namespace adtm
     double v_0VV_idx_0;
     double v_0VV_idx_1;
     double v_0VV_idx_2;
-    double v_idx_4;
-    double v_idx_5;
-    double v_idx_7;
+    double veh_i_G;
     double w_RR;
     double z_FL;
     double z_FL_dot;
@@ -8153,24 +8198,9 @@ namespace adtm
 
     // ADTM_STEP One Runge-Kutta step of the team's ADTM (f_vehicleModel), as its own f_solveODE does it.
     //    x: the 42 states, u: [delta_D (rad at the steering wheel), p_BFA, p_BRA (bar), throttle, gear, mu_N],
-    //    car: FS Lap's setup, see adtm_vehicle (7 values), t: time (s), dt: step (s).
-    // ADTM_VEHICLE FS Lap's setup applied to the team's vehicle at run time: the values adtm_step and adtm_init then set.
-    //    car: [C_D, C_LFA, C_LRA with A = 1 m^2 (negative = drag / downforce), mass shift (kg), shift of the mass share on
-    //    the front axle, CoG height shift (m), motor torque factor]. With [C_D C_LFA C_LRA 0 0 0 1] it is the vehicle file's
-    //    car exactly; the shifts move the team's values, so FS Lap's stock setup always drives the team's ADTM.
-    //    v: [m, m_C, l_FA, l_RA, F_SFL0 = F_SFR0, F_SRL0 = F_SRR0, z_cg, T_MMax]
-    //    The callers set the fields themselves: a vehicle struct returned from here is no longer a constant to MATLAB Coder,
-    //    and the model picks its branches (motor, driveline, suspension) by constant fields.
-    //  the unsprung masses stay
-    l_FA = 0.765 - 1.53 * car[4];
-    l_RA = 1.53 * car[4] + 0.765;
-
-    //  as f_vehicleParameters: the spring pretension carries the chassis
-    b_u = 9.80665 * (car[3] + 193.60000000000002);
-    uFL = 2.0 * (l_FA + l_RA);
-    v_idx_4 = b_u * l_RA / uFL;
-    v_idx_5 = b_u * l_FA / uFL;
-    v_idx_7 = 21.0 * car[6];
+    //    car: FS Lap's setup, see adtm_vehicle (9 values), t: time (s), dt: step (s).
+    adtm_vehicle(car, v);
+    veh_i_G = 12.421 * car[8];
 
     //       Vehicle Model Equations            %%
     //  ----------------------------------------- %
@@ -8217,8 +8247,8 @@ namespace adtm
     //  Direction vectors
     //  Chassis to earth
     //  Rotation matrix for angle ang about Z axis
-    uFL = sin(x[5]);
-    b_u = cos(x[5]);
+    b_u = sin(x[5]);
+    uFR = cos(x[5]);
 
     //  Rotation matrix for angle ang about Y axis
     uRL = sin(x[4]);
@@ -8227,11 +8257,11 @@ namespace adtm
     //  Rotation matrix for angle ang about X axis
     d = sin(x[3]);
     A_x_tmp_tmp = cos(x[3]);
-    A_z_tmp[0] = b_u;
-    A_z_tmp[3] = -uFL;
+    A_z_tmp[0] = uFR;
+    A_z_tmp[3] = -b_u;
     A_z_tmp[6] = 0.0;
-    A_z_tmp[1] = uFL;
-    A_z_tmp[4] = b_u;
+    A_z_tmp[1] = b_u;
+    A_z_tmp[4] = uFR;
     A_z_tmp[7] = 0.0;
     A_y_tmp[0] = uRR;
     A_y_tmp[3] = 0.0;
@@ -8454,18 +8484,17 @@ namespace adtm
     omega_0VV[2] = x[19];
 
     //  Angular vel. @ CoG
-    v_0FAV_tmp = v_0VV_idx_0 + (omega_0VV[1] * -(car[5] + 0.09) - 0.0 *
-      omega_0VV[2]);
+    v_0FAV_tmp = v_0VV_idx_0 + (omega_0VV[1] * -v[6] - 0.0 * omega_0VV[2]);
     v_0FAV[0] = v_0FAV_tmp;
-    uFL = omega_0VV[0] * -(car[5] + 0.09);
-    v_0FAV[1] = v_0VV_idx_1 + (l_FA * omega_0VV[2] - uFL);
-    v_0FAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - l_FA * omega_0VV[1]);
+    b_u = omega_0VV[0] * -v[6];
+    v_0FAV[1] = v_0VV_idx_1 + (v[2] * omega_0VV[2] - b_u);
+    v_0FAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - omega_0VV[1] * v[2]);
 
     //  Vel. @ front axle
     //  Norm of vel. @ front axle
     v_0RAV[0] = v_0FAV_tmp;
-    v_0RAV[1] = v_0VV_idx_1 + (-l_RA * omega_0VV[2] - uFL);
-    v_0RAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - -l_RA * omega_0VV[1]);
+    v_0RAV[1] = v_0VV_idx_1 + (-v[3] * omega_0VV[2] - b_u);
+    v_0RAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - -v[3] * omega_0VV[1]);
 
     //  Vel. @ rear axle
     //  Norm of vel. @ rear axle
@@ -8744,8 +8773,8 @@ namespace adtm
         _mm_set1_pd(e_yFLV[i])))));
       e_yFLV_tmp = 3 * i + 2;
       domWFLdz[e_yFLV_tmp] = 0.0;
-      uFL = A_VQRR[e_yFLV_tmp];
-      domWFLdz[b_i + 2] = uFL - e_yFLV[2] * e_yFLV[i];
+      b_u = A_VQRR[e_yFLV_tmp];
+      domWFLdz[b_i + 2] = b_u - e_yFLV[2] * e_yFLV[i];
       domWFLdz[i + 18] = domdphi_FL[i];
       dvRRdz_tmp = 3 * (i + 7);
       domWFLdz[dvRRdz_tmp] = 0.0;
@@ -8760,7 +8789,7 @@ namespace adtm
         _mm_set1_pd(e_yFRV[i])))));
       domWFLdz[i1 + 2] = 0.0;
       domWFRdz[e_yFLV_tmp] = 0.0;
-      domWFRdz[b_i + 2] = uFL - e_yFRV[2] * e_yFRV[i];
+      domWFRdz[b_i + 2] = b_u - e_yFRV[2] * e_yFRV[i];
       domWFRdz[i + 18] = 0.0;
       domWFRdz[i + 21] = domdphi_FR[i];
       e_yFLV_tmp = 3 * (i + 8);
@@ -8979,7 +9008,7 @@ namespace adtm
     b_A_0V[2] = d12;
     b_r_0V0[2] = r_0V0[2] + d11;
     gamma_FL = f_roadContact(b_r_0V0, b_A_0V, c_A_0V, d_A_0V, dvdphi_FL, A_VQRL,
-      r_stFL, uFL, b_u, I_WFRV);
+      r_stFL, b_u, uFR, I_WFRV);
     d1 = r_VFRV[0];
     d2 = r_VFRV[1];
     d3 = r_VFRV[2];
@@ -9156,7 +9185,7 @@ namespace adtm
       c_A_0V[i] = d4;
     }
 
-    r_dynFL = f_tireTMeasy(dvdphi_FL, c_A_0V, r_stFL, uFL, b_u, gamma_FL, 0.7 *
+    r_dynFL = f_tireTMeasy(dvdphi_FL, c_A_0V, r_stFL, b_u, uFR, gamma_FL, 0.7 *
       u[5], &x[28], F_TFL, I_WFLV, s_FL, x_TFL_dot, F_ycFL, dF_x0FL, F_xMFL,
       dF_y0FL, F_yMFL);
     d1 = omega_0WFRV[0];
@@ -9210,10 +9239,9 @@ namespace adtm
 
     //  Suspension forces
     z_FL = f_suspensionForces(r_VFLV, r_VFRV, r_VRLV, r_VRRV, r_VFLV_dot,
-      r_VFRV_dot, r_VRLV_dot, r_VRRV_dot, car[5] + 0.09, v_idx_4, v_idx_4,
-      v_idx_5, v_idx_5, z_FR, z_RL, z_RR, z_FL_dot, z_FR_dot, z_RL_dot, z_RR_dot,
-      uFL, b_u, uRL, uRR, d, A_x_tmp_tmp, dz_RR, w_RR, F_SFL, F_SFR, F_SRL,
-      F_SRR);
+      r_VFRV_dot, r_VRLV_dot, r_VRRV_dot, v[6], v[8], v[9], v[4], v[4], v[5], v
+      [5], z_FR, z_RL, z_RR, z_FL_dot, z_FR_dot, z_RL_dot, z_RR_dot, b_u, uFR,
+      uRL, uRR, d, A_x_tmp_tmp, dz_RR, w_RR, F_SFL, F_SFR, F_SRL, F_SRR);
 
     //  Aerodynamic Forces
     d1 = v_0FAV_tmp * v_0FAV_tmp;
@@ -9225,15 +9253,15 @@ namespace adtm
     //  Applied forces & torques
     //  Wheel rot. friction damping coef.
     //  Powertrain
-    f_powertrain(x[24], x[25], x[26], x[27], x, u[3], v_idx_7, b_u, uRL, uRR,
-                 T_DFL, T_DFR, T_DRL, T_DRR);
+    f_powertrain(x[24], x[25], x[26], x[27], x, u[3], v[7], veh_i_G, uFR, uRL,
+                 uRR, T_DFL, T_DFR, T_DRL, T_DRR);
 
     //  Brake torques
     T_BFL = -39.111507258094768 * x[24];
-    uFL = u[1] * 2.62119;
+    b_u = u[1] * 2.62119;
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BFL) > uFL) {
+    if (fabs(T_BFL) > b_u) {
       if (rtIsNaN(T_BFL)) {
         uRR = rtNaN;
       } else if (T_BFL < 0.0) {
@@ -9242,13 +9270,13 @@ namespace adtm
         uRR = (T_BFL > 0.0);
       }
 
-      T_BFL = uFL * uRR;
+      T_BFL = b_u * uRR;
     }
 
     T_BFR = -39.111507258094768 * x[25];
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BFR) > uFL) {
+    if (fabs(T_BFR) > b_u) {
       if (rtIsNaN(T_BFR)) {
         uRR = rtNaN;
       } else if (T_BFR < 0.0) {
@@ -9257,14 +9285,14 @@ namespace adtm
         uRR = (T_BFR > 0.0);
       }
 
-      T_BFR = uFL * uRR;
+      T_BFR = b_u * uRR;
     }
 
     T_BRL = -39.111507258094768 * x[26];
-    uFL = u[2] * 2.4887362499999997;
+    b_u = u[2] * 2.4887362499999997;
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BRL) > uFL) {
+    if (fabs(T_BRL) > b_u) {
       if (rtIsNaN(T_BRL)) {
         uRR = rtNaN;
       } else if (T_BRL < 0.0) {
@@ -9273,13 +9301,13 @@ namespace adtm
         uRR = (T_BRL > 0.0);
       }
 
-      T_BRL = uFL * uRR;
+      T_BRL = b_u * uRR;
     }
 
     T_BRR = -39.111507258094768 * x[27];
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BRR) > uFL) {
+    if (fabs(T_BRR) > b_u) {
       if (rtIsNaN(T_BRR)) {
         uRR = rtNaN;
       } else if (T_BRR < 0.0) {
@@ -9288,7 +9316,7 @@ namespace adtm
         uRR = (T_BRR > 0.0);
       }
 
-      T_BRR = uFL * uRR;
+      T_BRR = b_u * uRR;
     }
 
     //  Applied torques
@@ -9416,7 +9444,7 @@ namespace adtm
     }
 
     //  Applied forces
-    uFL = ((F_SFL + F_SFR) + F_SRL) + F_SRR;
+    b_u = ((F_SFL + F_SFR) + F_SRL) + F_SRR;
 
     //  Chassis
     //  FL
@@ -9470,14 +9498,14 @@ namespace adtm
     c_A_0V[0] = r_VRRV[1] * dvdphi_RR[2] - dvdphi_RR[1] * r_VRRV[2];
     c_A_0V[1] = dvdphi_RR[0] * r_VRRV[2] - r_VRRV[0] * dvdphi_RR[2];
     c_A_0V[2] = r_VRRV[0] * dvdphi_RR[1] - dvdphi_RR[0] * r_VRRV[1];
-    b_A_0V[0] = 0.0 * r_0V0[2] - r_0V0[1] * -(car[5] + 0.09);
-    b_A_0V[1] = r_0V0[0] * -(car[5] + 0.09) - l_FA * r_0V0[2];
-    b_A_0V[2] = l_FA * r_0V0[1] - r_0V0[0] * 0.0;
-    b_r_0V0[0] = 0.0 * F_ARAV[2] - F_ARAV[1] * -(car[5] + 0.09);
-    b_r_0V0[1] = F_ARAV[0] * -(car[5] + 0.09) - -l_RA * F_ARAV[2];
-    b_r_0V0[2] = -l_RA * F_ARAV[1] - F_ARAV[0] * 0.0;
+    b_A_0V[0] = 0.0 * r_0V0[2] - r_0V0[1] * -v[6];
+    b_A_0V[1] = r_0V0[0] * -v[6] - v[2] * r_0V0[2];
+    b_A_0V[2] = r_0V0[1] * v[2] - r_0V0[0] * 0.0;
+    b_r_0V0[0] = 0.0 * F_ARAV[2] - F_ARAV[1] * -v[6];
+    b_r_0V0[1] = F_ARAV[0] * -v[6] - -v[3] * F_ARAV[2];
+    b_r_0V0[2] = -v[3] * F_ARAV[1] - F_ARAV[0] * 0.0;
     r = _mm_loadu_pd(&v_0RAV[0]);
-    _mm_storeu_pd(&r_MQRR0[0], _mm_add_pd(r, _mm_mul_pd(_mm_set1_pd(uFL),
+    _mm_storeu_pd(&r_MQRR0[0], _mm_add_pd(r, _mm_mul_pd(_mm_set1_pd(b_u),
       _mm_loadu_pd(&dv41[0]))));
     r = _mm_loadu_pd(&b_r_VFLV[0]);
     r1 = _mm_loadu_pd(&r_MQRL0[0]);
@@ -9504,7 +9532,7 @@ namespace adtm
     _mm_storeu_pd(&b_A_0V[0], _mm_mul_pd(_mm_mul_pd(r, r1), _mm_set1_pd(b_b_tmp)));
     d1 = r_MQRR0[0];
     d2 = r_MQRR0[1];
-    d3 = v_0RAV[2] + uFL;
+    d3 = v_0RAV[2] + b_u;
     d4 = b_r_VFLV[0];
     d5 = b_r_VFLV[1];
     d6 = b_r_VFLV[2];
@@ -9521,7 +9549,7 @@ namespace adtm
     A_x_tmp_tmp = dvdphi_RR[1];
     dz_RR = dvdphi_RR[2];
     w_RR = e_yFLV[0];
-    uFL = e_yFLV[1];
+    uFR = e_yFLV[1];
     uRL = e_yFLV[2];
     uRR = e_yFRV[0];
     b_dvdu_FR = e_yFRV[1];
@@ -9548,7 +9576,7 @@ namespace adtm
         y_tmp[i + 28] * d12)) + ((b_y_tmp[i] * d13 + b_y_tmp[i + 14] * d14) +
         b_y_tmp[i + 28] * b_u)) + ((c_y_tmp[i] * d + c_y_tmp[i + 14] *
         A_x_tmp_tmp) + c_y_tmp[i + 28] * dz_RR)) + ((d_y_tmp[i] * w_RR +
-        d_y_tmp[i + 14] * uFL) + d_y_tmp[i + 28] * uRL)) + ((e_y_tmp[i] * uRR +
+        d_y_tmp[i + 14] * uFR) + d_y_tmp[i + 28] * uRL)) + ((e_y_tmp[i] * uRR +
                   e_y_tmp[i + 14] * b_dvdu_FR) + e_y_tmp[i + 28] * b_domdu_FL))
                + ((f_y_tmp[i] * b_domdu_FR + f_y_tmp[i + 14] * c_domdu_FL) +
                   f_y_tmp[i + 28] * c_domdu_FR)) + ((g_y_tmp[i] * v_0FAV_tmp +
@@ -9650,7 +9678,7 @@ namespace adtm
     //  Wheel torque RR
     //  Generalized force vector
     for (i = 0; i < 42; i++) {
-      q_tmp[i] = static_cast<double>(iv2[i]) * (car[3] + 193.60000000000002);
+      q_tmp[i] = static_cast<double>(iv2[i]) * v[1];
     }
 
     for (i = 0; i < 14; i++) {
@@ -10117,7 +10145,7 @@ namespace adtm
                     domdphi_FL[2]);
     dz_RR = -(omega_0URRV[0] * domdphi_FL[1] - domdphi_FL[0] * omega_0URRV[1]);
     w_RR = I_WFLV[0];
-    uFL = I_WFLV[1];
+    uFR = I_WFLV[1];
     uRL = I_WFLV[2];
     uRR = I_WFRV[0];
     b_dvdu_FR = I_WFRV[1];
@@ -10183,7 +10211,7 @@ namespace adtm
       r2 = _mm_loadu_pd(&h_y_tmp[i]);
       r2 = _mm_mul_pd(r2, _mm_set1_pd(w_RR));
       r3 = _mm_loadu_pd(&h_y_tmp[i + 14]);
-      r3 = _mm_mul_pd(r3, _mm_set1_pd(uFL));
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(uFR));
       r2 = _mm_add_pd(r2, r3);
       r3 = _mm_loadu_pd(&h_y_tmp[i + 28]);
       r3 = _mm_mul_pd(r3, _mm_set1_pd(uRL));
@@ -10352,7 +10380,7 @@ namespace adtm
       d = 2.2204460492503131E-16;
     }
 
-    uFL = coder::b_hypot(fabs(F_TFL[0]) / uRR, fabs(F_TFL[1]) / d);
+    b_u = coder::b_hypot(fabs(F_TFL[0]) / uRR, fabs(F_TFL[1]) / d);
     if (F_xMFR >= 2.2204460492503131E-16) {
       uRR = F_xMFR;
     } else {
@@ -10365,7 +10393,7 @@ namespace adtm
       d = 2.2204460492503131E-16;
     }
 
-    b_u = coder::b_hypot(fabs(F_TFR[0]) / uRR, fabs(F_TFR[1]) / d);
+    uFR = coder::b_hypot(fabs(F_TFR[0]) / uRR, fabs(F_TFR[1]) / d);
     if (F_xMRL >= 2.2204460492503131E-16) {
       uRR = F_xMRL;
     } else {
@@ -10424,12 +10452,12 @@ namespace adtm
       c_domdu_FR += d4 * I_WFRV[i];
     }
 
-    double b_uFL[4];
+    double uFL[4];
     coder::mldivide(A_z_tmp, &c_f[0], dvdphi_FL);
-    b_uFL[0] = uFL;
-    b_uFL[1] = b_u;
-    b_uFL[2] = uRL;
-    b_uFL[3] = uRR;
+    uFL[0] = b_u;
+    uFL[1] = uFR;
+    uFL[2] = uRL;
+    uFL[3] = uRR;
     out[0] = dvdphi_FL[0];
     out[3] = F_TFL[0];
     out[6] = F_TFR[0];
@@ -10525,29 +10553,32 @@ namespace adtm
     out[92] = (((((((((d + A_x_tmp_tmp) + dz_RR) + w_RR) + v_0FAV_tmp) +
                    b_dvdu_FR) + b_domdu_FL) + b_domdu_FR) + c_domdu_FL) +
                c_domdu_FR) * 0.014584380239693683;
-    out[93] = uFL;
-    out[94] = b_u;
+    out[93] = b_u;
+    out[94] = uFR;
     out[95] = uRL;
     out[96] = uRR;
-    out[97] = coder::internal::maximum(b_uFL);
-    out[98] = (uFL * F_TFL[2] + b_u * F_TFR[2]) / (F_TFL[2] + F_TFR[2]);
+    out[97] = coder::internal::maximum(uFL);
+    out[98] = (b_u * F_TFL[2] + uFR * F_TFR[2]) / (F_TFL[2] + F_TFR[2]);
     out[99] = (uRL * F_TRL[2] + uRR * F_TRR[2]) / (F_TRL[2] + F_TRR[2]);
     memcpy(&out[100], &out_aero[0], 8U * sizeof(double));
     out[108] = u[0];
     out[109] = u[3];
     b_u = dt / 2.0;
-    expl_temp.T_MMax = v_idx_7;
+    expl_temp.i_G = veh_i_G;
+    expl_temp.T_MMax = v[7];
     expl_temp.C_D = car[0];
     expl_temp.C_LRA = car[2];
     expl_temp.C_LFA = car[1];
-    expl_temp.F_SRR0 = v_idx_5;
-    expl_temp.F_SRL0 = v_idx_5;
-    expl_temp.F_SFR0 = v_idx_4;
-    expl_temp.F_SFL0 = v_idx_4;
-    expl_temp.l_RA = l_RA;
-    expl_temp.l_FA = l_FA;
-    expl_temp.z_cg = car[5] + 0.09;
-    expl_temp.m_C = car[3] + 193.60000000000002;
+    expl_temp.F_SRR0 = v[5];
+    expl_temp.F_SRL0 = v[5];
+    expl_temp.F_SFR0 = v[4];
+    expl_temp.F_SFL0 = v[4];
+    expl_temp.c_RollRA = v[9];
+    expl_temp.c_RollFA = v[8];
+    expl_temp.l_RA = v[3];
+    expl_temp.l_FA = v[2];
+    expl_temp.z_cg = v[6];
+    expl_temp.m_C = v[1];
     for (i = 0; i <= 40; i += 2) {
       r = _mm_loadu_pd(&dvFLdz[i]);
       r1 = _mm_loadu_pd(&x[i]);
@@ -10593,7 +10624,7 @@ namespace adtm
     isInitialized_adtm_step = false;
   }
 
-  void adtm_step_torque(double x[42], const double u[10], const double car[7],
+  void adtm_step_torque(double x[42], const double u[10], const double car[9],
                         double, double dt, double out[110])
   {
     static const signed char b[3] = { 0, 1, 0 };
@@ -10644,6 +10675,7 @@ namespace adtm
     double dv[14];
     double f[14];
     double l_y_tmp[14];
+    double v[10];
     double A_0V[9];
     double A_VQFR[9];
     double A_VQRL[9];
@@ -10810,8 +10842,6 @@ namespace adtm
     double gamma_FR;
     double gamma_RL;
     double gamma_RR;
-    double l_FA;
-    double l_RA;
     double r_dynFL;
     double r_dynFR;
     double r_dynRL;
@@ -10820,7 +10850,7 @@ namespace adtm
     double r_stFR;
     double r_stRL;
     double r_stRR;
-    double uFL;
+    double uFR;
     double uRL;
     double uRR;
     double v_0FAV_tmp;
@@ -10836,9 +10866,7 @@ namespace adtm
     double v_0VV_idx_0;
     double v_0VV_idx_1;
     double v_0VV_idx_2;
-    double v_idx_4;
-    double v_idx_5;
-    double v_idx_7;
+    double veh_i_G;
     double w_RR;
     double z_FL;
     double z_FL_dot;
@@ -10863,23 +10891,8 @@ namespace adtm
     //    T_MCmdFL, T_MCmdFR, T_MCmdRL, T_MCmdRR (Nm at each motor)]. The ADTM's own torque control (f_eMotTorqueCtrl)
     //    is skipped: this is its "Simulink" input path (opts.isSimulink), which for hub motors only changes where the
     //    torque commands come from. The motor limits (torque, power, speed) stay in the model (f_powertrain).
-    // ADTM_VEHICLE FS Lap's setup applied to the team's vehicle at run time: the values adtm_step and adtm_init then set.
-    //    car: [C_D, C_LFA, C_LRA with A = 1 m^2 (negative = drag / downforce), mass shift (kg), shift of the mass share on
-    //    the front axle, CoG height shift (m), motor torque factor]. With [C_D C_LFA C_LRA 0 0 0 1] it is the vehicle file's
-    //    car exactly; the shifts move the team's values, so FS Lap's stock setup always drives the team's ADTM.
-    //    v: [m, m_C, l_FA, l_RA, F_SFL0 = F_SFR0, F_SRL0 = F_SRR0, z_cg, T_MMax]
-    //    The callers set the fields themselves: a vehicle struct returned from here is no longer a constant to MATLAB Coder,
-    //    and the model picks its branches (motor, driveline, suspension) by constant fields.
-    //  the unsprung masses stay
-    l_FA = 0.765 - 1.53 * car[4];
-    l_RA = 1.53 * car[4] + 0.765;
-
-    //  as f_vehicleParameters: the spring pretension carries the chassis
-    b_u = 9.80665 * (car[3] + 193.60000000000002);
-    uFL = 2.0 * (l_FA + l_RA);
-    v_idx_4 = b_u * l_RA / uFL;
-    v_idx_5 = b_u * l_FA / uFL;
-    v_idx_7 = 21.0 * car[6];
+    adtm_vehicle(car, v);
+    veh_i_G = 12.421 * car[8];
 
     //       Vehicle Model Equations            %%
     //  ----------------------------------------- %
@@ -10928,8 +10941,8 @@ namespace adtm
     //  Direction vectors
     //  Chassis to earth
     //  Rotation matrix for angle ang about Z axis
-    uFL = sin(x[5]);
-    b_u = cos(x[5]);
+    b_u = sin(x[5]);
+    uFR = cos(x[5]);
 
     //  Rotation matrix for angle ang about Y axis
     uRL = sin(x[4]);
@@ -10938,11 +10951,11 @@ namespace adtm
     //  Rotation matrix for angle ang about X axis
     d = sin(x[3]);
     A_x_tmp_tmp = cos(x[3]);
-    A_z_tmp[0] = b_u;
-    A_z_tmp[3] = -uFL;
+    A_z_tmp[0] = uFR;
+    A_z_tmp[3] = -b_u;
     A_z_tmp[6] = 0.0;
-    A_z_tmp[1] = uFL;
-    A_z_tmp[4] = b_u;
+    A_z_tmp[1] = b_u;
+    A_z_tmp[4] = uFR;
     A_z_tmp[7] = 0.0;
     A_y_tmp[0] = uRR;
     A_y_tmp[3] = 0.0;
@@ -11165,18 +11178,17 @@ namespace adtm
     omega_0VV[2] = x[19];
 
     //  Angular vel. @ CoG
-    v_0FAV_tmp = v_0VV_idx_0 + (omega_0VV[1] * -(car[5] + 0.09) - 0.0 *
-      omega_0VV[2]);
+    v_0FAV_tmp = v_0VV_idx_0 + (omega_0VV[1] * -v[6] - 0.0 * omega_0VV[2]);
     v_0FAV[0] = v_0FAV_tmp;
-    uFL = omega_0VV[0] * -(car[5] + 0.09);
-    v_0FAV[1] = v_0VV_idx_1 + (l_FA * omega_0VV[2] - uFL);
-    v_0FAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - l_FA * omega_0VV[1]);
+    b_u = omega_0VV[0] * -v[6];
+    v_0FAV[1] = v_0VV_idx_1 + (v[2] * omega_0VV[2] - b_u);
+    v_0FAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - omega_0VV[1] * v[2]);
 
     //  Vel. @ front axle
     //  Norm of vel. @ front axle
     v_0RAV[0] = v_0FAV_tmp;
-    v_0RAV[1] = v_0VV_idx_1 + (-l_RA * omega_0VV[2] - uFL);
-    v_0RAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - -l_RA * omega_0VV[1]);
+    v_0RAV[1] = v_0VV_idx_1 + (-v[3] * omega_0VV[2] - b_u);
+    v_0RAV[2] = v_0VV_idx_2 + (omega_0VV[0] * 0.0 - -v[3] * omega_0VV[1]);
 
     //  Vel. @ rear axle
     //  Norm of vel. @ rear axle
@@ -11455,8 +11467,8 @@ namespace adtm
         _mm_set1_pd(e_yFLV[i])))));
       e_yFLV_tmp = 3 * i + 2;
       domWFLdz[e_yFLV_tmp] = 0.0;
-      uFL = A_VQRR[e_yFLV_tmp];
-      domWFLdz[b_i + 2] = uFL - e_yFLV[2] * e_yFLV[i];
+      b_u = A_VQRR[e_yFLV_tmp];
+      domWFLdz[b_i + 2] = b_u - e_yFLV[2] * e_yFLV[i];
       domWFLdz[i + 18] = domdphi_FL[i];
       dvRRdz_tmp = 3 * (i + 7);
       domWFLdz[dvRRdz_tmp] = 0.0;
@@ -11471,7 +11483,7 @@ namespace adtm
         _mm_set1_pd(e_yFRV[i])))));
       domWFLdz[i1 + 2] = 0.0;
       domWFRdz[e_yFLV_tmp] = 0.0;
-      domWFRdz[b_i + 2] = uFL - e_yFRV[2] * e_yFRV[i];
+      domWFRdz[b_i + 2] = b_u - e_yFRV[2] * e_yFRV[i];
       domWFRdz[i + 18] = 0.0;
       domWFRdz[i + 21] = domdphi_FR[i];
       e_yFLV_tmp = 3 * (i + 8);
@@ -11690,7 +11702,7 @@ namespace adtm
     b_A_0V[2] = d12;
     b_r_0V0[2] = r_0V0[2] + d11;
     gamma_FL = f_roadContact(b_r_0V0, b_A_0V, c_A_0V, d_A_0V, dvdphi_FL, A_VQRL,
-      r_stFL, uFL, b_u, I_WFRV);
+      r_stFL, b_u, uFR, I_WFRV);
     d1 = r_VFRV[0];
     d2 = r_VFRV[1];
     d3 = r_VFRV[2];
@@ -11867,7 +11879,7 @@ namespace adtm
       c_A_0V[i] = d4;
     }
 
-    r_dynFL = f_tireTMeasy(dvdphi_FL, c_A_0V, r_stFL, uFL, b_u, gamma_FL, 0.7 *
+    r_dynFL = f_tireTMeasy(dvdphi_FL, c_A_0V, r_stFL, b_u, uFR, gamma_FL, 0.7 *
       u[5], &x[28], F_TFL, I_WFLV, s_FL, x_TFL_dot, F_ycFL, dF_x0FL, F_xMFL,
       dF_y0FL, F_yMFL);
     d1 = omega_0WFRV[0];
@@ -11921,10 +11933,9 @@ namespace adtm
 
     //  Suspension forces
     z_FL = f_suspensionForces(r_VFLV, r_VFRV, r_VRLV, r_VRRV, r_VFLV_dot,
-      r_VFRV_dot, r_VRLV_dot, r_VRRV_dot, car[5] + 0.09, v_idx_4, v_idx_4,
-      v_idx_5, v_idx_5, z_FR, z_RL, z_RR, z_FL_dot, z_FR_dot, z_RL_dot, z_RR_dot,
-      uFL, b_u, uRL, uRR, d, A_x_tmp_tmp, dz_RR, w_RR, F_SFL, F_SFR, F_SRL,
-      F_SRR);
+      r_VFRV_dot, r_VRLV_dot, r_VRRV_dot, v[6], v[8], v[9], v[4], v[4], v[5], v
+      [5], z_FR, z_RL, z_RR, z_FL_dot, z_FR_dot, z_RL_dot, z_RR_dot, b_u, uFR,
+      uRL, uRR, d, A_x_tmp_tmp, dz_RR, w_RR, F_SFL, F_SFR, F_SRL, F_SRR);
 
     //  Aerodynamic Forces
     d1 = v_0FAV_tmp * v_0FAV_tmp;
@@ -11936,15 +11947,15 @@ namespace adtm
     //  Applied forces & torques
     //  Wheel rot. friction damping coef.
     //  Powertrain
-    f_powertrain(x[24], x[25], x[26], x[27], u[6], u[7], u[8], u[9], v_idx_7,
-                 b_u, uRL, uRR, T_DFL, T_DFR, T_DRL, T_DRR);
+    f_powertrain(x[24], x[25], x[26], x[27], u[6], u[7], u[8], u[9], v[7],
+                 veh_i_G, uFR, uRL, uRR, T_DFL, T_DFR, T_DRL, T_DRR);
 
     //  Brake torques
     T_BFL = -39.111507258094768 * x[24];
-    uFL = u[1] * 2.62119;
+    b_u = u[1] * 2.62119;
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BFL) > uFL) {
+    if (fabs(T_BFL) > b_u) {
       if (rtIsNaN(T_BFL)) {
         uRR = rtNaN;
       } else if (T_BFL < 0.0) {
@@ -11953,13 +11964,13 @@ namespace adtm
         uRR = (T_BFL > 0.0);
       }
 
-      T_BFL = uFL * uRR;
+      T_BFL = b_u * uRR;
     }
 
     T_BFR = -39.111507258094768 * x[25];
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BFR) > uFL) {
+    if (fabs(T_BFR) > b_u) {
       if (rtIsNaN(T_BFR)) {
         uRR = rtNaN;
       } else if (T_BFR < 0.0) {
@@ -11968,14 +11979,14 @@ namespace adtm
         uRR = (T_BFR > 0.0);
       }
 
-      T_BFR = uFL * uRR;
+      T_BFR = b_u * uRR;
     }
 
     T_BRL = -39.111507258094768 * x[26];
-    uFL = u[2] * 2.4887362499999997;
+    b_u = u[2] * 2.4887362499999997;
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BRL) > uFL) {
+    if (fabs(T_BRL) > b_u) {
       if (rtIsNaN(T_BRL)) {
         uRR = rtNaN;
       } else if (T_BRL < 0.0) {
@@ -11984,13 +11995,13 @@ namespace adtm
         uRR = (T_BRL > 0.0);
       }
 
-      T_BRL = uFL * uRR;
+      T_BRL = b_u * uRR;
     }
 
     T_BRR = -39.111507258094768 * x[27];
 
     //  Limit each absolute value of val0 to limit
-    if (fabs(T_BRR) > uFL) {
+    if (fabs(T_BRR) > b_u) {
       if (rtIsNaN(T_BRR)) {
         uRR = rtNaN;
       } else if (T_BRR < 0.0) {
@@ -11999,7 +12010,7 @@ namespace adtm
         uRR = (T_BRR > 0.0);
       }
 
-      T_BRR = uFL * uRR;
+      T_BRR = b_u * uRR;
     }
 
     //  Applied torques
@@ -12127,7 +12138,7 @@ namespace adtm
     }
 
     //  Applied forces
-    uFL = ((F_SFL + F_SFR) + F_SRL) + F_SRR;
+    b_u = ((F_SFL + F_SFR) + F_SRL) + F_SRR;
 
     //  Chassis
     //  FL
@@ -12181,14 +12192,14 @@ namespace adtm
     c_A_0V[0] = r_VRRV[1] * dvdphi_RR[2] - dvdphi_RR[1] * r_VRRV[2];
     c_A_0V[1] = dvdphi_RR[0] * r_VRRV[2] - r_VRRV[0] * dvdphi_RR[2];
     c_A_0V[2] = r_VRRV[0] * dvdphi_RR[1] - dvdphi_RR[0] * r_VRRV[1];
-    b_A_0V[0] = 0.0 * r_0V0[2] - r_0V0[1] * -(car[5] + 0.09);
-    b_A_0V[1] = r_0V0[0] * -(car[5] + 0.09) - l_FA * r_0V0[2];
-    b_A_0V[2] = l_FA * r_0V0[1] - r_0V0[0] * 0.0;
-    b_r_0V0[0] = 0.0 * F_ARAV[2] - F_ARAV[1] * -(car[5] + 0.09);
-    b_r_0V0[1] = F_ARAV[0] * -(car[5] + 0.09) - -l_RA * F_ARAV[2];
-    b_r_0V0[2] = -l_RA * F_ARAV[1] - F_ARAV[0] * 0.0;
+    b_A_0V[0] = 0.0 * r_0V0[2] - r_0V0[1] * -v[6];
+    b_A_0V[1] = r_0V0[0] * -v[6] - v[2] * r_0V0[2];
+    b_A_0V[2] = r_0V0[1] * v[2] - r_0V0[0] * 0.0;
+    b_r_0V0[0] = 0.0 * F_ARAV[2] - F_ARAV[1] * -v[6];
+    b_r_0V0[1] = F_ARAV[0] * -v[6] - -v[3] * F_ARAV[2];
+    b_r_0V0[2] = -v[3] * F_ARAV[1] - F_ARAV[0] * 0.0;
     r = _mm_loadu_pd(&v_0RAV[0]);
-    _mm_storeu_pd(&r_MQRR0[0], _mm_add_pd(r, _mm_mul_pd(_mm_set1_pd(uFL),
+    _mm_storeu_pd(&r_MQRR0[0], _mm_add_pd(r, _mm_mul_pd(_mm_set1_pd(b_u),
       _mm_loadu_pd(&dv41[0]))));
     r = _mm_loadu_pd(&b_r_VFLV[0]);
     r1 = _mm_loadu_pd(&r_MQRL0[0]);
@@ -12215,7 +12226,7 @@ namespace adtm
     _mm_storeu_pd(&b_A_0V[0], _mm_mul_pd(_mm_mul_pd(r, r1), _mm_set1_pd(b_b_tmp)));
     d1 = r_MQRR0[0];
     d2 = r_MQRR0[1];
-    d3 = v_0RAV[2] + uFL;
+    d3 = v_0RAV[2] + b_u;
     d4 = b_r_VFLV[0];
     d5 = b_r_VFLV[1];
     d6 = b_r_VFLV[2];
@@ -12232,7 +12243,7 @@ namespace adtm
     A_x_tmp_tmp = dvdphi_RR[1];
     dz_RR = dvdphi_RR[2];
     w_RR = e_yFLV[0];
-    uFL = e_yFLV[1];
+    uFR = e_yFLV[1];
     uRL = e_yFLV[2];
     uRR = e_yFRV[0];
     b_dvdu_FR = e_yFRV[1];
@@ -12259,7 +12270,7 @@ namespace adtm
         y_tmp[i + 28] * d12)) + ((b_y_tmp[i] * d13 + b_y_tmp[i + 14] * d14) +
         b_y_tmp[i + 28] * b_u)) + ((c_y_tmp[i] * d + c_y_tmp[i + 14] *
         A_x_tmp_tmp) + c_y_tmp[i + 28] * dz_RR)) + ((d_y_tmp[i] * w_RR +
-        d_y_tmp[i + 14] * uFL) + d_y_tmp[i + 28] * uRL)) + ((e_y_tmp[i] * uRR +
+        d_y_tmp[i + 14] * uFR) + d_y_tmp[i + 28] * uRL)) + ((e_y_tmp[i] * uRR +
                   e_y_tmp[i + 14] * b_dvdu_FR) + e_y_tmp[i + 28] * b_domdu_FL))
                + ((f_y_tmp[i] * b_domdu_FR + f_y_tmp[i + 14] * c_domdu_FL) +
                   f_y_tmp[i + 28] * c_domdu_FR)) + ((g_y_tmp[i] * v_0FAV_tmp +
@@ -12361,7 +12372,7 @@ namespace adtm
     //  Wheel torque RR
     //  Generalized force vector
     for (i = 0; i < 42; i++) {
-      q_tmp[i] = static_cast<double>(iv2[i]) * (car[3] + 193.60000000000002);
+      q_tmp[i] = static_cast<double>(iv2[i]) * v[1];
     }
 
     for (i = 0; i < 14; i++) {
@@ -12828,7 +12839,7 @@ namespace adtm
                     domdphi_FL[2]);
     dz_RR = -(omega_0URRV[0] * domdphi_FL[1] - domdphi_FL[0] * omega_0URRV[1]);
     w_RR = I_WFLV[0];
-    uFL = I_WFLV[1];
+    uFR = I_WFLV[1];
     uRL = I_WFLV[2];
     uRR = I_WFRV[0];
     b_dvdu_FR = I_WFRV[1];
@@ -12894,7 +12905,7 @@ namespace adtm
       r2 = _mm_loadu_pd(&h_y_tmp[i]);
       r2 = _mm_mul_pd(r2, _mm_set1_pd(w_RR));
       r3 = _mm_loadu_pd(&h_y_tmp[i + 14]);
-      r3 = _mm_mul_pd(r3, _mm_set1_pd(uFL));
+      r3 = _mm_mul_pd(r3, _mm_set1_pd(uFR));
       r2 = _mm_add_pd(r2, r3);
       r3 = _mm_loadu_pd(&h_y_tmp[i + 28]);
       r3 = _mm_mul_pd(r3, _mm_set1_pd(uRL));
@@ -13063,7 +13074,7 @@ namespace adtm
       d = 2.2204460492503131E-16;
     }
 
-    uFL = coder::b_hypot(fabs(F_TFL[0]) / uRR, fabs(F_TFL[1]) / d);
+    b_u = coder::b_hypot(fabs(F_TFL[0]) / uRR, fabs(F_TFL[1]) / d);
     if (F_xMFR >= 2.2204460492503131E-16) {
       uRR = F_xMFR;
     } else {
@@ -13076,7 +13087,7 @@ namespace adtm
       d = 2.2204460492503131E-16;
     }
 
-    b_u = coder::b_hypot(fabs(F_TFR[0]) / uRR, fabs(F_TFR[1]) / d);
+    uFR = coder::b_hypot(fabs(F_TFR[0]) / uRR, fabs(F_TFR[1]) / d);
     if (F_xMRL >= 2.2204460492503131E-16) {
       uRR = F_xMRL;
     } else {
@@ -13135,12 +13146,12 @@ namespace adtm
       c_domdu_FR += d4 * I_WFRV[i];
     }
 
-    double b_uFL[4];
+    double uFL[4];
     coder::mldivide(A_z_tmp, &c_f[0], dvdphi_FL);
-    b_uFL[0] = uFL;
-    b_uFL[1] = b_u;
-    b_uFL[2] = uRL;
-    b_uFL[3] = uRR;
+    uFL[0] = b_u;
+    uFL[1] = uFR;
+    uFL[2] = uRL;
+    uFL[3] = uRR;
     out[0] = dvdphi_FL[0];
     out[3] = F_TFL[0];
     out[6] = F_TFR[0];
@@ -13236,29 +13247,32 @@ namespace adtm
     out[92] = (((((((((d + A_x_tmp_tmp) + dz_RR) + w_RR) + v_0FAV_tmp) +
                    b_dvdu_FR) + b_domdu_FL) + b_domdu_FR) + c_domdu_FL) +
                c_domdu_FR) * 0.014584380239693683;
-    out[93] = uFL;
-    out[94] = b_u;
+    out[93] = b_u;
+    out[94] = uFR;
     out[95] = uRL;
     out[96] = uRR;
-    out[97] = coder::internal::maximum(b_uFL);
-    out[98] = (uFL * F_TFL[2] + b_u * F_TFR[2]) / (F_TFL[2] + F_TFR[2]);
+    out[97] = coder::internal::maximum(uFL);
+    out[98] = (b_u * F_TFL[2] + uFR * F_TFR[2]) / (F_TFL[2] + F_TFR[2]);
     out[99] = (uRL * F_TRL[2] + uRR * F_TRR[2]) / (F_TRL[2] + F_TRR[2]);
     memcpy(&out[100], &out_aero[0], 8U * sizeof(double));
     out[108] = u[0];
     out[109] = u[3];
     b_u = dt / 2.0;
-    expl_temp.T_MMax = v_idx_7;
+    expl_temp.i_G = veh_i_G;
+    expl_temp.T_MMax = v[7];
     expl_temp.C_D = car[0];
     expl_temp.C_LRA = car[2];
     expl_temp.C_LFA = car[1];
-    expl_temp.F_SRR0 = v_idx_5;
-    expl_temp.F_SRL0 = v_idx_5;
-    expl_temp.F_SFR0 = v_idx_4;
-    expl_temp.F_SFL0 = v_idx_4;
-    expl_temp.l_RA = l_RA;
-    expl_temp.l_FA = l_FA;
-    expl_temp.z_cg = car[5] + 0.09;
-    expl_temp.m_C = car[3] + 193.60000000000002;
+    expl_temp.F_SRR0 = v[5];
+    expl_temp.F_SRL0 = v[5];
+    expl_temp.F_SFR0 = v[4];
+    expl_temp.F_SFL0 = v[4];
+    expl_temp.c_RollRA = v[9];
+    expl_temp.c_RollFA = v[8];
+    expl_temp.l_RA = v[3];
+    expl_temp.l_FA = v[2];
+    expl_temp.z_cg = v[6];
+    expl_temp.m_C = v[1];
     for (i = 0; i <= 40; i += 2) {
       r = _mm_loadu_pd(&dvFLdz[i]);
       r1 = _mm_loadu_pd(&x[i]);

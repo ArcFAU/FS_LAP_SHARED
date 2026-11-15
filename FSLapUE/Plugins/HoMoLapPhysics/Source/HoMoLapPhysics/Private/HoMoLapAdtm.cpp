@@ -28,15 +28,17 @@ namespace
 		{
 			adtm::adtm_step_initialize();
 			// FS Lap's setup on the team's vehicle (tools/adtm/adtm_vehicle.m): the aero as it is; mass, weight split, CoG
-			// height and motor torque as their change from FS Lap's stock car, so the stock setup is the team's ADTM exactly
+			// height, motor torque, roll stiffness split and gear ratio as their change from FS Lap's stock car, so the stock
+			// setup is the team's ADTM exactly
 			const Setup stock;
 			car[0] = -V.CdA; car[1] = -V.ClA * V.bal; car[2] = -V.ClA * (1 - V.bal);
 			car[3] = (V.mCar + V.mDrv) - (stock.mCar + stock.mDrv); car[4] = V.wf - stock.wf; car[5] = V.h - stock.h; car[6] = V.Tm / stock.Tm;
+			car[7] = V.rollFront - stock.rollFront; car[8] = V.G / stock.G;
 			tyreGrip = V.mu0 / stock.mu0;   // the tyres' friction scales the ADTM's road friction
 			brakeFront = V.brakeFront; brakeForce = V.Fb; systemPower = V.Pmax * 1000;
 			double k[9];
 			adtm::adtm_constants(k);
-			handMax = k[0]; torquePerBarF = k[1]; torquePerBarR = k[2]; r0 = k[3]; motorTorque = k[4] * car[6]; gear = k[5];
+			handMax = k[0]; torquePerBarF = k[1]; torquePerBarR = k[2]; r0 = k[3]; motorTorque = k[4] * car[6]; gear = k[5] * car[8];
 			// the ADTM's steering kinematics: mean front wheel angle against steering wheel angle (a step of length 0 only evaluates it)
 			adtm::adtm_init(car, x);
 			for (int i = 0; i <= 80; ++i)
@@ -110,7 +112,7 @@ namespace
 			synced = true;
 		}
 
-		double x[nStates] = {}, out[nOutputs] = {}, car[7] = {};
+		double x[nStates] = {}, out[nOutputs] = {}, car[9] = {};
 		double handMax = 0, torquePerBarF = 1, torquePerBarR = 1, r0 = 0.2, motorTorque = 21, gear = 12.421;
 		double brakeFront = 0.7, brakeForce = 9000, systemPower = 80000, tyreGrip = 1, t = 0;
 		std::vector<double> hand, road;
