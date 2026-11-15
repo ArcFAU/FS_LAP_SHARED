@@ -61,7 +61,16 @@ namespace
 			double throttle = std::clamp(c.thr, 0.0, 1.0) * std::min(1.0, systemPower / (4 * motorTorque * gear * std::max(c.vx, 0.1) / r0));
 			if (c.brk > 0.05 && c.vx > 0.3) throttle = 0;   // as FS Lap: the brake wins
 			double u[6] = { c.direct ? std::clamp(c.st, -1.0, 1.0) * handMax : HandAngle(c.delta), brake * brakeFront / 2 * r0 / torquePerBarF, brake * (1 - brakeFront) / 2 * r0 / torquePerBarR, throttle, 1, Grip * tyreGrip };
-			adtm::adtm_step(x, u, car, t, Dt, out);
+			if (c.motorTorques)
+			{
+				// a VCU's four torque commands instead of the ADTM's own torque control; the hydraulic brakes stay the pedal's
+				const double ut[10] = { u[0], u[1], u[2], 0, 1, u[5], c.Tm[0], c.Tm[1], c.Tm[2], c.Tm[3] };
+				adtm::adtm_step_torque(x, ut, car, t, Dt, out);
+			}
+			else
+			{
+				adtm::adtm_step(x, u, car, t, Dt, out);
+			}
 			t += Dt;
 			if (!std::all_of(x, x + nStates, [](double v) { return std::isfinite(v); }))
 			{

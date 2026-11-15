@@ -29,6 +29,10 @@ extern void adtm_step_initialize();
 
 extern void adtm_step_terminate();
 
+extern void adtm_step_torque(double x[42], const double u[10],
+                             const double car[7], double t, double dt,
+                             double out[110]);
+
 } // namespace adtm
 
 #endif

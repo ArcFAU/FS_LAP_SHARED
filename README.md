@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `d680d9e` on 2026-11-15.
+> Synced from development commit `3cb62a5` on 2026-11-15.
 
 ---
 
@@ -245,6 +245,7 @@ You can drive the team's Advanced Dual Track Model (ADTM) itself, live, with the
 - **From the ADTM vehicle file baked in at generation:** everything else, including tyres, suspension, inertias and the motors' power and speed. Today that is `FAUmaxTau.m` with `default_mu0.7`.
 - **Not used by the ADTM:** gear ratio, load sensitivity, peak slip angle, roll stiffness and torque vectoring. With the ADTM chosen, these setup rows say `(not on the ADTM)`.
 - **No handbrake:** the handbrake does nothing on the ADTM, as on the real car.
+- **Four motor torques (for the VCU, not used in the game yet):** the core's input can carry four motor torque commands (`Input::motorTorques`, `Tm`, Nm at each motor, FL FR RL RR) instead of the throttle. The ADTM then runs `adtm_step_torque`: the ADTM's own input path for torque commands from outside (its Simulink mode), which skips its own torque control and keeps the motor limits. The hydraulic brakes still come from the pedal. This is the input the car's VCU firmware will drive through the SIL; FS Lap's own model ignores it.
 - **Force feedback:** from the ADTM's `T_Steering` (section 3). On the AI hot lap it peaks at 25.5 Nm and pulls the wheel back towards the centre 89 % of the steered time.
 
 **Results with the stock car:**
@@ -371,6 +372,8 @@ Ask the simulator's maintainer if you need any of these.
 ## 12. Change log
 
 Newest first.
+
+- **2026-11-15 (later):** the ADTM can be driven by four motor torques, the input the VCU firmware will use (section 4b). Not used in the game yet. The ADTM code was regenerated with a second step function, `adtm_step_torque`; the stock car is unchanged (77.620 s).
 
 - **2026-11-15 (driver feedback):**
   - **Force feedback:** the wheel is reset and its motor switched on when force feedback starts (two standard commands that were missing); the wheel setup shows a status line and has a **TEST FORCE** button (section 3).

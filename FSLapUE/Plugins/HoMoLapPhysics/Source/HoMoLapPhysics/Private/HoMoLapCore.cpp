@@ -458,6 +458,8 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 	const double rate = (std::abs(st) < std::abs(c.st) || st * c.st < 0) ? Pick(arc, 9, 7) : Pick(arc, 6, 4.2);
 	c.st = In.wheel ? st : c.st + Clamp(st - c.st, -rate * Dt, rate * Dt);   // the keys' smoothing made a wheel lag by up to 0.24 s
 	c.direct = In.wheel && In.direct;
+	c.motorTorques = In.motorTorques && external;   // shortcut: FS Lap's own model has no per-motor input and ignores them; add one if it is ever driven by the VCU
+	std::copy(In.Tm, In.Tm + 4, c.Tm);
 
 	const double v = std::hypot(c.vx, c.vy), vxs = std::max(std::abs(c.vx), 1.5);
 	double sf = 1;

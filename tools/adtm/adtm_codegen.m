@@ -28,13 +28,17 @@ tires = cellfun(@f_tireParameters, veh.tires(1:4), 'UniformOutput', false);
 P.env = f_environmentParameters(opts.envConditions);
 P.road = struct('x', [0 1], 'y', [0 1], 'Z', zeros(2), 'Mu', ones(2));   % unused: flat road (use3DRoad false)
 P.opts = opts;
+P.optsTorque = opts;
+P.optsTorque.isSimulink = true;   % adtm_step_torque: the four motor torques come from outside (a VCU), as in the ADTM's Simulink version
 P.source = sprintf('%s, %s, %s', options.AdtmRoot, options.Vehicle, options.EnvConditions);
 save(fullfile(here, 'adtm_params.mat'), '-struct', 'P');
 
 addpath(here);
 args = {zeros(P.nStates, 1), zeros(6, 1), zeros(7, 1), 0, 0};
+argsTorque = {zeros(P.nStates, 1), zeros(10, 1), zeros(7, 1), 0, 0};   % u with the four motor torques (adtm_step_torque)
 if options.Mex
     codegen('-config:mex', '-d', fullfile(tempdir, 'adtm_mex'), '-o', fullfile(here, 'adtm_step_mex'), 'adtm_step', '-args', args);
+    codegen('-config:mex', '-d', fullfile(tempdir, 'adtm_mex_torque'), '-o', fullfile(here, 'adtm_step_torque_mex'), 'adtm_step_torque', '-args', argsTorque);
     return
 end
 out = fullfile(here, '..', '..', 'FSLapUE', 'Plugins', 'HoMoLapPhysics', 'Source', 'HoMoLapPhysics', 'Private', 'ADTM');
@@ -42,7 +46,7 @@ cfg = coder.config('lib');
 cfg.TargetLang = 'C++'; cfg.CppNamespace = 'adtm'; cfg.GenerateReport = false; cfg.GenCodeOnly = true; cfg.GenerateMakefile = false;   % the sources only: Unreal and MSVC build them
 cfg.FilePartitionMethod = 'SingleFile'; cfg.GenerateExampleMain = 'DoNotGenerate'; cfg.SupportNonFinite = true;
 cfg.HardwareImplementation.ProdHWDeviceType = 'Intel->x86-64 (Windows64)';   % self-contained rtwtypes.h (the MATLAB host target includes MATLAB's tmwtypes.h)
-codegen('-config', cfg, '-d', fullfile(tempdir, 'adtm_lib'), 'adtm_step', '-args', args, 'adtm_init', '-args', {zeros(7, 1)}, 'adtm_constants');
+codegen('-config', cfg, '-d', fullfile(tempdir, 'adtm_lib'), 'adtm_step', '-args', args, 'adtm_step_torque', '-args', argsTorque, 'adtm_init', '-args', {zeros(7, 1)}, 'adtm_constants');
 % only the sources and headers, flat, into the plugin
 if isfolder(out), rmdir(out, 's'); end
 mkdir(out);

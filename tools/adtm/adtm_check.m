@@ -22,4 +22,22 @@ assert(worst < 1e-6, 'adtm_check:Mismatch', 'The compiled ADTM differs from the 
 xc = x0; tic;
 for k = 1:n, xc = adtm_step_mex(xc, u(k), aero, k * dt, dt); end
 fprintf('compiled step (MEX): %.1f us per 600 Hz RK4 step, %.0fx real time\n', toc / n * 1e6, n * dt / toc);
+
+% the torque-driven step (adtm_step_torque): 1 s of equal torque, then 1 s with 8 Nm more on the right motors than on
+% the left, with the steering straight, then 1 s of negative torque (recuperation)
+ut = @(k) [0; 0; 0; 0; 1; 1; 10 * [1; 1; 1; 1] + (k > 600 && k <= 1200) * [-4; 4; -4; 4] - (k > 1200) * 25 * [1; 1; 1; 1]];
+xm = x0; xc = x0;
+worst = 0;
+yawSplit = 0;
+for k = 1:n
+    xm = adtm_step_torque(xm, ut(k), aero, k * dt, dt);
+    xc = adtm_step_torque_mex(xc, ut(k), aero, k * dt, dt);
+    worst = max(worst, max(abs(xm - xc) ./ max(1, abs(xm))));
+    if k == 1200, yawSplit = xm(20); vSplit = hypot(xm(15), xm(16)); end
+end
+fprintf('torque step, compiled vs MATLAB: largest difference %.2e; after 1 s of equal and 1 s of split torque %.2f m/s, yaw rate %+.4f rad/s; after 1 s of -25 Nm %.2f m/s\n', ...
+    worst, vSplit, yawSplit, hypot(xm(15), xm(16)));
+assert(worst < 1e-6, 'adtm_check:Mismatch', 'The compiled torque-driven ADTM differs from the MATLAB code.');
+assert(vSplit > 15 && hypot(xm(15), xm(16)) < vSplit, 'adtm_check:Torque', 'The torque commands do not drive or brake the car.');
+assert(yawSplit > 0, 'adtm_check:Yaw', 'More torque on the right motors does not turn the car to the left.');
 end

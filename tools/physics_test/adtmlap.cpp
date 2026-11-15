@@ -112,7 +112,29 @@ int main(int argc, char** argv)
 	const bool linear = std::abs(sim.c.delta - 0.3 * sim.c.dLim) < 1e-12;
 	std::printf("wheel with driver assist at %.0f km/h: road angle %.4f rad for 30 %% of the usable lock %.4f rad\n", sim.c.vx * 3.6, sim.c.delta, sim.c.dLim);
 
-	const bool pass = linear && !sim.laps.empty() && finite && follows && realTime > 2 && drag.fr.t100 > 0 && std::abs(drag.fr.t100 - 1.577) > 0.002
+	// four motor torques, as the VCU will send them: equal torque drives, more on the right turns left, negative brakes
+	const auto torques = [&](double fl, double fr, double rl, double rr, double seconds, Simulation& run)
+	{
+		Input in;
+		in.human = true;
+		in.motorTorques = true;
+		in.Tm[0] = fl; in.Tm[1] = fr; in.Tm[2] = rl; in.Tm[3] = rr;
+		for (int k = 0; k < seconds * 600; ++k) run.Step(&in);
+	};
+	Simulation vcu(track, Setup{}, Mode::Free);
+	const std::unique_ptr<Simulation::VehicleModel> adtm4 = MakeAdtm(Setup{});
+	vcu.external = adtm4.get();
+	torques(10, 10, 10, 10, 1.0, vcu);
+	const double vDrive = std::hypot(vcu.c.vx, vcu.c.vy), yawEqual = vcu.c.r;
+	torques(6, 14, 6, 14, 0.5, vcu);
+	const double yawSplit = vcu.c.r;
+	torques(-25, -25, -25, -25, 0.5, vcu);
+	const double vBrake = std::hypot(vcu.c.vx, vcu.c.vy);
+	const bool torqueInput = vDrive > 3 && std::abs(yawEqual) < 0.01 && yawSplit > 0.02 && vBrake < vDrive;
+	std::printf("motor torques on the ADTM: 1 s of 4 x 10 Nm %.2f m/s (yaw %+.4f rad/s); 8 Nm more on the right: yaw %+.4f rad/s; 0.5 s of 4 x -25 Nm: %.2f m/s\n",
+		vDrive, yawEqual, yawSplit, vBrake);
+
+	const bool pass = torqueInput && linear && !sim.laps.empty() && finite && follows && realTime > 2 && drag.fr.t100 > 0 && std::abs(drag.fr.t100 - 1.577) > 0.002
 		&& maxSteerT > 0 && aligningShare > 50   // the ADTM really drove
 		&& direct && smoothed && setupActs;
 	std::printf(pass ? "PASS\n" : "FAIL\n");

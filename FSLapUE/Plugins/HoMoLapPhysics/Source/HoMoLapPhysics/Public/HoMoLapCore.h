@@ -30,6 +30,10 @@ namespace HoMoLap
 		bool hb = false, assist = false, human = false, arcade = false;
 		bool wheel = false;    // steer comes from a steering wheel: no smoothing, the driver's hands are the rate limit
 		bool direct = false;   // and 1:1: steer is the share of the car's steering wheel lock, at any speed, without the steering assist
+		// the four motors' torque commands (Nm at each motor; FL, FR, RL, RR), as a VCU sends them: then thr is not used and
+		// the vehicle model applies these instead of its own torque control. Only the ADTM takes them.
+		bool motorTorques = false;
+		double Tm[4] = {};
 	};
 
 	struct HOMOLAPPHYSICS_API Car
@@ -41,6 +45,8 @@ namespace HoMoLap
 		bool grass = false, assistBrake = false, hitWall = false;
 		bool slipF = false, slipR = false;   // axle sliding or locked: skid marks and smoke
 		bool direct = false;   // st is the share of the car's steering wheel lock (Input::direct)
+		bool motorTorques = false;   // Input::motorTorques and Tm, handed on to the external vehicle model
+		double Tm[4] = {};
 		double steerT = 0;   // steering wheel torque (Nm, the ADTM's T_Steering; 0 on FS Lap's own model): force feedback
 	};
 
