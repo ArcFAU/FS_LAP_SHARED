@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `3cb62a5` on 2026-11-15.
+> Synced from development commit `1b9d33f` on 2026-11-15.
 
 ---
 
@@ -36,7 +36,7 @@ This repository is the team's shared copy. It is updated from the development re
 - **Setup:** change the aero package, mass, power, tyres, brakes and chassis (18 parameters, section 4). Best laps are kept per mode and setup.
 - **Replay:** watch your best lap from roadside cameras.
 - **The complete LTS as the reference:** the team's lap time simulation (MATLAB) computes the reference lap for your current setup, with the point-mass, single-track or dual-track model (section 4a).
-- **Lap data:** every completed lap is saved at 600 Hz (CSV) and in the LTS run format, and `tools/lts/compareLaps.m` compares it with an LTS lap or another driven lap (section 4a).
+- **Lap data:** every completed lap is saved at 600 Hz (CSV) and in the LTS run format, and `tools/lts/compareLaps.m` compares it with an LTS lap or another driven lap (section 4a). `Submit runs.bat` sends your laps to the team (section 2).
 - **The team's ADTM as the car:** drive the team's Advanced Dual Track Model live instead of FS Lap's own model, compiled into the game (section 4b).
 
 ## 2. Getting started
@@ -72,6 +72,24 @@ cd FS_LAP_SHARED
 
 - **Double-click `Play FS Lap.bat`.** It starts the game the way its settings say: borderless full screen on a first run. If your engine is not at `D:\UE\UE_5.8`, set the `UE_ROOT` environment variable to your engine folder first. The first start compiles shaders and takes several minutes; later starts take about a minute.
 - **Or open `FSLapUE\FSLapUE.uproject`** in the Unreal Editor and press Play.
+
+### Update it
+
+**Close the game and double-click `Update FS Lap.bat`.** It gets the newest version from this repository (`git pull`), shows what is new and rebuilds the game. If your engine is not at `D:\UE\UE_5.8`, set `UE_ROOT` as for `Play FS Lap.bat`.
+
+Your laps, settings, keys and wheel calibration are in `FSLapUE\Saved`, which git never touches, so they stay. Changes you made to files in the repository (Unreal rewrites the engine line in `FSLapUE.uproject`, for example) are put aside and put back (`git pull --autostash`). **Don't delete the folder and clone it again to update:** that deletes `FSLapUE\Saved` and the laps you have not sent.
+
+### Send your laps to the team
+
+Every lap you complete is saved in `FSLapUE\Saved\Runs\<session>\` (a session starts when you pick a mode; its folder name is the start time and the mode). Laps you don't finish (restart, menu, cut) are not saved.
+
+**Double-click `Submit runs.bat`.** The first time it asks your name and remembers it (`FSLapUE\Saved\driver.txt`). It then sends every lap not sent yet to the branch [`runs`](https://github.com/ArcFAU/FS_LAP_SHARED/tree/runs) of this repository, as `<your name>/<session>/lap_NN.csv.gz` and `lap_NN.run.json.gz` (about 3 MB a lap, stored in Git LFS, so a normal clone of `main` does not download them). Run it as often as you like: what was sent once is not sent again.
+
+- **What you need:** a GitHub account with write access to this repository: ask the owner to add you. The first submission opens a GitHub login in the browser (Git Credential Manager, part of Git for Windows).
+- **What goes up:** the lap files, your name as typed, and nothing else: the commits carry your name and no e-mail address. **This repository is public**, so anyone can see them.
+- **If sending fails** (no internet, no access), the laps are kept and go up the next time.
+- **What is in a lap:** the columns of the CSV and the run format are in section 4a. Each `.run.json` also says which vehicle model drove (`calculationKernel`) and which FS Lap version (`fslapVersion`: the version in `VERSION.txt`).
+- **Getting all laps** (the vehicle dynamics team): `git clone --branch runs --single-branch https://github.com/ArcFAU/FS_LAP_SHARED.git FS_LAP_RUNS`, later `git pull` in it. Python's `pandas.read_csv("lap_01.csv.gz")` reads a lap as it is; in MATLAB, `gunzip` it first.
 
 ### Make a stand-alone build
 
@@ -303,6 +321,9 @@ tools/                            conversion, import and test scripts
   lts/                            MATLAB: compareLaps.m (driven laps against LTS laps), adtmReplay.m (driven laps through the ADTM)
 vehicle-data/                     suspension hardpoints and design table
 Play FS Lap.bat                   starts the game
+Update FS Lap.bat                 gets the newest version and rebuilds it; your laps and settings stay
+Submit runs.bat                   sends your laps to the branch runs
+VERSION.txt                       the FS Lap version (written by the sync); the game puts it into every lap file
 ```
 
 The main classes:
@@ -372,6 +393,8 @@ Ask the simulator's maintainer if you need any of these.
 ## 12. Change log
 
 Newest first.
+
+- **2026-11-15 (lap collection):** `Submit runs.bat` sends your laps to the team (the branch `runs` of this repository), and `Update FS Lap.bat` updates and rebuilds the game without touching your laps or settings (section 2). Every lap file now names the FS Lap version it was driven with (`fslapVersion`, from the new `VERSION.txt`).
 
 - **2026-11-15 (later):** the ADTM can be driven by four motor torques, the input the VCU firmware will use (section 4b). Not used in the game yet. The ADTM code was regenerated with a second step function, `adtm_step_torque`; the stock car is unchanged (77.620 s).
 

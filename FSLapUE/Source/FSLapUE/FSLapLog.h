@@ -10,6 +10,7 @@
  *                     speed_mps/curvature_1pm/lateralAcceleration_mps2), plus "fslap" with the setup, the result and
  *                     the full channels, so it can be put next to LTS runs (tools/lts/compareLaps.m, HoMo LTS)
  * Files are written on a worker thread; a lap that is not completed (cut, restart, menu) is dropped.
+ * Saved/ is not in git, so updating (Update FS Lap.bat) keeps the laps; Submit runs.bat sends them to the shared repository.
  */
 class FFSLapLog
 {
@@ -28,5 +29,5 @@ private:
 
 	TArray<double> Rows;   // NumColumns values per step
 	size_t SeenLaps = 0;
-	FString Session, ModeName, Setup, ReferenceJson, KernelName, LastFile;
+	FString Session, ModeName, Setup, ReferenceJson, KernelName, LastFile, Version;
 };
