@@ -5,12 +5,14 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <string>
 
 #include "HoMoLapAdtm.h"
 
 int main(int argc, char** argv)
 {
 	using namespace HoMoLap;
+	std::setvbuf(stdout, nullptr, _IONBF, 0);   // every line out at once, also if a step crashes
 	if (!*AdtmSource())
 	{
 		std::printf("no ADTM code: run tools\\adtm\\adtm_codegen.m first\nFAIL\n");
@@ -135,9 +137,31 @@ int main(int argc, char** argv)
 	std::printf("motor torques on the ADTM: 1 s of 4 x 10 Nm %.2f m/s (yaw %+.4f rad/s); 8 Nm more on the right: yaw %+.4f rad/s; 0.5 s of 4 x -25 Nm: %.2f m/s\n",
 		vDrive, yawEqual, yawSplit, vBrake);
 
+	// the event tracks: the AI laps each with the ADTM; FS Czech has hills, which the ADTM drives as its 3D road
+	// (HoMoLapAdtm.cpp's road window): it must not lose the road, and the car must ride at the ground's height
+	bool eventsOk = true;
+	for (int e = 1; e < EventTrackCount(); ++e)
+	{
+		const Track ev = MakeEventTrack(e);
+		Simulation es(ev, Setup{}, Mode::Sim);
+		const std::unique_ptr<Simulation::VehicleModel> adtmE = MakeAdtm(Setup{});
+		es.external = adtmE.get();
+		bool fin = true;
+		for (long long k = 0; k < 200 * 600 && es.laps.size() < 2 && fin; ++k)
+		{
+			es.Step(nullptr);
+			fin = std::isfinite(es.c.x) && std::isfinite(es.c.vx);
+		}
+		const bool lapped = es.laps.size() >= 2 && es.laps[1].valid;
+		std::printf("ADTM on %s%s: %s (%s lap %.2f s)\n", ev.name, ev.terrain.empty() ? "" : " (hills, 3D road)",
+			lapped ? (std::string("lap ") + std::to_string(es.laps[1].time).substr(0, 7) + " s, cones " + std::to_string(es.laps[1].cones) + ", off " + std::to_string(es.laps[1].offCourse)).c_str() : "no valid lap",
+			ev.refName, ev.ltsLap);
+		eventsOk = eventsOk && fin && lapped;
+	}
+
 	const bool pass = torqueInput && linear && !sim.laps.empty() && finite && follows && realTime > 2 && drag.fr.t100 > 0 && std::abs(drag.fr.t100 - 1.577) > 0.002
 		&& maxSteerT > 0 && aligningShare > 50   // the ADTM really drove
-		&& direct && smoothed && setupActs;
+		&& direct && smoothed && setupActs && eventsOk;
 	std::printf(pass ? "PASS\n" : "FAIL\n");
 	return pass ? 0 : 1;
 }

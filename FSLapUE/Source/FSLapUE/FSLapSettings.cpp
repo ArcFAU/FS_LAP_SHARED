@@ -80,8 +80,10 @@ FString AFSLapVehiclePawn::GetSettingsRowText(int32 Row) const
 	if (Row >= FirstKey && Row < ResetKeys)
 	{
 		const int32 Item = Row - FirstKey;
-		return FString::Printf(TEXT("Key, %s:  %s"), KeyItem(Item).Label, Item == CaptureItem ? TEXT("press the new key (ESC keeps the old one)")
-			: *(GetKeyName(Item) + (Row == SettingsRow && !KeyMessage.IsEmpty() ? TEXT("   (") + KeyMessage + TEXT(")") : FString())));
+		const int32 Button = WheelButtonFor(Item);
+		const FString OnWheel = Button >= FFSLapWheel::AxisCount ? FString::Printf(TEXT("   wheel button %d"), Button - FFSLapWheel::AxisCount + 1) : FString();
+		return FString::Printf(TEXT("Key, %s:  %s"), KeyItem(Item).Label, Item == CaptureItem ? TEXT("press the new key or a wheel button (ESC keeps the old one; its own wheel button takes it off)")
+			: *(GetKeyName(Item) + OnWheel + (Row == SettingsRow && !KeyMessage.IsEmpty() ? TEXT("   (") + KeyMessage + TEXT(")") : FString())));
 	}
 	switch (Row)
 	{
@@ -112,7 +114,7 @@ FString AFSLapVehiclePawn::GetSettingsRowText(int32 Row) const
 	case EyeForward:
 		return FString::Printf(TEXT("Cockpit view, eye forward:  %+d mm"), SaveData ? SaveData->EyeForward : 0);
 	default:
-		return TEXT("Keys back to their defaults (ENTER)");
+		return TEXT("Keys back to their defaults, wheel buttons off (ENTER)");
 	}
 }
 
@@ -199,6 +201,7 @@ void AFSLapVehiclePawn::ChangeSettings(int32 Direction)
 		return;
 	default:
 		Keys.Reset();
+		WheelButtons.Reset();
 		ApplyKeys();
 		return;
 	}
@@ -212,6 +215,13 @@ void AFSLapVehiclePawn::ApplySavedSettings()
 	{
 		FApp::SetVolumeMultiplier(SaveData->MasterVolume / 100.0f);
 		Keys = SaveData->Keys;
+		WheelButtons = SaveData->WheelButtons;
+		if (WheelButtons.IsEmpty() && SaveData->WheelCal.Num() == 11)   // saved before 2026-11-15: the wheel setup's two buttons
+		{
+			WheelButtons.Init(-1, EFSLapKey::Count);
+			WheelButtons[EFSLapKey::Reset] = static_cast<int32>(SaveData->WheelCal[9]);
+			WheelButtons[EFSLapKey::Camera] = static_cast<int32>(SaveData->WheelCal[10]);
+		}
 	}
 	// the window as saved, never exclusive full screen; on a first run borderless full screen. Not for a run that asks
 	// for a window on the command line (the tests).
@@ -264,8 +274,69 @@ void AFSLapVehiclePawn::ApplyKeys()
 	if (SaveData && !IsTestRun())
 	{
 		SaveData->Keys = Keys;
+		SaveData->WheelButtons = WheelButtons;
 		UGameplayStatics::SaveGameToSlot(SaveData, SaveSlot, 0);
 	}
+}
+
+void AFSLapVehiclePawn::UpdateWheelButtons(const TArray<float>& Axes)
+{
+	const auto Down = [&Axes](int32 Button) { return Button >= FFSLapWheel::AxisCount && Axes.IsValidIndex(Button) && Axes[Button] > 0.5f; };
+	const auto WasDown = [this](int32 Button) { return Button >= FFSLapWheel::AxisCount && WheelButtonsBefore.IsValidIndex(Button) && WheelButtonsBefore[Button] > 0.5f; };
+	const auto ButtonName = [](int32 Button) { return FString::Printf(TEXT("wheel button %d"), Button - FFSLapWheel::AxisCount + 1); };
+	if (CaptureItem >= 0)
+	{
+		// a key row waits: a wheel button pressed now is that action's button; the one it has already takes it off again
+		for (int32 Button = FFSLapWheel::AxisCount; Button < Axes.Num() && !bCaptureFresh; ++Button)
+		{
+			if (!Down(Button) || WasDown(Button))
+			{
+				continue;
+			}
+			const int32 Item = CaptureItem;
+			CaptureItem = -1;
+			const int32 Other = WheelButtons.Find(Button);
+			if (Other != INDEX_NONE && Other != Item)
+			{
+				KeyMessage = ButtonName(Button) + TEXT(" is already ") + KeyItem(Other).Label;
+				break;
+			}
+			const int32 Had = WheelButtons.Num();
+			WheelButtons.SetNum(EFSLapKey::Count);
+			for (int32 i = Had; i < EFSLapKey::Count; ++i)
+			{
+				WheelButtons[i] = -1;
+			}
+			WheelButtons[Item] = Other == Item ? -1 : Button;
+			ApplyKeys();
+			break;
+		}
+	}
+	else if (Flow != EFSLapFlow::Wheel)   // the wheel setup reads the buttons itself
+	{
+		for (int32 Item = 0; Item < EFSLapKey::Count; ++Item)
+		{
+			const int32 Button = WheelButtonFor(Item);
+			const bool bNow = Down(Button), bPress = bNow && !WasDown(Button);
+			switch (Item)
+			{
+			case EFSLapKey::Throttle: WheelThrottle = bNow ? 1.0f : WheelThrottle; break;
+			case EFSLapKey::Brake: WheelBrake = bNow ? 1.0f : WheelBrake; break;
+			case EFSLapKey::SteerLeft: WheelSteer = bNow ? -1.0f : WheelSteer; break;
+			case EFSLapKey::SteerRight: WheelSteer = bNow ? 1.0f : WheelSteer; break;
+			case EFSLapKey::Handbrake:
+				if (bNow != WasDown(Button)) { bNow ? HandbrakePressed() : HandbrakeReleased(); }
+				break;
+			case EFSLapKey::Reset: if (bPress) { ResetPressed(); } break;
+			case EFSLapKey::Camera: if (bPress) { CycleCamera(); } break;
+			case EFSLapKey::Pause: if (bPress) { TogglePause(); } break;
+			case EFSLapKey::Replay: if (bPress) { ReplayPressed(); } break;
+			case EFSLapKey::Menu: if (bPress) { BackToMenu(); } break;
+			default: break;
+			}
+		}
+	}
+	WheelButtonsBefore = Axes;
 }
 
 void AFSLapVehiclePawn::UpdateKeyCapture()

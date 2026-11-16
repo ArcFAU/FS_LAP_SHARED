@@ -43,6 +43,7 @@ namespace FSLapSliceTestLocal
 		float Value = -2;
 		const TCHAR* Photo = nullptr;   // a screenshot with this name at the end of the hold
 		FVector2f Mouse = FVector2f(-1, -1);   // set: the cursor moves there first (the HUD's 1080-line layout units)
+		int32 WheelButton = -1;   // set: a pretend wheel holds this button (an index into the wheel's axes) through the hold
 	};
 	const TArray<FKeyStep>& KeySteps()
 	{
@@ -53,13 +54,17 @@ namespace FSLapSliceTestLocal
 		// the settings' last key row (menu, from pause) is selected and reads so
 		const auto KeyRow = [](const TCHAR* Text) { return [Text](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Settings && C.GetSetupRow() == C.GetSetupRowCount() - 2 && C.GetSetupRowText(C.GetSetupRow()).Contains(Text); }; };
 		const auto AssistIs = [](const TCHAR* Text) { return [Text](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 1 && C.GetSetupRowText(C.GetSetupRow()).Contains(Text); }; };
+		// the menu's rows from its table, so a new way to drive does not move every step
+		const int32 Quit = Pawn::GetMenuRowCount() - 1, Settings = Quit - 1, Setup = Quit - 2, TrackRow = Pawn::GetMenuTrackRow();
+		const int32 Arcade = [] { for (int32 r = 0; r < Pawn::GetMenuRowCount(); ++r) { if (!FCString::Strcmp(Pawn::GetMenuName(r), TEXT("ARCADE"))) { return r; } } return -1; }();
+		const auto RowY = [](int32 Row) { return 243.0f + Row * 66; };   // the middle of a menu row (FSLapHUD::DrawMenu)
 		static const TArray<FKeyStep> Steps = {
 			{ EKeys::Down, 0.2, TEXT("menu down"), Menu(1) },
 			{ EKeys::Down, 0.2, TEXT("menu down"), Menu(2) },
 			{ EKeys::Up, 0.2, TEXT("menu up"), Menu(1) },
 			{ EKeys::Up, 0.2, TEXT("menu up"), Menu(0) },
-			{ EKeys::Up, 0.2, TEXT("menu wraps to quit"), Menu(6) },
-			{ EKeys::Up, 0.2, TEXT("menu up to settings"), Menu(5) },
+			{ EKeys::Up, 0.2, TEXT("menu wraps to quit"), Menu(Quit) },
+			{ EKeys::Up, 0.2, TEXT("menu up to settings"), Menu(Settings) },
 			{ EKeys::Enter, 0.5, TEXT("enter opens the settings"), FlowIs(EFSLapFlow::Settings), -2, TEXT("settings.png") },
 			{ EKeys::Right, 2.5, TEXT("window mode: from borderless to a window"), [](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Settings && C.GetSetupRowText(0).Contains(TEXT("Window:  window")); } },
 			{ EKeys::Down, 0.2, TEXT("down to the resolution"), [](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Settings && C.GetSetupRow() == 1 && C.GetSetupRowText(1).Contains(TEXT("1920 x 1080")); } },
@@ -75,8 +80,10 @@ namespace FSLapSliceTestLocal
 			{ EKeys::Up, 0.2, TEXT("an arrow key is refused and moves nothing"), KeyRow(TEXT("M   (UP is a menu or view key)")) },
 			{ EKeys::Enter, 0.2, TEXT("enter waits again"), KeyRow(TEXT("press the new key")) },
 			{ EKeys::N, 0.2, TEXT("n becomes the key"), KeyRow(TEXT("menu, from pause:  N")) },
-			{ EKeys::Escape, 0.2, TEXT("esc leaves the settings"), Menu(5) },
-			{ EKeys::Up, 0.2, TEXT("menu up to setup"), Menu(4) },
+			{ EKeys::Enter, 0.2, TEXT("enter waits for a key or a wheel button"), KeyRow(TEXT("press the new key or a wheel button")) },
+			{ EKeys::Invalid, 0.2, TEXT("a wheel button becomes the action's button too"), KeyRow(TEXT("menu, from pause:  N   wheel button 5")), -2, nullptr, FVector2f(-1, -1), 12 },
+			{ EKeys::Escape, 0.2, TEXT("esc leaves the settings"), Menu(Settings) },
+			{ EKeys::Up, 0.2, TEXT("menu up to setup"), Menu(Setup) },
 			{ EKeys::Enter, 0.2, TEXT("enter opens setup"), FlowIs(EFSLapFlow::Setup) },
 			{ EKeys::Right, 0.2, TEXT("next aero package"), RowHas(0, TEXT("vehicle-params")) },
 			{ EKeys::Left, 0.2, TEXT("previous aero package"), RowHas(0, TEXT("LTS vehicle file")) },
@@ -107,28 +114,37 @@ namespace FSLapSliceTestLocal
 			{ EKeys::RightMouseButton, 0.2, TEXT("right-click lowers downforce"), RowHas(1, TEXT("5.35")) },
 			{ EKeys::LeftMouseButton, 0.2, TEXT("click raises it again"), RowHas(1, TEXT("5.40")) },
 			{ EKeys::Enter, 0.2, TEXT("enter leaves setup"), FlowIs(EFSLapFlow::Menu) },
-			{ EKeys::Down, 0.2, TEXT("menu down to settings"), Menu(5) },
-			{ EKeys::Down, 0.2, TEXT("menu down to quit"), Menu(6) },
+			{ EKeys::Down, 0.2, TEXT("menu down to settings"), Menu(Settings) },
+			{ EKeys::Down, 0.2, TEXT("menu down to quit"), Menu(Quit) },
 			{ EKeys::Down, 0.2, TEXT("menu wraps to the top"), Menu(0) },
-			{ EKeys::Invalid, 0.3, TEXT("the mouse over arcade selects it"), Menu(1), -2, nullptr, FVector2f(200, 310) },
-			{ EKeys::Up, 0.2, TEXT("menu up to hot lap"), Menu(0) },
+			{ EKeys::Invalid, 0.3, TEXT("the mouse over arcade selects it"), Menu(Arcade), -2, nullptr, FVector2f(200, RowY(Arcade)) },
+			{ EKeys::Invalid, 0.3, TEXT("the mouse over hot lap selects it"), Menu(0), -2, nullptr, FVector2f(200, RowY(0)) },
 			{ EKeys::Enter, 0.2, TEXT("enter starts a hot lap"), [](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Countdown && C.GetRaceMode() == HoMoLap::Mode::Sim; } },
 			{ EKeys::Escape, 0.2, TEXT("esc pauses"), FlowIs(EFSLapFlow::Paused) },
 			{ EKeys::Enter, 0.2, TEXT("enter resumes"), FlowIs(EFSLapFlow::Countdown) },
 			{ EKeys::P, 0.2, TEXT("p pauses"), FlowIs(EFSLapFlow::Paused) },
 			{ EKeys::R, 0.2, TEXT("r restarts from pause"), FlowIs(EFSLapFlow::Countdown) },
 			{ EKeys::Escape, 0.2, TEXT("esc pauses"), FlowIs(EFSLapFlow::Paused) },
+			{ EKeys::Invalid, 0.2, TEXT("the wheel button goes to the menu, as n does"), FlowIs(EFSLapFlow::Menu), -2, nullptr, FVector2f(-1, -1), 12 },
+			{ EKeys::Enter, 0.2, TEXT("enter starts the hot lap again"), [](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Countdown && C.GetRaceMode() == HoMoLap::Mode::Sim; } },
+			{ EKeys::Escape, 0.2, TEXT("esc pauses"), FlowIs(EFSLapFlow::Paused) },
 			{ EKeys::M, 0.2, TEXT("m no longer goes to the menu"), FlowIs(EFSLapFlow::Paused) },
 			{ EKeys::N, 0.2, TEXT("n goes to the menu"), FlowIs(EFSLapFlow::Menu) },
-			{ EKeys::Up, 0.2, TEXT("menu wraps to quit"), Menu(6) },
-			{ EKeys::Up, 0.2, TEXT("menu up to settings"), Menu(5) },
+			{ EKeys::Up, 0.2, TEXT("menu wraps to quit"), Menu(Quit) },
+			{ EKeys::Up, 0.2, TEXT("menu up to settings"), Menu(Settings) },
 			{ EKeys::Enter, 0.2, TEXT("enter opens the settings"), FlowIs(EFSLapFlow::Settings) },
 			{ EKeys::Down, 0.2, TEXT("down to the keys' reset row"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 1; } },
-			{ EKeys::Enter, 0.2, TEXT("the reset row gives m back"), [](const Pawn& C) { return C.GetSetupRowText(C.GetSetupRowCount() - 2).EndsWith(TEXT("menu, from pause:  M")); } },
-			{ EKeys::Escape, 0.2, TEXT("esc leaves the settings"), Menu(5) },
-			{ EKeys::Down, 0.2, TEXT("menu down to quit"), Menu(6) },
+			{ EKeys::Enter, 0.2, TEXT("the reset row gives m back and takes the wheel button off"), [](const Pawn& C) { return C.GetSetupRowText(C.GetSetupRowCount() - 2).EndsWith(TEXT("menu, from pause:  M")); } },
+			{ EKeys::Escape, 0.2, TEXT("esc leaves the settings"), Menu(Settings) },
+			{ EKeys::Down, 0.2, TEXT("menu down to quit"), Menu(Quit) },
 			{ EKeys::Down, 0.2, TEXT("menu wraps to the top"), Menu(0) },
-			{ EKeys::Down, 0.2, TEXT("choose arcade"), Menu(1) },
+			{ EKeys::Down, 0.2, TEXT("menu down to SIL"), Menu(1) },
+			{ EKeys::Invalid, 0.3, TEXT("the mouse over the track row"), Menu(TrackRow), -2, nullptr, FVector2f(200, RowY(TrackRow)) },
+			{ EKeys::Right, 0.3, TEXT("right: the next track"), [](const Pawn& C) { return C.GetChosenMap() == 1 && C.GetMap() == 1; }, -2, TEXT("menu_track.png") },
+			{ EKeys::Enter, 0.3, TEXT("enter: the next track again"), [](const Pawn& C) { return C.GetChosenMap() == 2 % C.GetMapCount(); } },
+			{ EKeys::Left, 0.3, TEXT("left twice: back to FSG"), [](const Pawn& C) { return C.GetChosenMap() == 1 % C.GetMapCount(); } },
+			{ EKeys::Left, 0.3, TEXT("back on FSG"), [](const Pawn& C) { return C.GetChosenMap() == 0 && C.GetMap() == 0; } },
+			{ EKeys::Invalid, 0.3, TEXT("the mouse chooses arcade"), Menu(Arcade), -2, nullptr, FVector2f(200, RowY(Arcade)) },
 			{ EKeys::Enter, 0.2, TEXT("enter starts arcade"), [](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Countdown && C.GetRaceMode() == HoMoLap::Mode::Arcade; } },
 			{ EKeys::C, 0.2, TEXT("c switches to the cockpit"), [](const Pawn& C) { return C.IsOnboard(); } },
 			{ EKeys::C, 0.2, TEXT("c switches to the hood"), [](const Pawn& C) { return C.GetCameraView() == 2; } },
@@ -195,6 +211,10 @@ void UFSLapSliceTest::Finish(AFSLapVehiclePawn* Car)
 	Text += FString::Printf(TEXT("best=%.3f\ntraffic=%d\n"), Car->GetBestLap(), Car->GetTrafficCount());
 	Text += FString::Printf(TEXT("reference=%s %.3f\nreference_status=%s\nlap_log=%s\n"), *Car->GetLtsLabel(), Car->GetSimulation()->T.ltsLap, *Car->Lts.Status(), *Car->Log.LastWritten());
 	Text += FString::Printf(TEXT("vehicle_model=%s\n"), *Car->KernelName(Car->GetRaceMode()));
+	if (Car->IsSil())
+	{
+		Text += FString::Printf(TEXT("sil=%s\n"), *Car->GetSilStatus());
+	}
 	Text += FString::Printf(TEXT("replay_keys=%d\n"), bReplayKeys ? 1 : 0);
 	FFileHelper::SaveStringToFile(Text, *(OutputDir() / TEXT("results.txt")));
 	Phase = EPhase::Done;
@@ -227,6 +247,7 @@ void UFSLapSliceTest::TickKeys(APlayerController* Player, AFSLapVehiclePawn* Car
 		{
 			Player->InputKey(FInputKeyEventArgs::CreateSimulated(Step.Key, IE_Pressed, 1.0f));
 		}
+		Car->TestWheelButton = Step.WheelButton;
 		bKeyDown = true;
 		KeyTime = Now;
 		KeyFrames = 0;
@@ -254,6 +275,7 @@ void UFSLapSliceTest::TickKeys(APlayerController* Player, AFSLapVehiclePawn* Car
 		{
 			Player->InputKey(FInputKeyEventArgs::CreateSimulated(Step.Key, IE_Released, 0.0f));
 		}
+		Car->TestWheelButton = -1;
 		bKeyDown = false;
 		++KeyIndex;
 	}
@@ -329,7 +351,12 @@ void UFSLapSliceTest::Tick(float DeltaTime)
 		}
 		else if (Now - PhaseStart >= 15.0)
 		{
-			static const TCHAR* const Rows[] = { TEXT("sim"), TEXT("arcade"), TEXT("city"), TEXT("free") };   // menu order
+			static const TCHAR* const Rows[] = { TEXT("sim"), TEXT("sil"), TEXT("arcade"), TEXT("city"), TEXT("free") };   // menu order; another track: the TRACK row after them
+			const int32 TrackMap = ModeName == TEXT("czech") ? Car->FindMap(TEXT("fscz")) : (ModeName == TEXT("france") ? Car->FindMap(TEXT("fsf")) : 0);
+			if (TrackMap != Car->GetChosenMap())
+			{
+				Car->ChooseMap(TrackMap - Car->GetChosenMap());
+			}
 			for (int32 Row = 0; Row < UE_ARRAY_COUNT(Rows) && ModeName != Rows[Row]; ++Row)
 			{
 				Car->MenuDown();   // the menu photo shows this mode's note
@@ -343,7 +370,7 @@ void UFSLapSliceTest::Tick(float DeltaTime)
 	case EPhase::MenuShot:
 		if (Now - PhaseStart >= 2.0)
 		{
-			Car->StartRace(Mode);
+			Car->StartRace(Mode, Car->GetChosenMap(), ModeName == TEXT("sil"));
 			Phase = EPhase::Countdown;
 			PhaseStart = Now;
 			bPhaseShot = false;

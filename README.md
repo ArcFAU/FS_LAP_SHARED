@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `5c380e3` on 2026-11-15.
+> Synced from development commit `8e33a8f` on 2026-11-16.
 
 ---
 
@@ -16,6 +16,8 @@ This repository is the team's shared copy. It is updated from the development re
 4. [The vehicle model](#4-the-vehicle-model)
    - [4a. The complete LTS and lap data](#4a-the-complete-lts-and-lap-data)
    - [4b. Driving the team's ADTM](#4b-driving-the-teams-adtm)
+   - [4c. The event tracks](#4c-the-event-tracks)
+   - [4d. SIL: the car's VCU drives the motors](#4d-sil-the-cars-vcu-drives-the-motors)
 5. [The car model and the CAD](#5-the-car-model-and-the-cad)
 6. [Vehicle data in this repository](#6-vehicle-data-in-this-repository)
 7. [Project layout](#7-project-layout)
@@ -30,13 +32,15 @@ This repository is the team's shared copy. It is updated from the development re
 ## 1. What you can do with it
 
 - **Hot lap:** the car as the team's data describes it, on the FSG endurance track, with FS Rules penalties (cone down +2 s, off course +10 s, track cut = lap does not count), sector times, the gap to the LTS lap and to your own best lap, and ghost cars for both.
+- **Tracks:** FSG, FS Czech and FS France, chosen in the menu's **TRACK** row for hot lap, SIL and arcade (section 4c).
+- **SIL (VCU):** the car's VCU firmware drives the four motors through the team's SIL, on the ADTM (section 4d).
 - **Arcade:** the same track with more grip and power and a forgiving handling layer. No penalties.
 - **City:** a generated city about 3 km across with a timed circuit and moving traffic.
 - **Free roam:** an open paddock with a skidpad and an acceleration strip. 0–100 km/h and 75 m are timed from every standing start.
 - **Setup:** change the aero package, mass, power, tyres, brakes and chassis (18 parameters, section 4). Best laps are kept per mode and setup.
 - **Replay:** watch your best lap from roadside cameras.
 - **The complete LTS as the reference:** the team's lap time simulation (MATLAB) computes the reference lap for your current setup, with the point-mass, single-track or dual-track model (section 4a).
-- **Lap data:** every completed lap is saved at 600 Hz (CSV) and in the LTS run format, and `tools/lts/compareLaps.m` compares it with an LTS lap or another driven lap (section 4a). `Submit runs.bat` sends your laps to the team (section 2).
+- **Lap data:** every completed lap is saved at 600 Hz (CSV) and in the LTS run format, and `tools/lts/compareLaps.m` compares it with an LTS lap or another driven lap (section 4a). `tools/lts/lapsToMat.m` writes them as MATLAB `.mat` files. `Submit runs.bat` sends your laps to the team (section 2).
 - **The team's ADTM as the car:** drive the team's Advanced Dual Track Model live instead of FS Lap's own model, compiled into the game (section 4b).
 
 ## 2. Getting started
@@ -120,7 +124,8 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 **Settings (menu → SETTINGS):**
 - **Display:** window (borderless full screen or a window), resolution, graphics quality (low to epic; `custom` when the quality groups differ), VSync and a frame rate limit. Each change applies at once and is saved by the engine (`GameUserSettings.ini`); the game starts the way it was left, and on a first run in borderless full screen. Borderless full screen always uses the desktop's resolution; the resolution row sizes the window. Exclusive full screen is not offered: the game hangs in it when another window takes the focus.
 - **Sound:** master volume in steps of 10 %.
-- **Keys:** throttle, brake, steer left and right, handbrake, back on track / restart, camera, pause, replay and menu-from-pause. Select a key row, press **Enter**, then the new key; **Esc** keeps the old one. A key another row uses is refused, and so are the menu keys (arrows, Enter) and the numpad view keys. The arrow keys keep driving, **Esc** keeps pausing, and the gamepad keeps its buttons. The last row puts all keys back. The key help on screen shows your keys.
+- **Keys:** throttle, brake, steer left and right, handbrake, back on track / restart, camera, pause, replay and menu-from-pause. Select a key row, press **Enter**, then the new key; **Esc** keeps the old one. A key another row uses is refused, and so are the menu keys (arrows, Enter) and the numpad view keys. The arrow keys keep driving, **Esc** keeps pausing, and the gamepad keeps its buttons. The last row puts all keys back and takes the wheel buttons off. The key help on screen shows your keys.
+- **Wheel buttons:** while a key row waits for its new key, press a wheel button instead: it becomes that action's button next to its key, and the row shows `wheel button N`. Press the action's own button again to take it off; a button another action has is refused. Throttle, brake and the two steering rows take a button as full throttle, full brake or full lock while it is held; the other actions act on the press.
 - Volume and keys are saved with the best laps. The keyboard tests press the default keys and ignore saved keys.
 
 **Steering wheel (DirectInput wheels such as the Moza R3):**
@@ -133,7 +138,7 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 
 With **Wheel rotation off**, the calibrated right turn is full steering lock, and FS Lap's speed-dependent lock (and the steering assist, when it is on) shape the steering, as before.
 
-The wheel steers the car without any smoothing; the keys and the gamepad are smoothed. With a wheel, **Driver assist** no longer reshapes the steering (it still brakes for bends and limits wheelspin): the steering assist gave little steering around the centre and then a lot into a bend, which suits keys and felt numb and then sudden on a wheel. Two wheel buttons can be bound in the wheel setup (back on track, camera); a wheel setup saved before 2026-11-14 keeps working without them.
+The wheel steers the car without any smoothing; the keys and the gamepad are smoothed. With a wheel, **Driver assist** no longer reshapes the steering (it still brakes for bends and limits wheelspin): the steering assist gave little steering around the centre and then a lot into a bend, which suits keys and felt numb and then sudden on a wheel. Every driving action can have a wheel button (SETTINGS, **Wheel buttons** above). The wheel setup's two button steps set the buttons of back on track and the camera; a wheel setup saved before 2026-11-14 keeps working without them.
 
 **The driver's view (menu → SETTINGS):** three rows set the cockpit camera to your seat and screen.
 - **Cockpit view, eye height** and **eye forward:** move the eye point from the model driver's, in steps of 10 mm (±200 mm up or down, ±300 mm forward or back).
@@ -286,6 +291,44 @@ The ADTM's 77.620 s matches the offline closed-loop replay (77.630 s).
 
 Without the generated folder, FS Lap builds as before and the row says `ADTM not built yet`. The generated code carries MathWorks' sponsored-licence notice.
 
+- **The road under the ADTM (2026-11-16):** the ADTM runs on its 3D road (`use3DRoad`): FS Lap hands it the ground's heights as a 6 x 6 m window on its 0.1 m grid around the car, moved with the car (`tools\adtm\adtm_road.m`, `HoMoLapAdtm.cpp`), so its tyres meet the real slope and camber, and a restart settles the car on the slope where it stands. On a flat track the heights are zero and the laps are those of before (77.627 s). `adtm_check` also stands the car on a 10 % slope: it pitches by atan 0.1 and rolls back at 0.80 m/s after 1 s with the brakes off (gravity alone 0.98); with 20 bar it creeps at 0.06 m/s (TMeasy has no static friction).
+  - **Rolled over:** past 40 deg of roll or pitch the car stops where it is, upright, as after a crash (on FS Czech the AI spun into the bank beside the climb and rolled; past that state the generated code crashed).
+  - **The team's `f_roadMu`** is called with three arguments in `f_roadContact` but uses a fourth (`t`) in its error message; MATLAB Coder refuses that. `tools\adtm\f_roadMu.m` is FS Lap's copy with only that message changed, used for the code generation; the team's repository is not changed. It can go once the team fixes theirs.
+
+### 4c. The event tracks
+
+Menu → **TRACK** (LEFT / RIGHT or ENTER) chooses the track for hot lap, SIL and arcade; the menu's background drives it. The city and free roam keep their own. Best laps are kept per track.
+
+| Track | Where it comes from | Length | Reference (gold ghost, "vs ... lap") |
+|---|---|---|---|
+| **FSG** | the LTS's centreline (`source\fsg_track.json`), mirrored back (see below) | 1103 m | the LTS lap (75.06 s), or the lap the LTS computes for your setup (section 4a) |
+| **FS Czech** (Most) | the owner's drawing of the line, placed on the Czech survey office's orthophoto; heights from their terrain model DMR 5G (9 m of climb) | 989 m | Sigma 2025, 70.20 s (rear-wheel drive, the car before Tau) |
+| **FS France** 2026 | Tau's endurance log (`3081-Endu.asc`) | 1165 m | Tau 2026, 84.00 s |
+
+- **FSG:** the LTS's track had a wrong sign and was mirrored. FS Lap mirrors it back, turns it as the real site lies and starts it at the real start line, in the bottom right corner (`tools\track_to_ue.py`, `fsg_line`). Mirroring changes no lap time; the AI laps it in 77.40 s as before. How it was found: the line rebuilt from Tau's FSG 2026 log (`tools\logs\track_from_log.py fsg`) matches the mirrored LTS track (rms 15 m; unmirrored 46 m), and its standing start lands 632 m into the LTS lap. The LTS lap is moved to start there as well (a flying lap repeats); so is any lap the LTS computes for a setup.
+- **From a log (FS France; the FSG check):** the logs have no GNSS, so the line is dead reckoning: heading from the yaw rate, distance from the motor speeds, scaled by the log's own check (lateral acceleration = yaw rate x speed) separately under power and off it. The lap length comes from the curvature's repeating pattern; the lap whose ends meet best is the line (FS France: within 5 m after the heading is made exactly one turn; its gyro reads about 2 % low). Its bends agree with the logged steering (r = 0.92). The start line is where the car stood when the endurance began; the reference is the car's fastest flying lap from it.
+- **FS Czech, from the official Czech map data** (`tools\logs\track_fscz.py`):
+  - **The line:** the owner's drawing on a satellite picture, matched to the orthophoto of the Czech survey office (CUZK, Ortofoto CR) by correlating the edges of both pictures (one clear match at x1.88). The line then has real coordinates: 989 m, in true metres and with north up. The matched line lies on the polygon's roads everywhere (checked on the orthophoto).
+  - **The heights:** CUZK's terrain model DMR 5G (1 m grid, about 0.2 m accurate), along the line and as a 1 m grid 60 m around it. The climb on the top straight (the drawing's "up hill", 286 to 294 m above sea level) and the descent on the left (its "down hill", up to 13 % over 10 m) come out where the owner marked them. Across the road the ground is level within 3 %, so the line is on the road, not on the bank.
+  - **Sigma's log** (`FSCZ2025Endurance.csv` in the team ADTM's inputs) gives only the reference lap: its gyro drifts (0.82-1.04 turns per lap) and its distances come out 13-14 % short of the real line. Its laps, rebuilt with their drift taken out, lie on the line within 5-6 m (rms) once scaled up by that much.
+  - **Data credit:** orthophoto and DMR 5G (c) CUZK, open data (CC BY 4.0). The satellite picture the owner drew on is not in the repository; its traced line is (`vehicle-data\tracks\fscz_drawing.json`).
+- **What a track is not:** the centreline between the cones. The logs give the driven line; the road width (4 m) and the cones are FS Lap's.
+- **The AI there:** FS Czech 77.10 s at stock power on FS Lap's model (Sigma: 70.20 s; the AI is no expert on a tight, hilly track), FS France 76.59 s (Tau: 84.00 s). On the ADTM the AI spins on FS Czech (also with the hills taken away) and needs about 124 s: its speed plan does not suit the ADTM on that track. A driver is not affected.
+- **Hills in the vehicle models:** FS Lap's own model takes the ground's slope as gravity along the ground and lighter tyre loads (rolling 1 s down the steepest part of FS Czech gains what the energy says, within 10 %). The ADTM drives its 3D road (section 4b).
+- **Rebuild:** `python tools\logs\track_from_log.py fsf` (or `fscz`; `fscz-trace <picture>` traces a new drawing), `python tools\track_to_ue.py`, the import with `FSLAP_IMPORT=tracks`, a build. A new event: a log or a drawing with a known length.
+
+### 4d. SIL: the car's VCU drives the motors
+
+Menu → **SIL (VCU)**: a hot lap on the ADTM in which a VCU, not FS Lap, decides the four motor torques. FS Lap sends the driver's pedals and steering and the car's state (speeds, yaw rate, accelerations, motor speeds) over UDP each frame. The VCU's inverter commands come back: a speed setpoint and two torque limits per motor, as the car's Ephorus inverters get them. FS Lap then runs each inverter's speed loop between those limits at every physics step (the team's inverter model: PI 0.05 / 0.3, 18.8 Nm) and drives the ADTM with the four torques. The hydraulic brakes stay the pedal's.
+
+1. Start the bridge first: `tools\sil\run.bat` (stand-in VCU) or `tools\sil\run.bat <path to vcu_full.dll>` (the car's firmware).
+2. Choose **SIL (VCU)**. The line at the top of the screen says which VCU answers and the four inverters' states, or `waiting for the VCU` while nothing answers; then the motors give no torque.
+
+- **The car's firmware (`--dll`):** the bridge runs the team's own closed loop from `vehicle-controls\03_SIL\vcu_full` (read, never changed): the virtual start without a car log (BMS, TS, starter), the Ephorus inverter emulator and every CAN, IMU and pedal frame the VCU takes. Only the vehicle model and the driver are FS Lap. The VCU first runs its start-up as fast as it can, then in real time once the loop closes. `vcu_full.dll` is built by `vcu_full\build.sh` from the team's `software` repository. **Not run yet:** no `vcu_full.dll` exists here, so expect the first run to need fixes.
+- **The stand-in (no argument):** no firmware: the throttle asks for up to 18.8 Nm per motor within 80 kW, the inverters are always in Drive, no regeneration and no traction control. It is there to test FS Lap's side; its AI lap is 78.08 s (the ADTM's own torque control: 77.62 s).
+- **Brake pressures to the VCU:** FS Lap has a brake pedal, not pressures; full pedal is sent as 40 bar front and 17 bar rear, a guess near the logs' range.
+- The packet layout is at the top of `tools\sil\fslap_sil.py`. SIL laps are kept apart from other best laps and logged as mode `sil`.
+
 ## 5. The car model and the CAD
 
 - **Bodywork, wings, undertray and wheels:** exported from the team's livery model in Blender (`tools/export_ue.py`, `tools/bake_livery_uv.py`) with the livery baked in.
@@ -304,6 +347,7 @@ Without the generated folder, FS Lap builds as before and the row says `ADTM not
   - Points: wishbone inner and outer points, tie rods and toe links, pushrods, rocker pivots, dampers, rear anti-roll bar, wheel centres, contact patches and the CoG.
   - Frame: mm; x forward from the rear axle, y to the left, z up from the ground. The right side mirrors y.
   - The dampers lie across the car: the inner damper points are past the centre line.
+- **`tracks/`:** the event tracks other than FSG with their reference laps (`fscz.json`, `fsf.json`) and the trace of the owner's FS Czech drawing (`fscz_drawing.json`); section 4c, `tools\logs\track_from_log.py`.
 - **`TAU_SKEL_Import.csv`:** the suspension design table that drives the skeleton. It holds wheelbase, half tracks, CoG, trail, scrub, caster, kingpin, camber, roll-centre heights, anti-pitch and anti-dive, pickup offsets, steering geometry, rocker and damper geometry, and tube diameters.
 
 ## 7. Project layout
@@ -312,15 +356,17 @@ Without the generated folder, FS Lap builds as before and the row says `ADTM not
 FSLapUE/                          Unreal project
   FSLapUE.uproject
   Config/                         engine, input and packaging settings
-  Source/FSLapUE/                 game flow, car presentation, HUD, wheel input (FSLapWheel), LTS jobs (FSLapLts), lap logging (FSLapLog), tests (Dev/)
+  Source/FSLapUE/                 game flow, car presentation, HUD, wheel input (FSLapWheel), LTS jobs (FSLapLts), lap logging (FSLapLog), the SIL link (FSLapSil), tests (Dev/)
   Plugins/HoMoLapPhysics/         the vehicle model, track data, lap rules and AI driver (plain C++); the ADTM wrapper (HoMoLapAdtm) and its generated code (Private/ADTM)
   Content/FS/Generated/           imported assets: car, CAD parts, track, city, sound, materials (Git LFS)
 tools/                            conversion, import and test scripts
   cad/                            NX Open and Blender scripts for the CAD export (README inside)
   physics_test/                   stand-alone build and test of the vehicle model (adtm.bat: the ADTM)
   adtm/                           MATLAB Coder generation of the ADTM for the game (adtm_codegen.m) and its check (adtm_check.m)
-  lts/                            MATLAB: compareLaps.m (driven laps against LTS laps), adtmReplay.m (driven laps through the ADTM)
-vehicle-data/                     suspension hardpoints and design table
+  lts/                            MATLAB: compareLaps.m (driven laps against LTS laps), adtmReplay.m (driven laps through the ADTM), lapsToMat.m (lap files as .mat)
+  logs/                           the car's logs against the simulator (validate.py) and the event tracks from the logs (track_from_log.py)
+  sil/                            the SIL bridge (fslap_sil.py, run.bat)
+vehicle-data/                     suspension hardpoints and design table, the event tracks (tracks/)
 Play FS Lap.bat                   starts the game
 Update FS Lap.bat                 gets the newest version and rebuilds it; your laps and settings stay
 Submit runs.bat                   sends your laps to the branch runs
@@ -345,7 +391,10 @@ All tests run from PowerShell in the repository root. Close the Unreal Editor fi
 | `tools\validate.ps1` | Builds the vehicle model alone and runs the AI in sim, arcade, free roam and city mode. The lap times must match (sim 77.405 s, arcade 75.367 s, city 89.633 s) with no wall contacts. No Unreal needed. |
 | `tools\validate.ps1 -Game` | The above, plus the in-game tests below |
 | `tools\slice_test.ps1 -Mode sim` (or `arcade`, `city`, `free`) | Starts the real game, lets the AI drive a lap and takes photos from around the car. Results in `FSLapUE\Saved\SliceTest\<mode>\results.txt`: lap times, fps, average and 95th-percentile frame time, the longest frame and the number of frames over 100 ms (hitches). |
-| `tools\slice_test.ps1 -Mode keys` | Presses every key through the game and checks what each did, the mouse in the menus and the key rebinding and the window and resolution settings included (97 steps). Each line also reports the frame rate and the car's speed. |
+| `tools\slice_test.ps1 -Mode czech` (or `france`) | The in-game hot lap on that event track, with the car's lap there as the reference (`reference=Sigma 2025 70.200`, `Tau 2026 83.996`). |
+| `tools\slice_test.ps1 -Mode sil` | The SIL mode with the stand-in VCU, which the script starts and stops: the AI laps the ADTM on the inverters' torques (`sil=SIL: stand-in VCU ... inverters drive drive drive drive`). |
+| `data\physics_test\ailap.exe events` (after `run.bat`) | The AI on every event track after FSG without Unreal: a valid lap at stock power and a clean one at a Tau endurance's power. |
+| `tools\slice_test.ps1 -Mode keys` | Presses every key through the game and checks what each did, the mouse in the menus, the key rebinding with a pretend wheel's button, the track row, and the window and resolution settings included (108 steps). Each line also reports the frame rate and the car's speed. |
 | `python tools\logs\validate.py` | Compares the car's logged test days with both vehicle models: standing starts, powertrain, braking, grip against speed, the FSG endurance. Needs the logs and the DBC; see `tools\logs\README.md` for the setup and the findings. |
 | `tools\slice_test.ps1 -Mode lts` | Has the real LTS compute the single-track reference for the stock car (needs MATLAB, section 4a), then lets the AI drive a hot lap against it. Checks the reference (`reference=LTS 1-track 74.952`) and the lap files (`lap_log=`). |
 | `tools\physics_test\adtm.bat` | The ADTM in the game's core without Unreal: the AI laps the FSG track (77.620 s), the car is moved and must carry on, and a free-roam standing start (0–100 km/h in 2.185 s, with the assists on). The steering torque must pull back towards the centre most of the time. The setup must reach the ADTM: 40 kg more and 75 % motor torque both slow the standing start (2.418 s and 2.402 s). A wheel with **Wheel rotation** set must steer 1:1. It must run faster than real time. Needs the generated code. |
@@ -361,18 +410,18 @@ The assets in `FSLapUE/Content` are already built; you only need this to change 
 |---|---|---|
 | Body, wheels, livery | `tools/export_ue.py`, `tools/bake_livery_uv.py` | the team's livery model in Blender |
 | CAD parts, steering wheel | `tools/cad/*` (NX), then `tools/cad_to_ue.py` (Blender), then `FSLAP_IMPORT=cad` | NX 2412 with a licence, a copy of the team CAD |
-| Track | `tools/track_to_ue.py` | the FSG centreline from HoMo-LAP |
+| Tracks | `tools/logs/track_from_log.py`, then `tools/track_to_ue.py` | the FSG centreline from HoMo-LAP; for the others the car logs; for FS Czech the drawing's trace and internet access to CUZK's services |
 | City | `tools/city_to_ue.py` | nothing (generated) |
 | Road textures | `tools/fetch_environment_assets.py` (CC0, Poly Haven) | internet |
 | Sound | `tools/extract_audio.py`, `tools/make_sound_loops.py`, `tools/import_sound_ue.py` | the test-day videos |
 
-The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_IMPORT_OK`. Set `FSLAP_IMPORT` to `cad`, `city` or `environment` to import just that part.
+The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_IMPORT_OK`. Set `FSLAP_IMPORT` to `cad`, `city`, `environment` or `tracks` (every track's ground) to import just that part.
 
 ## 10. Limits and plans
 
-**Not there yet:** force feedback on FS Lap's own model (it has none; only the ADTM gives it), a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, real-car data overlays, more wheel buttons (two can be bound), and triple-screen or curved-screen views (the onboard view angle for one flat screen can be set). The LTS reference covers the FSG endurance track only, and the lap files are not yet in .mat format.
+**Not there yet:** force feedback on FS Lap's own model (it has none; only the ADTM gives it), a four-wheel model with suspension kinematics (the hardpoints are ready for it), a Pacejka tyre model, real-car data overlays, and triple-screen or curved-screen views (the onboard view angle for one flat screen can be set). The LTS reference covers FSG only; on the other tracks the reference is a car's lap from its log. FS Austria, FS East, FS Spain and FS Italy are not there: no layout with a usable scale was found (no team logs, nothing published).
 
-**Compared with the car's logs (2026-11-14):** see `tools\logs\README.md`. Open from it: the real FSG 2026 track rebuilt from the log, the as-logged power and torque as a preset, and the steering lock (the logs show about ±100°, the simulator uses ±110°).
+**Compared with the car's logs (2026-11-14):** see `tools\logs\README.md`. Open from it: the as-logged power and torque as a preset, and the steering lock (the logs show about ±100°, the simulator uses ±110°).
 
 **Proposed next, in order, pending the team's answers:**
 1. **Force feedback, tried on the Moza R3:** check the direction and the strength with a driver (section 3).
@@ -394,6 +443,16 @@ Ask the simulator's maintainer if you need any of these.
 ## 12. Change log
 
 Newest first.
+
+- **2026-11-16 (tracks):**
+  - **FSG fixed:** the LTS's FSG track was mirrored (a wrong sign); it is mirrored back, lies as the real site does, and starts at the real start line (section 4c). The AI lap stays 77.40 s. Best laps driven on the mirrored track are kept in the save file but no longer shown, because their ghosts would leave the road.
+  - **FS Czech and FS France:** two more tracks, chosen with the menu's new **TRACK** row (LEFT / RIGHT or ENTER) for hot lap, SIL and arcade.
+  - **FS Czech from the official map data, with its hills:** placed on the Czech orthophoto (989 m) and with the heights of the DMR 5G terrain model (9 m of climb). Both vehicle models drive the hills; the ADTM now always runs on its 3D road (flat tracks give it zero heights; their laps are unchanged).
+
+- **2026-11-15 (SIL, wheel buttons, .mat):**
+  - **SIL (VCU):** a new mode in which a VCU drives the four motors through `tools\sil\run.bat`; tested with a stand-in VCU, the car's firmware needs `vcu_full.dll` (section 4d).
+  - **Wheel buttons for every action** in SETTINGS (section 3). The menu has two more rows, so SETUP, SETTINGS and QUIT moved down.
+  - **`.mat` lap files:** `tools/lts/lapsToMat.m`.
 
 - **2026-11-15 (setup on the ADTM):** the front roll stiffness share and the gear ratio now act on the ADTM too (section 4b); the stock car is unchanged. The ADTM code was regenerated: its setup input has 9 values instead of 7.
 

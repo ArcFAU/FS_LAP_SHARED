@@ -48,6 +48,7 @@ namespace HoMoLap
 		bool motorTorques = false;   // Input::motorTorques and Tm, handed on to the external vehicle model
 		double Tm[4] = {};
 		double steerT = 0;   // steering wheel torque (Nm, the ADTM's T_Steering; 0 on FS Lap's own model): force feedback
+		double wheelOmega[4] = {};   // wheel speeds (rad/s; FL, FR, RL, RR) of the ADTM; 0 on FS Lap's own model
 	};
 
 	struct HOMOLAPPHYSICS_API Cone { double x, y; char col; bool big, freeOnly; };   // col: 'b' blue left, 'y' yellow right, 'o' orange start
@@ -76,6 +77,19 @@ namespace HoMoLap
 		std::vector<CitySphere> treeTops;
 		std::vector<double> ltsT, ltsS;   // the LTS reference lap; empty in the city
 		double ltsLap = 0, ltsSplit[2] = { 0, 0 }, ltsScale = 1;
+		const char* refName = "LTS";   // whose lap ltsT is: "LTS" on FSG, the car's on the other events ("Tau 2026", "Sigma 2025")
+		const char* id = "";           // "fsg", "fscz", "fsf"; "" for the city
+		const char* name = "";         // "FSG", "FS Czech", ...
+		double refShift = 0;           // the start line lies this share of a lap into the reference lap as computed (FSG: the LTS lap)
+		// the ground's heights (m, above the track's lowest point) on a grid, rows along y; empty: flat (FSG, FS France)
+		std::vector<float> terrain;
+		int tnx = 0, tny = 0;
+		double tx0 = 0, ty0 = 0, tstep = 1;
+		double HeightAt(double px, double py) const;   // bilinear; 0 on a flat track; the edge's height beyond the grid
+		void Slope(double px, double py, double& dzdx, double& dzdy) const;   // the ground's gradient there
+		// the reference lap as computed (distance and time from its own start, its track length, its lap time), moved to
+		// start at the start line (refShift); sets ltsS, ltsT, ltsLap, ltsScale and the sector splits
+		void SetReference(const double* s, const double* t, int n, double length, double lap);
 		Pose PoseAt(double s) const;
 		Nearest NearestPoint(double px, double py) const;
 		double LtsDistAt(double t) const;
@@ -83,6 +97,10 @@ namespace HoMoLap
 	};
 	HOMOLAPPHYSICS_API Track MakeFsgTrack();
 	HOMOLAPPHYSICS_API Track MakeCityTrack();   // the generated city
+	// the event tracks: 0 FSG (the LTS track), then the others rebuilt from the cars' logs (tools\logs\track_from_log.py)
+	HOMOLAPPHYSICS_API int EventTrackCount();
+	HOMOLAPPHYSICS_API const char* EventTrackId(int i);
+	HOMOLAPPHYSICS_API Track MakeEventTrack(int i);
 
 	struct HOMOLAPPHYSICS_API LapResult { int n; double time, raw, pen, split1, split2; bool valid; int cones, offCourse; };
 
@@ -108,8 +126,12 @@ namespace HoMoLap
 		{
 			virtual ~VehicleModel() = default;
 			virtual void Step(Car& c, double Dt, double Grip) = 0;
+			const Track* ground = nullptr;   // the road's heights (Track::HeightAt); the Simulation sets it before each step
 		};
 		VehicleModel* external = nullptr;   // not owned; null: FS Lap's own model
+		// not owned; set: four motor torques (Nm; FL, FR, RL, RR) that every step applies instead of the throttle, for a
+		// human and for the AI alike (the SIL mode's inverters). Only the external model takes them.
+		const double* motorTorques = nullptr;
 
 		// One 1/600 s step. Human == nullptr lets the AI drive.
 		void Step(const Input* Human);

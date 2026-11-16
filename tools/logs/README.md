@@ -86,13 +86,11 @@ The simulator's grip rises with speed, from its downforce (ClA 5.4). The logs sh
 
 ### 6. FSG endurance: the layout differs, the pace is close
 
-- The log has one stint: 449 s, about 4.7 laps, then the car stops.
-- Lap times from one full turn of heading to the next: 92.0 s, 85.3 s, 96.6 s.
-- The lap is about 1.17–1.21 km long. The simulator's FSG track is 1103 m, and its corner sequence matches the logged one only loosely (correlation 0.54 after stretching). The simulator's track is not the 2026 layout.
-- Mean lap speed: 47.8 km/h logged (a little less in truth, see the speed check above). The pedal never went above 73 %.
-- The simulator's AI at the endurance's power (32 kW, 10.4 Nm) laps its own track in 80.55 s, a mean of 49.3 km/h. At stock power it takes 77.40 s (51.3 km/h).
-
-So on a similar track at the same power, the simulator's AI is about 3 % faster than the endurance driver. That is a plausible gap between an ideal driver and an endurance stint, but it is not a like-for-like lap.
+- The log has one stint: 449 s, then the car stops.
+- **Laps from the start line** (`track_from_log.py`, 2026-11-15): the stint begins at the line, and the laps are 1157.5–1159 m (speed corrected for wheel slip): **92.75 s** (from a standing start), **96.65, 85.47 and 96.51 s**. The first count above (one full turn of heading from the stint's start) gave nearly the same. Cut elsewhere the laps differ a lot (in the middle of the longest straight: 91.81, 90.62, 89.55, 100.06 s), so the pace changed within the laps; the slow parts are not always in the same place.
+- The simulator's FSG (LTS) track is 1103 m, and its corner sequence matches the logged one only loosely (correlation 0.54 after stretching). The LTS track is not the 2026 layout.
+- The pedal never went above 73 %.
+- **The LTS track is the 2026 layout, mirrored** (found 2026-11-16, below): the line rebuilt from this log matches it once mirrored. FS Lap now drives it mirrored back, so the comparison above with the simulator's FSG track is on the right layout, with the LTS track's own length (1103 m against the log's 1158 m).
 
 ### 7. Steering: the car's ratio is a little quicker than the simulator's
 
@@ -116,9 +114,17 @@ Measured once by hand from the logs (not yet part of `validate.py`): at 3–8 m/
 4. **Downforce and limit braking are unverified.** They need test runs that reach the limit.
 5. **Steering:** the car needs 8-10 % less steering wheel angle than the simulator for the same corner, and its lock looks like ±100°, not ±110°. FS Lap's 1:1 steering (setup row **Wheel rotation**) uses ±110°. Check the rack travel in the CAD before changing it.
 
+## Event tracks from the logs (2026-11-15, 2026-11-16)
+
+`python tools\logs\track_from_log.py fsf | fscz | fsg` (the docstring explains each). FS France and FS Czech go to `vehicle-data\tracks\`, and `tools\track_to_ue.py` makes them game tracks; `fsg` writes only `data\logs\fsg2026_log_track.json`, the check of the LTS track.
+
+- **FSG (the check):** 1158.5 m from the lap that closes best (1.1 m, 2.3°); bends against the logged steering r = 0.981. Laps from the start line (the stint's first metre): 92.75 s (standing start), 96.65, 85.47, 96.51 s. The LTS track, mirrored, lies on it within 15 m (rms) after a turn and a shift, and its start line is 632 m into the LTS lap; unmirrored the best fit is 46 m off. So the LTS track had a wrong sign, as the owner found; FS Lap mirrors it back.
+- **FS France (`FSF\3081-Endu.asc`, 2026-08-28):** speed factors 0.939 under power, 1.003 off it; lap 1165 m (curvature pattern r = 0.92); the laps turn 0.98 of a turn (the gyro reads about 2 % low) and meet within 5 m after the heading is made one turn; bends against the steering r = 0.92. Laps from the line: 92.61 (standing start), 90.57, 84.00 s.
+- **FS Czech (`track_fscz.py`):** the owner's drawing matched to the CUZK orthophoto (edge correlation, x1.880, match 0.36 against about 0.15 elsewhere) and its heights from CUZK's DMR 5G: 989 m, 284.8-293.7 m above sea level. Sigma's log (`FSCZ2025Endurance.csv`): effective wheel radius from lateral acceleration = yaw rate x speed 0.1647 m (front wheels, undriven); the steering repeats every 70.7 s; the yaw rate gives 0.82-1.04 turns per lap (a drifting bias). Its laps (70.2-71.4 s) measure 845-900 m, 13-14 % short of the real line, and lie on it within 4.7-5.9 m (rms) once scaled up by that much. An earlier version of the track (2026-11-16, never committed) took its length from Sigma's laps (863 m) and was 13 % too small.
+- **Not usable:** the dead-reckoned Sigma drive as a whole (it wanders off; see FS Czech), its distances (13-14 % short), and the ADTM file's 0.165 m radius as Sigma's real one (it is the effective radius against this IMU). Nor the log for the heights: the longitudinal acceleration against the wheel speeds gives 23-25 m of climb per lap, where DMR 5G has 9 m (braking, slip and the body's pitch swamp the slope).
+
 ## Not done yet
 
-- **The real FSG 2026 track.** The log has speed and yaw rate, so the driven line can be rebuilt and used as a track in the simulator. Then the simulator and the car can be compared corner by corner.
 - **The other logs.** About 60 more logs are in the folder (Höffner test days, FSF autocross and endurance, the "Fahrwerk" day). Add them to `LOGS` in `validate.py`.
 - **Steering in `validate.py`.** The ratio and the skidpad's understeer gradient (finding 7) are not in the script yet, and the simulator's understeer gradient is not measured.
 - **Ride height and spring travel** are logged at the front; they could check the aero load directly.

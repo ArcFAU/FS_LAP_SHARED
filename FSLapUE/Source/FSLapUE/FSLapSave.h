@@ -51,6 +51,9 @@ public:
 	TArray<FName> Keys;   // the keys of the driving actions the settings screen changed, in its order; none: the default
 
 	UPROPERTY()
+	TArray<int32> WheelButtons;   // a wheel button per driving action (EFSLapKey order), as an index into the wheel's axes; -1: none
+
+	UPROPERTY()
 	int32 MasterVolume = 100;   // %
 
 	UPROPERTY()

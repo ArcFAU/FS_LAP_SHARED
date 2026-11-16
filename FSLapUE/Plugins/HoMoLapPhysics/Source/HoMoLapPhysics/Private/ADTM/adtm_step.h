@@ -20,10 +20,12 @@
 namespace adtm {
 extern void adtm_constants(double c[9]);
 
-extern void adtm_init(const double car[9], double x[42]);
+extern void adtm_init(const double car[9], const double rz[3721],
+                      const double r0[2], double x[42]);
 
 extern void adtm_step(double x[42], const double u[6], const double car[9],
-                      double t, double dt, double out[110]);
+                      double t, double dt, const double rz[3721],
+                      const double r0[2], double out[110]);
 
 extern void adtm_step_initialize();
 
@@ -31,6 +33,7 @@ extern void adtm_step_terminate();
 
 extern void adtm_step_torque(double x[42], const double u[10],
                              const double car[9], double t, double dt,
+                             const double rz[3721], const double r0[2],
                              double out[110]);
 
 } // namespace adtm

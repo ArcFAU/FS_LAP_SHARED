@@ -344,7 +344,26 @@ def cad_only():
     print("FSLAP_IMPORT_OK cad " + str(count))
 
 
+def event_grounds():
+    """FSG's ground.glb and every ground_<id>.glb of the other event tracks (tools\\track_to_ue.py)"""
+    return ["ground"] + sorted(f[:-4] for f in os.listdir(os.path.join(DATA, "track")) if f.startswith("ground_") and f.endswith(".glb"))
+
+
+def tracks_only():
+    """FSLAP_IMPORT=tracks: the event tracks' grounds with the track materials that exist."""
+    instances = {name: ASSETS.load_asset(MATERIALS + "/MI_" + name) for name in ("Grass", "Apron", "Road", "Line")}
+    for name in event_grounds():
+        for path in import_file(os.path.join(DATA, "track", name + ".glb"), DEST + "/Track"):
+            if isinstance(ASSETS.load_asset(path), ue.StaticMesh):
+                assign(path, instances)
+                ASSETS.delete_directory(path.rsplit("/", 2)[0] + "/Materials")
+    print("FSLAP_IMPORT_OK tracks " + " ".join(event_grounds()))
+
+
 def main():
+    if os.environ.get("FSLAP_IMPORT") == "tracks":
+        tracks_only()
+        return
     if os.environ.get("FSLAP_IMPORT") == "cad":
         cad_only()
         return
@@ -364,7 +383,7 @@ def main():
     meshes = []
     for name in ("SM_Body", "SM_Wheel_FL", "SM_Wheel_FR", "SM_Wheel_RL", "SM_Wheel_RR", "SM_SteeringWheel"):
         meshes += import_file(os.path.join(DATA, "car", name + ".glb"), DEST + "/Car")
-    for name in ("ground", "paddock", "skid", "cone_b", "cone_y", "cone_o"):
+    for name in event_grounds() + ["paddock", "skid", "cone_b", "cone_y", "cone_o"]:
         meshes += import_file(os.path.join(DATA, "track", name + ".glb"), DEST + "/Track")
     for name in ("SM_CityBig", "SM_CityBox", "SM_CityBarrier", "SM_CityPole"):
         meshes += import_file(os.path.join(DATA, "city", name + ".glb"), DEST + "/City")

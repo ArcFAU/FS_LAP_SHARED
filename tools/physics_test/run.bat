@@ -1,5 +1,5 @@
 @echo off
-rem Builds and runs the headless AI lap test (no Unreal needed). Arguments go to ailap: [arcade|free|city] [trace.csv]
+rem Builds and runs the headless AI lap test (no Unreal needed). Arguments go to ailap: [arcade|free|city|events] [trace.csv]
 setlocal
 for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set VS=%%i
 call "%VS%\VC\Auxiliary\Build\vcvars64.bat" >nul 2>nul

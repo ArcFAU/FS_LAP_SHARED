@@ -151,31 +151,24 @@ void AFSLapHUD::UpdateMouse(AFSLapVehiclePawn& Vehicle, bool bMenus)
 
 void AFSLapHUD::DrawMenu(const AFSLapVehiclePawn& Vehicle)
 {
-	static const TCHAR* const Names[] = { TEXT("HOT LAP"), TEXT("ARCADE"), TEXT("CITY"), TEXT("FREE ROAM"), TEXT("SETUP"), TEXT("SETTINGS"), TEXT("QUIT") };
-	static const TCHAR* const Notes[] = {
-		TEXT("Team data and FS Rules penalties."),
-		TEXT("More grip and power on the FSG track.\nHandbrake to slide. No penalties."),
-		TEXT("A made-up city about 3 km across, with traffic\nand ring roads. A timed circuit runs through the middle."),
-		TEXT("Open paddock with skidpad and acceleration strip.\n0-100 km/h and 75 m timed."),
-		TEXT("Change the aero package, mass, power, tyres,\nbrakes and chassis."),
-		TEXT("Display, sound and the keys."),
-		TEXT("Close FS Lap."),
-	};
 	Slant(-40, 0, 680, ScreenH, Ink, 60);
 	Slant(640, 0, 6, ScreenH, Signal, 60);
 	Label(TEXT("FS LAP"), 56, 56, 72, Paper, true);
-	Label(TEXT("FAUmax on the FSG endurance track"), 58, 158, 20, Muted);
-	for (int32 i = 0; i < UE_ARRAY_COUNT(Names); ++i)
+	Label(TEXT("FAUmax on the FS events' endurance tracks"), 58, 158, 20, Muted);
+	const int32 Rows = AFSLapVehiclePawn::GetMenuRowCount();
+	for (int32 i = 0; i < Rows; ++i)
 	{
 		const bool bSelected = i == Vehicle.GetMenuIndex();
 		if (bSelected)
 		{
 			Slant(44, 214 + i * 66, 500, 58, Signal, 14);
 		}
-		Label(Names[i], 64, 222 + i * 66, 36, bSelected ? Paper : Muted, true);
+		const bool bTrackRow = i == AFSLapVehiclePawn::GetMenuTrackRow();
+		Label(FString(AFSLapVehiclePawn::GetMenuName(i)) + (bTrackRow ? TEXT(":  < ") + Vehicle.GetMapName(Vehicle.GetChosenMap()) + TEXT(" >") : FString()), 64, 222 + i * 66, 36, bSelected ? Paper : Muted, true);
 		Targets.Add({ FBox2f(FVector2f(44, 214 + i * 66), FVector2f(544, 272 + i * 66)), i });
 	}
-	Label(Notes[Vehicle.GetMenuIndex()], 58, 214 + UE_ARRAY_COUNT(Names) * 66 + 20, 18, Paper);
+	const bool bOnTrackRow = Vehicle.GetMenuIndex() == AFSLapVehiclePawn::GetMenuTrackRow();
+	Label(FString(AFSLapVehiclePawn::GetMenuNote(Vehicle.GetMenuIndex())) + (bOnTrackRow ? TEXT("\n") + Vehicle.GetMapNote(Vehicle.GetChosenMap()) : FString()), 58, 214 + Rows * 66 + 20, 18, Paper);
 	Label(TEXT("UP / DOWN  choose      ENTER  start      or the mouse"), 58, ScreenH - 62, 18, Muted);
 }
 
@@ -264,7 +257,7 @@ void AFSLapHUD::DrawTower(const AFSLapVehiclePawn& Vehicle, const HoMoLap::Simul
 	}
 	if (bHasLts)
 	{
-		Label(TEXT("vs LTS lap"), X + 228, Y + 122, 16, Muted);
+		Label(FString(TEXT("vs ")) + UTF8_TO_TCHAR(Sim.T.refName) + TEXT(" lap"), X + 228, Y + 122, 16, Muted);
 		if (bLive)
 		{
 			const double ToLts = Sim.CurrentLapTime() + Sim.CurrentLapPenalty() - Sim.T.LtsTimeAt(Sim.LapProgress());
@@ -372,7 +365,7 @@ void AFSLapHUD::DrawMinimap(const HoMoLap::Simulation& Sim)
 	RightHalf.SetColor(Signal);
 	Canvas->DrawItem(LeftHalf);
 	Canvas->DrawItem(RightHalf);
-	Label(FString::Printf(TEXT("%s  -  %s m"), T.ltsLap > 0 ? TEXT("FSG endurance") : TEXT("City circuit"), *FString::FormatAsNumber(FMath::RoundToInt32(T.LEN))), Left, Top + Height + 12, 16, Muted);
+	Label(FString::Printf(TEXT("%s  -  %s m"), T.city ? TEXT("City circuit") : *(FString(UTF8_TO_TCHAR(T.name)) + TEXT(" endurance")), *FString::FormatAsNumber(FMath::RoundToInt32(T.LEN))), Left, Top + Height + 12, 16, Muted);
 }
 
 void AFSLapHUD::DrawSpeedo(const HoMoLap::Simulation& Sim)
@@ -491,7 +484,7 @@ void AFSLapHUD::UpdateMessages(const AFSLapVehiclePawn& Vehicle, const HoMoLap::
 		if (Sim.Split(i) > 0 && LastSplits[i] == 0 && Sim.IsCurrentLapValid())
 		{
 			const double BestSplit = Vehicle.GetBestSplit(i);
-			const FString Sub = Sim.T.ltsLap > 0 ? Signed(Sim.Split(i) - Sim.T.ltsSplit[i], 2) + TEXT(" to the LTS lap") : FString();
+			const FString Sub = Sim.T.ltsLap > 0 ? Signed(Sim.Split(i) - Sim.T.ltsSplit[i], 2) + TEXT(" to the ") + UTF8_TO_TCHAR(Sim.T.refName) + TEXT(" lap") : FString();
 			if (BestSplit > 0)
 			{
 				const double Gap = Sim.Split(i) - BestSplit;
@@ -622,6 +615,10 @@ void AFSLapHUD::DrawHUD()
 		Slant(ScreenW / 2 - 458, 226, 10, BannerH, MessageColor, 24);
 		Label(MessageTitle, ScreenW / 2, 238, bMessageSmall ? 46 : 86, MessageColor, true, true);
 		Label(MessageSub, ScreenW / 2, bMessageSmall ? 298 : 342, 24, Paper, true, true);
+	}
+	if (Vehicle->IsSil())   // which VCU drives the motors and the inverters' states, or what is missing
+	{
+		Label(Vehicle->GetSilStatus(), ScreenW / 2, 16, 20, Gold, true, true);
 	}
 	// the key help with the keys as the settings screen has them
 	const auto Key = [Vehicle](int32 Item) { return Vehicle->GetKeyName(Item); };

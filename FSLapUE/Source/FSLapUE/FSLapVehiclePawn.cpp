@@ -29,7 +29,21 @@ namespace
 {
 	constexpr float MetersToCentimeters = 100.0f;
 	constexpr float HubHeight = 20.0f;   // the body mesh has the ground at z = 0, the wheel meshes their hub
-	const HoMoLap::Mode MenuModes[] = { HoMoLap::Mode::Sim, HoMoLap::Mode::Arcade, HoMoLap::Mode::City, HoMoLap::Mode::Free };
+	// the main menu's ways to drive; setup, settings and quit follow them
+	struct FMenuEntry { HoMoLap::Mode Mode; int32 Unused; const TCHAR* Name; const TCHAR* Note; bool bSil = false; };
+	const FMenuEntry MenuModes[] = {
+		{ HoMoLap::Mode::Sim, 0, TEXT("HOT LAP"), TEXT("Team data and FS Rules penalties.") },
+		{ HoMoLap::Mode::Sim, 0, TEXT("SIL (VCU)"), TEXT("A hot lap on the ADTM with a VCU driving the four motors:\nthe car's firmware through the team's SIL. Start tools\\sil\\run.bat first."), true },
+		{ HoMoLap::Mode::Arcade, 0, TEXT("ARCADE"), TEXT("More grip and power on the FSG track.\nHandbrake to slide. No penalties.") },
+		{ HoMoLap::Mode::City, 0, TEXT("CITY"), TEXT("A made-up city about 3 km across, with traffic\nand ring roads. A timed circuit runs through the middle.") },
+		{ HoMoLap::Mode::Free, 0, TEXT("FREE ROAM"), TEXT("Open paddock with skidpad and acceleration strip.\n0-100 km/h and 75 m timed.") },
+	};
+	const TCHAR* const MenuTail[][2] = {
+		{ TEXT("TRACK"), TEXT("Hot lap, SIL and arcade drive here.\nLEFT / RIGHT or ENTER: the next track.") },
+		{ TEXT("SETUP"), TEXT("Change the aero package, mass, power, tyres,\nbrakes and chassis.") },
+		{ TEXT("SETTINGS"), TEXT("Display, sound and the keys.") },
+		{ TEXT("QUIT"), TEXT("Close FS Lap.") },
+	};
 	const FVector SteeringWheelPosition(32.7, 0, 52);   // cm from the mid-axle ground point: the team's wheel where the CAD has it (data\car\steering_wheel.json)
 	const TCHAR* const SaveSlot = TEXT("FSLap");
 	const FVector HoodCamera(42, 0, 82), NoseCamera(182, 0, 34);   // cm from the mid-axle ground point; the front axle is at x = 76.5, and the nose camera is ahead of the front wing
@@ -37,8 +51,9 @@ namespace
 	constexpr float SteeringWheelTilt = -11.8f, SteeringWheelTravel = 140;   // tilt: the CAD's column angle
 	constexpr float CarLock = 110;   // the car's steering wheel at full lock (°), the ADTM's constant: Wheel rotation maps 1:1 onto it
 	constexpr int32 MaxSkids = 1500, MaxPuffs = 48;
-	constexpr int32 MenuSetupRow = UE_ARRAY_COUNT(MenuModes);   // the row after the modes
-	constexpr int32 MenuRows = MenuSetupRow + 3;                 // the modes, setup, settings, quit
+	constexpr int32 MenuTrackRow = UE_ARRAY_COUNT(MenuModes);   // the row after the modes
+	constexpr int32 MenuSetupRow = MenuTrackRow + 1;
+	constexpr int32 MenuRows = MenuTrackRow + UE_ARRAY_COUNT(MenuTail);   // the modes, track, setup, settings, quit
 
 	// the motor loops from the test-day recordings (tools\make_sound_loops.py), each with the value of the upper gear tone it was cut at
 	struct FMotorLoop { const TCHAR* Asset; float ToneHz; };
@@ -175,6 +190,10 @@ void AFSLapVehiclePawn::BeginPlay()
 	StoredLtsT = Track.ltsT; StoredLtsS = Track.ltsS; StoredLtsLap = Track.ltsLap; StoredLtsScale = Track.ltsScale;
 	StoredLtsSplit[0] = Track.ltsSplit[0]; StoredLtsSplit[1] = Track.ltsSplit[1];
 	CityTrack = HoMoLap::MakeCityTrack();
+	for (int i = 1; i < HoMoLap::EventTrackCount(); ++i)
+	{
+		Others.push_back(HoMoLap::MakeEventTrack(i));
+	}
 	LoadBests();
 	ApplySavedSettings();
 	// shortcut: while another Unreal holds the map file it can't be re-saved without its old ground actor; this is harmless once it has none.
@@ -234,13 +253,18 @@ void AFSLapVehiclePawn::SpawnScenery()
 	UInstancedStaticMeshComponent* Blue = MakeSet(TEXT("/Game/FS/Generated/Track/cone_b/StaticMeshes/cone_b.cone_b"));
 	UInstancedStaticMeshComponent* Yellow = MakeSet(TEXT("/Game/FS/Generated/Track/cone_y/StaticMeshes/cone_y.cone_y"));
 	UInstancedStaticMeshComponent* Orange = MakeSet(TEXT("/Game/FS/Generated/Track/cone_o/StaticMeshes/cone_o.cone_o"));
-	Cones.Reset(Track.cones.size());
-	for (const HoMoLap::Cone& Cone : Track.cones)
+	Cones.Reset();
+	for (int32 OnMap = 0; OnMap < GetMapCount(); ++OnMap)
 	{
-		UInstancedStaticMeshComponent* Set = Cone.col == 'b' ? Blue : (Cone.col == 'y' ? Yellow : Orange);
-		const FVector Location(Cone.x * MetersToCentimeters, Cone.y * MetersToCentimeters, 0);
-		const FTransform Upright(FRotator::ZeroRotator, Location, Cone.big ? FVector(1.25f, 1.25f, 1.55f) : FVector::OneVector);
-		Cones.Add({ Set, Set->AddInstance(Upright, /*bWorldSpace=*/true), Upright, 0 });
+		const std::vector<HoMoLap::Cone>& TrackCones = MapTrack(OnMap).cones;
+		for (int32 i = 0; i < static_cast<int32>(TrackCones.size()); ++i)
+		{
+			const HoMoLap::Cone& Cone = TrackCones[i];
+			UInstancedStaticMeshComponent* Set = Cone.col == 'b' ? Blue : (Cone.col == 'y' ? Yellow : Orange);
+			const FVector Location(Cone.x * MetersToCentimeters, Cone.y * MetersToCentimeters, MapTrack(OnMap).HeightAt(Cone.x, Cone.y) * MetersToCentimeters);
+			const FTransform Upright(FRotator::ZeroRotator, Location, Cone.big ? FVector(1.25f, 1.25f, 1.55f) : FVector::OneVector);
+			Cones.Add({ Set, Set->AddInstance(Upright, /*bWorldSpace=*/true), Upright, 0, OnMap, i });
+		}
 	}
 
 	const auto MakeMesh = [&](const TCHAR* Path)
@@ -258,16 +282,23 @@ void AFSLapVehiclePawn::SpawnScenery()
 	// flat ground casts no shadow: its road and lines sit millimetres above the ground around them, and their thin shadows made them look lifted
 	Ground->SetCastShadow(false);
 	Paddock->SetCastShadow(false);
+	for (const HoMoLap::Track& Other : Others)
+	{
+		const FString Name = FString(TEXT("ground_")) + UTF8_TO_TCHAR(Other.id);
+		UStaticMeshComponent* OtherGround = MakeMesh(*FString::Printf(TEXT("/Game/FS/Generated/Track/%s/StaticMeshes/%s.%s"), *Name, *Name, *Name));
+		OtherGround->SetCastShadow(false);
+		OtherGrounds.Add(OtherGround);
+	}
 	const HoMoLap::Track& Made = CityTrack;
 	UStaticMeshComponent* CityGround = MakeMesh(TEXT("/Game/FS/Generated/City/SM_CityBig/StaticMeshes/SM_CityBig.SM_CityBig"));
 	CityGround->SetCastShadow(false);
 	UInstancedStaticMeshComponent* CityBuildings = MakeSet(TEXT("/Game/FS/Generated/City/SM_CityBox/StaticMeshes/SM_CityBox.SM_CityBox"));
 	UInstancedStaticMeshComponent* CityBarriers = MakeSet(TEXT("/Game/FS/Generated/City/SM_CityBarrier/StaticMeshes/SM_CityBarrier.SM_CityBarrier"));
-	const auto AddBoxes = [](UInstancedStaticMeshComponent* Set, const std::vector<HoMoLap::CityBox>& Boxes)
+	const auto AddBoxes = [](UInstancedStaticMeshComponent* Set, const std::vector<HoMoLap::CityBox>& Boxes, const HoMoLap::Track* Ground = nullptr)
 	{
 		for (const HoMoLap::CityBox& Box : Boxes)
 		{
-			Set->AddInstance(FTransform(FRotator::ZeroRotator, FVector(Box.x, Box.y, 0) * MetersToCentimeters, FVector(Box.hx * 2, Box.hy * 2, Box.h)), /*bWorldSpace=*/true);
+			Set->AddInstance(FTransform(FRotator::ZeroRotator, FVector(Box.x, Box.y, Ground ? Ground->HeightAt(Box.x, Box.y) : 0.0) * MetersToCentimeters, FVector(Box.hx * 2, Box.hy * 2, Box.h)), /*bWorldSpace=*/true);
 		}
 	};
 	AddBoxes(CityBuildings, Made.buildings);
@@ -280,19 +311,19 @@ void AFSLapVehiclePawn::SpawnScenery()
 		Set->SetMaterial(0, LoadObject<UMaterialInterface>(nullptr, MaterialPath));
 		return Set;
 	};
-	const auto AddPoles = [](UInstancedStaticMeshComponent* Set, const std::vector<HoMoLap::CityPole>& Poles, int32 Every = 1, int32 Offset = 0)
+	const auto AddPoles = [](UInstancedStaticMeshComponent* Set, const std::vector<HoMoLap::CityPole>& Poles, int32 Every = 1, int32 Offset = 0, const HoMoLap::Track* Ground = nullptr)
 	{
 		for (int32 i = Offset; i < static_cast<int32>(Poles.size()); i += Every)
 		{
 			const HoMoLap::CityPole& Pole = Poles[i];
-			Set->AddInstance(FTransform(FRotator::ZeroRotator, FVector(Pole.x, Pole.y, Pole.z) * MetersToCentimeters, FVector(Pole.sx, Pole.sy, Pole.sz)), /*bWorldSpace=*/true);
+			Set->AddInstance(FTransform(FRotator::ZeroRotator, FVector(Pole.x, Pole.y, Pole.z + (Ground ? Ground->HeightAt(Pole.x, Pole.y) : 0.0)) * MetersToCentimeters, FVector(Pole.sx, Pole.sy, Pole.sz)), /*bWorldSpace=*/true);
 		}
 	};
-	const auto AddTops = [](UInstancedStaticMeshComponent* Set, const std::vector<HoMoLap::CitySphere>& Tops)
+	const auto AddTops = [](UInstancedStaticMeshComponent* Set, const std::vector<HoMoLap::CitySphere>& Tops, const HoMoLap::Track* Ground = nullptr)
 	{
 		for (const HoMoLap::CitySphere& Top : Tops)
 		{
-			Set->AddInstance(FTransform(FRotator::ZeroRotator, FVector(Top.x, Top.y, Top.z) * MetersToCentimeters, FVector(Top.r * 2)), /*bWorldSpace=*/true);
+			Set->AddInstance(FTransform(FRotator::ZeroRotator, FVector(Top.x, Top.y, Top.z + (Ground ? Ground->HeightAt(Top.x, Top.y) : 0.0)) * MetersToCentimeters, FVector(Top.r * 2)), /*bWorldSpace=*/true);
 		}
 	};
 	const TCHAR* const Leaf = TEXT("/Game/FS/Generated/Materials/MI_CityLeaf.MI_CityLeaf");
@@ -304,26 +335,35 @@ void AFSLapVehiclePawn::SpawnScenery()
 	CityTrees->SetCullDistances(70000, 80000);
 	CityParts = { CityGround, CityBuildings, CityBarriers, CityPoles, CityTrees };
 
-	// the FSG paddock uses the same pieces with the materials that already exist
-	UInstancedStaticMeshComponent* PaddockPoles = MakeSet(UnitBox);
-	AddPoles(PaddockPoles, Track.poles);
-	UInstancedStaticMeshComponent* PaddockTrees = Tinted(Sphere, Leaf);
-	AddTops(PaddockTrees, Track.treeTops);
-	UInstancedStaticMeshComponent* PaddockBoxes = Tinted(UnitBox, TEXT("/Game/FS/Generated/Materials/MI_White.MI_White"));
-	AddBoxes(PaddockBoxes, Track.buildings);
-	UInstancedStaticMeshComponent* PaddockFence = MakeSet(TEXT("/Game/FS/Generated/City/SM_CityBarrier/StaticMeshes/SM_CityBarrier.SM_CityBarrier"));
-	AddBoxes(PaddockFence, Track.barriers);
+	// the FSG paddock uses the same pieces with the materials that already exist; each FSG track has its own around it
+	const auto MakePaddock = [&](const HoMoLap::Track& Around)
+	{
+		UInstancedStaticMeshComponent* PaddockPoles = MakeSet(UnitBox);
+		AddPoles(PaddockPoles, Around.poles, 1, 0, &Around);
+		UInstancedStaticMeshComponent* PaddockTrees = Tinted(Sphere, Leaf);
+		AddTops(PaddockTrees, Around.treeTops, &Around);
+		UInstancedStaticMeshComponent* PaddockBoxes = Tinted(UnitBox, TEXT("/Game/FS/Generated/Materials/MI_White.MI_White"));
+		AddBoxes(PaddockBoxes, Around.buildings, &Around);
+		UInstancedStaticMeshComponent* PaddockFence = MakeSet(TEXT("/Game/FS/Generated/City/SM_CityBarrier/StaticMeshes/SM_CityBarrier.SM_CityBarrier"));
+		AddBoxes(PaddockFence, Around.barriers, &Around);
+		TArray<UInstancedStaticMeshComponent*> Sets = { PaddockPoles, PaddockTrees, PaddockBoxes, PaddockFence };
+		static const TCHAR* const CanopyColours[] = { TEXT("MI_Barrier.MI_Barrier"), TEXT("MI_ConeBlue.MI_ConeBlue"), TEXT("MI_ConeYellow.MI_ConeYellow"), TEXT("MI_White.MI_White") };
+		for (int32 Colour = 0; Colour < UE_ARRAY_COUNT(CanopyColours); ++Colour)
+		{
+			UInstancedStaticMeshComponent* Canopies = Tinted(UnitBox, *(FString(TEXT("/Game/FS/Generated/Materials/")) + CanopyColours[Colour]));
+			AddPoles(Canopies, Around.canopies, UE_ARRAY_COUNT(CanopyColours), Colour, &Around);
+			Sets.Add(Canopies);
+		}
+		return Sets;
+	};
+	PaddockSets = MakePaddock(Track);
+	for (const HoMoLap::Track& Other : Others)
+	{
+		OtherPaddocks.Add(MakePaddock(Other));
+	}
 	for (const TCHAR* Colour : { TEXT("MI_White.MI_White"), TEXT("MI_ConeBlue.MI_ConeBlue"), TEXT("MI_Barrier.MI_Barrier"), TEXT("MI_ConeYellow.MI_ConeYellow"), TEXT("MI_Black.MI_Black") })
 	{
 		TrafficSets.Add(Tinted(UnitBox, *(FString(TEXT("/Game/FS/Generated/Materials/")) + Colour)));   // visibility follows the active city in SpawnTrafficInstances
-	}
-	PaddockSets = { PaddockPoles, PaddockTrees, PaddockBoxes, PaddockFence };
-	static const TCHAR* const CanopyColours[] = { TEXT("MI_Barrier.MI_Barrier"), TEXT("MI_ConeBlue.MI_ConeBlue"), TEXT("MI_ConeYellow.MI_ConeYellow"), TEXT("MI_White.MI_White") };
-	for (int32 Colour = 0; Colour < UE_ARRAY_COUNT(CanopyColours); ++Colour)
-	{
-		UInstancedStaticMeshComponent* Canopies = Tinted(UnitBox, *(FString(TEXT("/Game/FS/Generated/Materials/")) + CanopyColours[Colour]));
-		AddPoles(Canopies, Track.canopies, UE_ARRAY_COUNT(CanopyColours), Colour);
-		PaddockSets.Add(Canopies);
 	}
 
 	// skid marks and smoke are pools of instances that get reused; an unused one is scaled to nothing
@@ -354,6 +394,7 @@ void AFSLapVehiclePawn::RestartSimulation(HoMoLap::Mode NewMode)
 	Simulation = MakeUnique<HoMoLap::Simulation>(ActiveTrack(), Setup, RaceMode);
 	Adtm = UsesAdtm(RaceMode) ? HoMoLap::MakeAdtm(Setup) : nullptr;
 	Simulation->external = Adtm.get();
+	Simulation->motorTorques = bSil && Adtm ? SilTorque : nullptr;   // no ADTM built: the SIL mode drives as a plain hot lap
 	CurrentKey = MakeBestKey();
 	WheelRotation = 0;
 	FixedAccumulator = 0;
@@ -362,7 +403,15 @@ void AFSLapVehiclePawn::RestartSimulation(HoMoLap::Mode NewMode)
 	bCameraSnap = true;
 	ClearEffects();
 	const bool bCity = RaceMode == HoMoLap::Mode::City;
-	Ground->SetVisibility(!bCity);
+	Ground->SetVisibility(!bCity && Map == 0);
+	for (int32 i = 0; i < OtherGrounds.Num(); ++i)
+	{
+		OtherGrounds[i]->SetVisibility(!bCity && Map == i + 1);
+		for (UInstancedStaticMeshComponent* Set : OtherPaddocks[i])
+		{
+			Set->SetVisibility(!bCity && Map == i + 1);
+		}
+	}
 	ChaseCamera->PostProcessSettings.AutoExposureBias = bCity ? -0.55f : -0.15f;   // the shaded street canyons pull the auto exposure up, which burns out the sunlit road
 	ChaseCamera->PostProcessSettings.bOverride_IndirectLightingIntensity = true;
 	ChaseCamera->PostProcessSettings.IndirectLightingIntensity = bCity ? 1.5f : 1.0f;
@@ -378,16 +427,24 @@ void AFSLapVehiclePawn::RestartSimulation(HoMoLap::Mode NewMode)
 	SpawnTrafficInstances();
 	for (UInstancedStaticMeshComponent* Set : PaddockSets)
 	{
-		Set->SetVisibility(RaceMode == HoMoLap::Mode::Sim || RaceMode == HoMoLap::Mode::Arcade);
+		Set->SetVisibility((RaceMode == HoMoLap::Mode::Sim || RaceMode == HoMoLap::Mode::Arcade) && Map == 0);
 	}
 	UpdateCones();
 	UpdateVisuals();
 }
 
-void AFSLapVehiclePawn::StartRace(HoMoLap::Mode NewMode)
+void AFSLapVehiclePawn::StartRace(HoMoLap::Mode NewMode, int32 NewMap, bool bNewSil)
 {
+	bSil = bNewSil && NewMode == HoMoLap::Mode::Sim;
+	bSil ? (void)Sil.Open() : Sil.Close();
 	static const TCHAR* const ModeNames[] = { TEXT("hotlap"), TEXT("arcade"), TEXT("free"), TEXT("city") };   // HoMoLap::Mode order
-	Log.Begin(ModeNames[static_cast<int32>(NewMode)], SetupJson(), ReferenceJson(), KernelName(NewMode));
+	Map = NewMode == HoMoLap::Mode::Sim || NewMode == HoMoLap::Mode::Arcade ? NewMap : 0;   // the city and free roam have their own (set before ReferenceJson)
+	FString LogMode = bSil ? TEXT("sil") : ModeNames[static_cast<int32>(NewMode)];
+	if (Map > 0)
+	{
+		LogMode += FString(TEXT("_")) + UTF8_TO_TCHAR(MapTrack(Map).id);
+	}
+	Log.Begin(*LogMode, SetupJson(), ReferenceJson(), KernelName(NewMode));
 	RestartSimulation(NewMode);
 	CountdownTime = 0;
 	CountdownHold = FMath::FRandRange(0.5f, 1.3f);
@@ -396,8 +453,11 @@ void AFSLapVehiclePawn::StartRace(HoMoLap::Mode NewMode)
 
 void AFSLapVehiclePawn::EnterMenu()
 {
+	Map = ChosenMap;
+	bSil = false;
+	Sil.Close();
 	RestartSimulation(HoMoLap::Mode::Sim);
-	Simulation->PlaceAt(Track.LEN * 0.35);
+	Simulation->PlaceAt(ActiveTrack().LEN * 0.35);
 	Flow = EFSLapFlow::Menu;
 	UpdateVisuals();
 }
@@ -435,17 +495,17 @@ void AFSLapVehiclePawn::Tick(float DeltaSeconds)
 		}
 		WheelThrottle = Pedal(Axis(1));
 		WheelBrake = Pedal(Axis(2));
-		// the wheel's buttons for back on track (R) and the camera (C), from the wheel setup's last two steps: on the press
-		for (int32 k = 0; k < 2; ++k)
-		{
-			const int32 Button = SaveData->WheelCal.Num() == 11 ? static_cast<int32>(SaveData->WheelCal[9 + k]) : -1;
-			const bool bDown = Flow != EFSLapFlow::Wheel && WheelAxes.IsValidIndex(Button) && WheelAxes[Button] > 0.5f;
-			if (bDown && !bWheelButtonDown[k])
-			{
-				k == 0 ? ResetPressed() : CycleCamera();
-			}
-			bWheelButtonDown[k] = bDown;
-		}
+	}
+	if (TestWheelButton >= 0)   // the key test's pretend wheel: nothing but this button held
+	{
+		TArray<float> Pretend;
+		Pretend.SetNumZeroed(FFSLapWheel::AxisCount + FFSLapWheel::Buttons);
+		Pretend[FMath::Clamp(TestWheelButton, 0, Pretend.Num() - 1)] = 1;
+		UpdateWheelButtons(Pretend);
+	}
+	else
+	{
+		UpdateWheelButtons(bWheelLive ? WheelAxes : TArray<float>());
 	}
 	// force feedback: the ADTM's steering torque while the driver steers (none in menus, replays or on FS Lap's own model)
 	float ForceWanted = 0;
@@ -494,6 +554,10 @@ void AFSLapVehiclePawn::Tick(float DeltaSeconds)
 			UpdateVisuals();
 			UpdateEffects(DeltaSeconds);
 		}
+	}
+	if (bSil && Simulation)   // the VCU runs on through the countdown and pause; the car stands then
+	{
+		Sil.Exchange(Simulation->c, Simulation->clock, Simulation->c.st * CarLock, Setup.G, Flow == EFSLapFlow::Race);
 	}
 	UpdateCamera(DeltaSeconds);
 	UpdateSound(DeltaSeconds);
@@ -713,7 +777,7 @@ void AFSLapVehiclePawn::UpdateEffects(float DeltaSeconds)
 		}
 		const double* A = OnTrack.APRON;
 		const bool bOnTrackGround = P.X > A[0] && P.X < A[2] && P.Y > A[1] && P.Y < A[3];
-		return bRoad ? 1.0 : (bOnTrackGround || RaceMode != HoMoLap::Mode::Free ? 0.0 : -2.0);
+		return OnTrack.HeightAt(P.X, P.Y) * MetersToCentimeters + (bRoad ? (OnTrack.terrain.empty() ? 1.0 : 3.0) : (bOnTrackGround || RaceMode != HoMoLap::Mode::Free ? 0.0 : -2.0));
 	};
 	bool bNewSkid = false;
 	for (int32 W = 0; W < 4; ++W)
@@ -761,7 +825,7 @@ void AFSLapVehiclePawn::UpdateEffects(float DeltaSeconds)
 		Puff.Life = FMath::Max(0.0f, Puff.Life - DeltaSeconds * 1.1f);
 		Puff.Radius += DeltaSeconds * 1.3f;
 		bAny |= Puff.Life > 0;
-		const FVector Location(Puff.Position.X * MetersToCentimeters, Puff.Position.Y * MetersToCentimeters, 25 + (1 - Puff.Life) * 60);
+		const FVector Location(Puff.Position.X * MetersToCentimeters, Puff.Position.Y * MetersToCentimeters, GroundAt(Puff.Position.X, Puff.Position.Y) * MetersToCentimeters + 25 + (1 - Puff.Life) * 60);
 		Smoke->UpdateInstanceTransform(i, FTransform(FRotator::ZeroRotator, Location, FVector(Puff.Life > 0 ? Puff.Radius * 2 : 0)), /*bWorldSpace=*/true, /*bMarkRenderStateDirty=*/false);
 		Smoke->SetCustomDataValue(i, 0, Puff.Life * 0.2f, /*bMarkRenderStateDirty=*/false);
 	}
@@ -906,6 +970,10 @@ void AFSLapVehiclePawn::MenuLeft()
 	{
 		ChangeSettings(-1);
 	}
+	else if (Flow == EFSLapFlow::Menu && MenuIndex == MenuTrackRow)
+	{
+		ChooseMap(-1);
+	}
 }
 
 void AFSLapVehiclePawn::MenuRight()
@@ -925,6 +993,10 @@ void AFSLapVehiclePawn::MenuRight()
 	else if (Flow == EFSLapFlow::Wheel)
 	{
 		ForceTestTime = 1.3f;   // RIGHT in the wheel setup: the test force (only moves a wheel whose force feedback is running)
+	}
+	else if (Flow == EFSLapFlow::Menu && MenuIndex == MenuTrackRow)
+	{
+		ChooseMap(1);
 	}
 }
 
@@ -983,7 +1055,7 @@ void AFSLapVehiclePawn::ResetPressed()
 	}
 	else if (Flow == EFSLapFlow::Paused)
 	{
-		StartRace(RaceMode);
+		StartRace(RaceMode, Map, bSil);
 	}
 	else if (Flow == EFSLapFlow::Setup)
 	{
@@ -1080,8 +1152,9 @@ void AFSLapVehiclePawn::UpdateReplay(float DeltaSeconds)
 	const double Step = FMath::Max(B.t - A.t, 1e-3), F = FMath::Clamp((ReplayTime - A.t) / Step, 0.0, 1.0);
 	const double YawRate = FMath::UnwindRadians(B.h - A.h) / Step, Speed = FMath::Sqrt(FMath::Square(B.x - A.x) + FMath::Square(B.y - A.y)) / Step;
 	ReplaySpeed = Speed;
-	SetActorLocationAndRotation(FVector(A.x + (B.x - A.x) * F, A.y + (B.y - A.y) * F, 0) * MetersToCentimeters,
-		FRotator(0, FMath::RadiansToDegrees(A.h + FMath::UnwindRadians(B.h - A.h) * F), 0));
+	const double ReplayX = A.x + (B.x - A.x) * F, ReplayY = A.y + (B.y - A.y) * F;
+	SetActorLocationAndRotation(FVector(ReplayX, ReplayY, GroundAt(ReplayX, ReplayY)) * MetersToCentimeters,
+		GroundAttitude(ReplayX, ReplayY, A.h + FMath::UnwindRadians(B.h - A.h) * F));
 
 	// steering and body roll are not recorded: they follow from the yaw rate
 	const float Steer = FMath::RadiansToDegrees(static_cast<float>(FMath::Atan(Simulation->C.L * YawRate / FMath::Max(Speed, 2.0))));
@@ -1117,7 +1190,11 @@ void AFSLapVehiclePawn::Confirm()
 	}
 	if (Flow == EFSLapFlow::Menu)
 	{
-		if (MenuIndex == MenuSetupRow)
+		if (MenuIndex == MenuTrackRow)
+		{
+			ChooseMap(1);
+		}
+		else if (MenuIndex == MenuSetupRow)
 		{
 			Flow = EFSLapFlow::Setup;
 		}
@@ -1131,7 +1208,7 @@ void AFSLapVehiclePawn::Confirm()
 		}
 		else
 		{
-			StartRace(MenuModes[MenuIndex]);
+			StartRace(MenuModes[MenuIndex].Mode, ChosenMap, MenuModes[MenuIndex].bSil);
 		}
 	}
 	else if (Flow == EFSLapFlow::Paused)
@@ -1188,6 +1265,11 @@ void AFSLapVehiclePawn::WheelNext()
 		}
 		SaveData->WheelName = Wheel.Name;
 		SaveData->WheelCal = WheelNew;
+		// the two button steps set the buttons of back on track and the camera, the same ones the settings screen shows
+		WheelButtons.Init(-1, EFSLapKey::Count);   // a new wheel: the old wheel's buttons mean nothing
+		WheelButtons[EFSLapKey::Reset] = static_cast<int32>(WheelNew[9]);
+		WheelButtons[EFSLapKey::Camera] = static_cast<int32>(WheelNew[10]);
+		ApplyKeys();   // saves them with the keys
 		UGameplayStatics::SaveGameToSlot(SaveData, SaveSlot, 0);
 		WheelStep = 0;
 		WheelMessage = TEXT("Saved. Check the line below, then ESC.");
@@ -1394,7 +1476,7 @@ void AFSLapVehiclePawn::UpdateCamera(float DeltaSeconds)
 	if (HeldView)
 	{
 		// in the car's heading frame (x forward, y right): 4.8 m to the left or right, or 5.2 m ahead looking back
-		const FVector CarPoint(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, 0);
+		const FVector CarPoint(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, GroundAt(Car.x, Car.y) * MetersToCentimeters);
 		const FVector Offset = HeldView == 8 ? FVector(520, 0, 120) : FVector(0, HeldView == 4 ? -480 : 480, 110);
 		const FVector Position = CarPoint + FRotator(0, FMath::RadiansToDegrees(Car.h), 0).RotateVector(Offset);
 		ChaseCamera->SetWorldLocationAndRotation(Position, (CarPoint + FVector(0, 0, 50) - Position).Rotation());
@@ -1432,8 +1514,9 @@ void AFSLapVehiclePawn::UpdateCamera(float DeltaSeconds)
 		const FVector Forward(FMath::Cos(CameraYaw), FMath::Sin(CameraYaw), 0);
 		const double Distance = bArcadeCamera ? 5.0 + Speed * 0.05 : 5.4 + Speed * 0.045;
 		const double Height = bArcadeCamera ? 1.75 + Speed * 0.012 : 1.9 + Speed * 0.012;
-		const FVector CarPoint(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, 0);
-		const FVector Wanted = CarPoint - Forward * Distance * MetersToCentimeters + FVector(0, 0, Height * MetersToCentimeters);
+		const FVector CarPoint(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, GroundAt(Car.x, Car.y) * MetersToCentimeters);
+		FVector Wanted = CarPoint - Forward * Distance * MetersToCentimeters + FVector(0, 0, Height * MetersToCentimeters);
+		Wanted.Z = FMath::Max(Wanted.Z, GroundAt(Wanted.X / MetersToCentimeters, Wanted.Y / MetersToCentimeters) * MetersToCentimeters + 80);   // behind the car on a hill: never in the ground
 		CameraPosition = bCameraSnap ? Wanted : FMath::Lerp(CameraPosition, Wanted, 1 - FMath::Exp(-12.0 * DeltaSeconds));
 		const FVector LookAt = CarPoint + Forward * 400 + FVector(0, 0, 55);
 		ChaseCamera->SetWorldLocationAndRotation(CameraPosition, (LookAt - CameraPosition).Rotation());
@@ -1446,6 +1529,10 @@ void AFSLapVehiclePawn::UpdateCamera(float DeltaSeconds)
 
 void AFSLapVehiclePawn::Simulate()
 {
+	if (Simulation->motorTorques)
+	{
+		Sil.Torques(Simulation->c, Setup.G, HoMoLap::DT, SilTorque);
+	}
 	if (bAutopilot || Flow == EFSLapFlow::Menu)
 	{
 		Simulation->Step(nullptr);
@@ -1471,8 +1558,75 @@ void AFSLapVehiclePawn::Simulate()
 	}
 }
 
+int32 AFSLapVehiclePawn::GetMenuRowCount()
+{
+	return MenuRows;
+}
+
+const TCHAR* AFSLapVehiclePawn::GetMenuName(int32 Row)
+{
+	return Row < MenuTrackRow ? MenuModes[Row].Name : MenuTail[Row - MenuTrackRow][0];
+}
+
+const TCHAR* AFSLapVehiclePawn::GetMenuNote(int32 Row)
+{
+	return Row < MenuTrackRow ? MenuModes[Row].Note : MenuTail[Row - MenuTrackRow][1];
+}
+
+FRotator AFSLapVehiclePawn::GroundAttitude(double x, double y, double h) const
+{
+	double gx = 0, gy = 0;
+	if (RaceMode != HoMoLap::Mode::City)
+	{
+		ActiveTrack().Slope(x, y, gx, gy);
+	}
+	const double Along = gx * std::cos(h) + gy * std::sin(h), Across = -gx * std::sin(h) + gy * std::cos(h);   // up ahead, up to the car's right
+	return FRotator(FMath::RadiansToDegrees(std::atan(Along)), FMath::RadiansToDegrees(h), -FMath::RadiansToDegrees(std::atan(Across)));
+}
+
+int32 AFSLapVehiclePawn::GetMenuTrackRow()
+{
+	return MenuTrackRow;
+}
+
+int32 AFSLapVehiclePawn::FindMap(const TCHAR* Id) const
+{
+	for (int32 i = 0; i < GetMapCount(); ++i)
+	{
+		if (FCString::Strcmp(UTF8_TO_TCHAR(MapTrack(i).id), Id) == 0)
+		{
+			return i;
+		}
+	}
+	return 0;
+}
+
+FString AFSLapVehiclePawn::GetMapNote(int32 i) const
+{
+	const FString Id = UTF8_TO_TCHAR(MapTrack(i).id);
+	if (Id == TEXT("fscz"))
+	{
+		return TEXT("FS Czech (Most): your drawing on the satellite map, scaled by\nSigma's 2025 endurance log; the reference is Sigma's lap.");
+	}
+	if (Id == TEXT("fsf"))
+	{
+		return TEXT("FS France 2026: rebuilt from Tau's endurance log;\nthe reference is Tau's best lap there.");
+	}
+	return TEXT("FSG: the LTS centreline, as the site lies;\nthe reference is the LTS lap.");
+}
+
+void AFSLapVehiclePawn::ChooseMap(int32 Direction)
+{
+	ChosenMap = (ChosenMap + Direction + GetMapCount()) % GetMapCount();
+	EnterMenu();   // the menu's background drives the chosen track
+}
+
 FString AFSLapVehiclePawn::GetLtsLabel() const
 {
+	if (Map > 0)
+	{
+		return UTF8_TO_TCHAR(ActiveTrack().refName);   // the car's own lap there, from its log
+	}
 	if (LtsShown.IsEmpty())
 	{
 		return TEXT("LTS lap");
@@ -1518,14 +1672,8 @@ void AFSLapVehiclePawn::RequestLts()
 
 void AFSLapVehiclePawn::ApplyLts(const FFSLapLts::FLap& Lap)
 {
-	Track.ltsT.assign(Lap.Time.GetData(), Lap.Time.GetData() + Lap.Time.Num());
-	Track.ltsS.assign(Lap.Distance.GetData(), Lap.Distance.GetData() + Lap.Distance.Num());
-	Track.ltsLap = Lap.LapTime;
-	Track.ltsScale = Track.LEN / Lap.Length;   // the LTS track and this centreline differ slightly in length
-	for (int32 i = 0; i < 2; ++i)
-	{
-		Track.ltsSplit[i] = Track.LtsTimeAt(Track.LEN * (i + 1) / 3);   // the game's sectors are thirds of the lap
-	}
+	// the LTS lap from its own start, moved to the real start line as the stored one is (Track::refShift)
+	Track.SetReference(Lap.Distance.GetData(), Lap.Time.GetData(), Lap.Distance.Num(), Lap.Length, Lap.LapTime);
 	LtsShown = Lap.Model;
 	Log.SetReference(ReferenceJson());
 }
@@ -1552,6 +1700,10 @@ FString AFSLapVehiclePawn::SetupJson() const
 
 FString AFSLapVehiclePawn::ReferenceJson() const
 {
+	if (Map > 0)
+	{
+		return FString::Printf(TEXT("{\"source\": \"%s's lap from its log (%s)\", \"lapTime_s\": %.4f}"), UTF8_TO_TCHAR(MapTrack(Map).refName), UTF8_TO_TCHAR(MapTrack(Map).name), MapTrack(Map).ltsLap);
+	}
 	return FString::Printf(TEXT("{\"source\": \"%s\", \"lapTime_s\": %.4f}"), LtsShown.IsEmpty() ? TEXT("stored LTS lap") : *(TEXT("LTS ") + LtsShown), Track.ltsLap);
 }
 
@@ -1589,6 +1741,10 @@ const AFSLapVehiclePawn::FBest& AFSLapVehiclePawn::CurrentBest() const
 FString AFSLapVehiclePawn::MakeBestKey() const
 {
 	FString Key = FString::FromInt(static_cast<int32>(RaceMode));
+	if (RaceMode == HoMoLap::Mode::Sim || RaceMode == HoMoLap::Mode::Arcade)
+	{
+		Key += FString(TEXT("t")) + UTF8_TO_TCHAR(ActiveTrack().id);   // the track; laps on the mirrored FSG track before 2026-11-16 had none and stay hidden
+	}
 	for (const FSetupField& Field : SetupFields)
 	{
 		Key += FString::Printf(TEXT("_%.4f"), Setup.*Field.Value);
@@ -1596,6 +1752,10 @@ FString AFSLapVehiclePawn::MakeBestKey() const
 	if (UsesAdtm(RaceMode) && Adtm)
 	{
 		Key += TEXT("_adtm");   // laps with the team's model are kept apart
+	}
+	if (bSil)
+	{
+		Key += TEXT("_sil");
 	}
 	return bDriverAssist ? Key : Key + TEXT("_noassist");   // assisted laps keep the records they already have
 }
@@ -1623,7 +1783,8 @@ void AFSLapVehiclePawn::LoadBests()
 		{
 			continue;   // a removed real city (c1 Erlangen, c2 Nuernberg): left in the save file, not shown
 		}
-		BuildProgress(Best, FCString::Atoi(*Saved.Key) == static_cast<int32>(HoMoLap::Mode::City) ? CityTrack : Track);
+		const FString TrackId = Saved.Key.Mid(1, 1) == TEXT("t") ? Saved.Key.Mid(2).Left(Saved.Key.Mid(2).Find(TEXT("_"))) : FString(TEXT("fsg"));
+		BuildProgress(Best, FCString::Atoi(*Saved.Key) == static_cast<int32>(HoMoLap::Mode::City) ? CityTrack : MapTrack(FindMap(*TrackId)));
 		Bests.Add(Saved.Key, MoveTemp(Best));
 	}
 }
@@ -1682,12 +1843,12 @@ void AFSLapVehiclePawn::UpdateGhosts()
 	const double LapTime = Simulation->CurrentLapTime();
 	const auto Place = [this](USceneComponent* Ghost, bool bShow, double X, double Y, double H)
 	{
-		const FVector At(X * MetersToCentimeters, Y * MetersToCentimeters, 0);
+		const FVector At(X * MetersToCentimeters, Y * MetersToCentimeters, GroundAt(X, Y) * MetersToCentimeters);
 		const bool bVisible = bShow && !(CameraView != 0 && FVector::Dist2D(At, GetActorLocation()) < 1500);   // from the cockpit, a ghost this close fills the whole view
 		Ghost->SetVisibility(bVisible, true);
 		if (bVisible)
 		{
-			Ghost->SetWorldLocationAndRotation(At, FRotator(0, FMath::RadiansToDegrees(H), 0));
+			Ghost->SetWorldLocationAndRotation(At, GroundAttitude(X, Y, H));
 		}
 	};
 
@@ -1728,8 +1889,8 @@ void AFSLapVehiclePawn::UpdateVisuals()
 	Spring(BodyPitch, BodyPitchRate, PitchTarget);
 	Spring(BodyRoll, BodyRollRate, RollTarget);
 	SetActorLocationAndRotation(
-		FVector(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, 0),
-		FRotator(0, FMath::RadiansToDegrees(Car.h), 0));
+		FVector(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, GroundAt(Car.x, Car.y) * MetersToCentimeters),
+		GroundAttitude(Car.x, Car.y, Car.h));
 	Body->SetRelativeRotation(FRotator(BodyPitch, 0, BodyRoll));
 	SteeringWheel->SetRelativeRotation(FRotator(SteeringWheelTilt, 0, static_cast<float>(Car.st) * (Car.direct ? CarLock : SteeringWheelTravel)));
 	WheelFL->SetRelativeRotation(FRotator(WheelRotation, SteerAngle, 0));
@@ -1745,7 +1906,9 @@ void AFSLapVehiclePawn::UpdateCones()
 	const bool bFree = RaceMode == HoMoLap::Mode::Free, bCity = RaceMode == HoMoLap::Mode::City;
 	for (int32 i = 0; i < Cones.Num(); ++i)
 	{
-		const char Wanted = (bCity || (Track.cones[i].freeOnly && !bFree)) ? 2 : (Simulation->coneDown[i] ? 1 : 0);
+		const int32 k = Cones[i].Index;
+		const bool bHere = !bCity && Cones[i].Map == Map;   // only the active track's cones stand
+		const char Wanted = (!bHere || (MapTrack(Cones[i].Map).cones[k].freeOnly && !bFree)) ? 2 : (Simulation->coneDown[k] ? 1 : 0);
 		if (Wanted == Cones[i].State)
 		{
 			continue;
