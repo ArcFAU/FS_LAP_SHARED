@@ -11,6 +11,8 @@
 #include "Engine/StaticMeshActor.h"
 #include "EngineUtils.h"
 #include "FSLapSave.h"
+#include "FSLapTerrain.h"
+#include "Misc/Paths.h"
 #include "GameFramework/PlayerController.h"
 #include "HoMoLapAdtm.h"
 #include "Kismet/GameplayStatics.h"
@@ -35,7 +37,7 @@ namespace
 		{ HoMoLap::Mode::Sim, 0, TEXT("HOT LAP"), TEXT("Team data and FS Rules penalties.") },
 		{ HoMoLap::Mode::Sim, 0, TEXT("SIL (VCU)"), TEXT("A hot lap on the ADTM with a VCU driving the four motors:\nthe car's firmware through the team's SIL. Start tools\\sil\\run.bat first."), true },
 		{ HoMoLap::Mode::Arcade, 0, TEXT("ARCADE"), TEXT("More grip and power on the FSG track.\nHandbrake to slide. No penalties.") },
-		{ HoMoLap::Mode::City, 0, TEXT("CITY"), TEXT("A made-up city about 3 km across, with traffic\nand ring roads. A timed circuit runs through the middle.") },
+		{ HoMoLap::Mode::City, 0, TEXT("ERLANGEN"), TEXT("The whole city, 77 km2, with its real hills, buildings\nand roads, and traffic. A timed circuit runs east of the\nold town. Terrain and buildings (c) Bayerische Vermessungs-\nverwaltung, CC BY 4.0; map (c) OpenStreetMap contributors.") },
 		{ HoMoLap::Mode::Free, 0, TEXT("FREE ROAM"), TEXT("Open paddock with skidpad and acceleration strip.\n0-100 km/h and 75 m timed.") },
 	};
 	const TCHAR* const MenuTail[][2] = {
@@ -189,7 +191,11 @@ void AFSLapVehiclePawn::BeginPlay()
 	Track = HoMoLap::MakeFsgTrack();
 	StoredLtsT = Track.ltsT; StoredLtsS = Track.ltsS; StoredLtsLap = Track.ltsLap; StoredLtsScale = Track.ltsScale;
 	StoredLtsSplit[0] = Track.ltsSplit[0]; StoredLtsSplit[1] = Track.ltsSplit[1];
-	CityTrack = HoMoLap::MakeCityTrack();
+	CityTrack = HoMoLap::MakeCityTrack(TCHAR_TO_UTF8(*FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("FS/Data/Erlangen.bin"))));
+	if (CityTrack.N == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FS Lap: no Erlangen data (Content/FS/Data/Erlangen.bin); the city can't be driven"));
+	}
 	for (int i = 1; i < HoMoLap::EventTrackCount(); ++i)
 	{
 		Others.push_back(HoMoLap::MakeEventTrack(i));
@@ -289,20 +295,9 @@ void AFSLapVehiclePawn::SpawnScenery()
 		OtherGround->SetCastShadow(false);
 		OtherGrounds.Add(OtherGround);
 	}
-	const HoMoLap::Track& Made = CityTrack;
-	UStaticMeshComponent* CityGround = MakeMesh(TEXT("/Game/FS/Generated/City/SM_CityBig/StaticMeshes/SM_CityBig.SM_CityBig"));
-	CityGround->SetCastShadow(false);
-	UInstancedStaticMeshComponent* CityBuildings = MakeSet(TEXT("/Game/FS/Generated/City/SM_CityBox/StaticMeshes/SM_CityBox.SM_CityBox"));
-	UInstancedStaticMeshComponent* CityBarriers = MakeSet(TEXT("/Game/FS/Generated/City/SM_CityBarrier/StaticMeshes/SM_CityBarrier.SM_CityBarrier"));
-	const auto AddBoxes = [](UInstancedStaticMeshComponent* Set, const std::vector<HoMoLap::CityBox>& Boxes, const HoMoLap::Track* Ground = nullptr)
-	{
-		for (const HoMoLap::CityBox& Box : Boxes)
-		{
-			Set->AddInstance(FTransform(FRotator::ZeroRotator, FVector(Box.x, Box.y, Ground ? Ground->HeightAt(Box.x, Box.y) : 0.0) * MetersToCentimeters, FVector(Box.hx * 2, Box.hy * 2, Box.h)), /*bWorldSpace=*/true);
-		}
-	};
-	AddBoxes(CityBuildings, Made.buildings);
-	AddBoxes(CityBarriers, Made.barriers);
+	// the city, all of Erlangen (tools\erlangen_to_ue.py): its ground drawn from the physics' height grid, the buildings,
+	// bridges and the boundary's barrier in 500 m tiles, the road surfaces in the same tiles drawn only near the car, where
+	// the ground is finest (FFSLapTerrain), and the trees and lamps
 	const TCHAR* const UnitBox = TEXT("/Game/FS/Generated/City/SM_CityPole/StaticMeshes/SM_CityPole.SM_CityPole");
 	const TCHAR* const Sphere = TEXT("/Engine/BasicShapes/Sphere.Sphere");
 	const auto Tinted = [&](const TCHAR* MeshPath, const TCHAR* MaterialPath)
@@ -313,27 +308,83 @@ void AFSLapVehiclePawn::SpawnScenery()
 	};
 	const auto AddPoles = [](UInstancedStaticMeshComponent* Set, const std::vector<HoMoLap::CityPole>& Poles, int32 Every = 1, int32 Offset = 0, const HoMoLap::Track* Ground = nullptr)
 	{
+		TArray<FTransform> Placed;
 		for (int32 i = Offset; i < static_cast<int32>(Poles.size()); i += Every)
 		{
 			const HoMoLap::CityPole& Pole = Poles[i];
-			Set->AddInstance(FTransform(FRotator::ZeroRotator, FVector(Pole.x, Pole.y, Pole.z + (Ground ? Ground->HeightAt(Pole.x, Pole.y) : 0.0)) * MetersToCentimeters, FVector(Pole.sx, Pole.sy, Pole.sz)), /*bWorldSpace=*/true);
+			Placed.Add(FTransform(FRotator::ZeroRotator, FVector(Pole.x, Pole.y, Pole.z + (Ground ? Ground->HeightAt(Pole.x, Pole.y) : 0.0)) * MetersToCentimeters, FVector(Pole.sx, Pole.sy, Pole.sz)));
 		}
+		Set->AddInstances(Placed, /*bShouldReturnIndices=*/false, /*bWorldSpace=*/true);
 	};
 	const auto AddTops = [](UInstancedStaticMeshComponent* Set, const std::vector<HoMoLap::CitySphere>& Tops, const HoMoLap::Track* Ground = nullptr)
 	{
+		TArray<FTransform> Placed;
 		for (const HoMoLap::CitySphere& Top : Tops)
 		{
-			Set->AddInstance(FTransform(FRotator::ZeroRotator, FVector(Top.x, Top.y, Top.z + (Ground ? Ground->HeightAt(Top.x, Top.y) : 0.0)) * MetersToCentimeters, FVector(Top.r * 2)), /*bWorldSpace=*/true);
+			Placed.Add(FTransform(FRotator::ZeroRotator, FVector(Top.x, Top.y, Top.z + (Ground ? Ground->HeightAt(Top.x, Top.y) : 0.0)) * MetersToCentimeters, FVector(Top.r * 2)));
+		}
+		Set->AddInstances(Placed, /*bShouldReturnIndices=*/false, /*bWorldSpace=*/true);
+	};
+	const auto AddBoxes = [](UInstancedStaticMeshComponent* Set, const std::vector<HoMoLap::CityBox>& Boxes, const HoMoLap::Track* Ground = nullptr)
+	{
+		for (const HoMoLap::CityBox& Box : Boxes)
+		{
+			Set->AddInstance(FTransform(FRotator::ZeroRotator, FVector(Box.x, Box.y, Ground ? Ground->HeightAt(Box.x, Box.y) : 0.0) * MetersToCentimeters, FVector(Box.hx * 2, Box.hy * 2, Box.h)), /*bWorldSpace=*/true);
 		}
 	};
 	const TCHAR* const Leaf = TEXT("/Game/FS/Generated/Materials/MI_CityLeaf.MI_CityLeaf");
-	UInstancedStaticMeshComponent* CityPoles = MakeSet(UnitBox);
-	AddPoles(CityPoles, Made.poles);
-	UInstancedStaticMeshComponent* CityTrees = Tinted(Sphere, Leaf);
-	AddTops(CityTrees, Made.treeTops);
-	CityPoles->SetCullDistances(70000, 80000);   // thin poles and tree balls vanish into the haze long before this
-	CityTrees->SetCullDistances(70000, 80000);
-	CityParts = { CityGround, CityBuildings, CityBarriers, CityPoles, CityTrees };
+	CityParts.Reset();
+	if (CityTrack.N > 0)
+	{
+		CityGround.Init(Holder, HolderRoot, CityTrack, LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/FS/Generated/Materials/M_Terrain.M_Terrain")));
+		const std::vector<int>& Tiles = CityTrack.meshTiles;
+		for (size_t k = 0; k + 3 < Tiles.size(); k += 4)
+		{
+			for (int32 Kind = 0; Kind < 2; ++Kind)
+			{
+				if (!Tiles[k + 2 + Kind])
+				{
+					continue;
+				}
+				const FString Name = FString::Printf(TEXT("SM_Erl_%s_%d_%d"), Kind ? TEXT("R") : TEXT("B"), Tiles[k], Tiles[k + 1]);
+				UStaticMeshComponent* Tile = MakeMesh(*FString::Printf(TEXT("/Game/FS/Generated/Erlangen/%s/StaticMeshes/%s.%s"), *Name, *Name, *Name));
+				if (Kind)
+				{
+					Tile->SetCastShadow(false);       // flat on the ground
+					Tile->SetCullDistance(45000);     // within the ground's finest kilometre (FFSLapTerrain), whatever the tile's size
+				}
+				CityParts.Add(Tile);
+			}
+		}
+		// trees and lamps in 500 m cells, each set dropped as a whole beyond 800 m: one set of 340,000 instances made the
+		// renderer (shadows, Lumen's surface cache) handle them all every frame, at 27 fps with stalls of up to 0.4 s
+		TMap<FIntPoint, TPair<std::vector<HoMoLap::CityPole>, std::vector<HoMoLap::CitySphere>>> Cells;
+		const auto CellOf = [](double X, double Y) { return FIntPoint(FMath::FloorToInt32(X / 500), FMath::FloorToInt32(Y / 500)); };
+		for (const HoMoLap::CityPole& Pole : CityTrack.poles)
+		{
+			Cells.FindOrAdd(CellOf(Pole.x, Pole.y)).Key.push_back(Pole);
+		}
+		for (const HoMoLap::CitySphere& Top : CityTrack.treeTops)
+		{
+			Cells.FindOrAdd(CellOf(Top.x, Top.y)).Value.push_back(Top);
+		}
+		for (const auto& Cell : Cells)
+		{
+			UInstancedStaticMeshComponent* Poles = MakeSet(UnitBox);
+			AddPoles(Poles, Cell.Value.Key, 1, 0, &CityTrack);
+			UInstancedStaticMeshComponent* Trees = Tinted(Sphere, Leaf);
+			AddTops(Trees, Cell.Value.Value, &CityTrack);
+			for (UInstancedStaticMeshComponent* Set : { Poles, Trees })
+			{
+				Set->SetCullDistances(70000, 80000);   // thin poles and tree balls vanish into the haze long before this
+				Set->SetCullDistance(80000 + 36000);   // the whole cell, once its nearest instance is that far
+				Set->bAffectDistanceFieldLighting = false;
+				Set->bAffectDynamicIndirectLighting = false;   // balls on sticks: not worth Lumen's surface cache
+				Set->MarkRenderStateDirty();
+				CityParts.Add(Set);
+			}
+		}
+	}
 
 	// the FSG paddock uses the same pieces with the materials that already exist; each FSG track has its own around it
 	const auto MakePaddock = [&](const HoMoLap::Track& Around)
@@ -403,6 +454,11 @@ void AFSLapVehiclePawn::RestartSimulation(HoMoLap::Mode NewMode)
 	bCameraSnap = true;
 	ClearEffects();
 	const bool bCity = RaceMode == HoMoLap::Mode::City;
+	CityGround.SetVisible(bCity);
+	if (bCity)
+	{
+		CityGround.Update(FVector(Simulation->c.x, Simulation->c.y, 0) * MetersToCentimeters, /*bAll=*/true);
+	}
 	Ground->SetVisibility(!bCity && Map == 0);
 	for (int32 i = 0; i < OtherGrounds.Num(); ++i)
 	{
@@ -435,6 +491,10 @@ void AFSLapVehiclePawn::RestartSimulation(HoMoLap::Mode NewMode)
 
 void AFSLapVehiclePawn::StartRace(HoMoLap::Mode NewMode, int32 NewMap, bool bNewSil)
 {
+	if (NewMode == HoMoLap::Mode::City && CityTrack.N == 0)
+	{
+		return;   // no Erlangen data: stay in the menu (logged at start)
+	}
 	bSil = bNewSil && NewMode == HoMoLap::Mode::Sim;
 	bSil ? (void)Sil.Open() : Sil.Close();
 	static const TCHAR* const ModeNames[] = { TEXT("hotlap"), TEXT("arcade"), TEXT("free"), TEXT("city") };   // HoMoLap::Mode order
@@ -562,38 +622,80 @@ void AFSLapVehiclePawn::Tick(float DeltaSeconds)
 	UpdateCamera(DeltaSeconds);
 	UpdateSound(DeltaSeconds);
 	UpdateTraffic(DeltaSeconds);
+	if (RaceMode == HoMoLap::Mode::City)
+	{
+		const APlayerCameraManager* View = UGameplayStatics::GetPlayerCameraManager(this, 0);
+		CityGround.Update(View ? View->GetCameraLocation() : GetActorLocation());
+	}
 }
 
 void AFSLapVehiclePawn::MakeTraffic()
 {
 	// shortcut: box-shaped cars that follow fixed paths with no junction logic, until the game has real traffic and car models
-	// rectangular loops of streets around the circuit
-	const std::vector<double>& X = CityTrack.streetX;
-	const std::vector<double>& Y = CityTrack.streetY;
-	for (int32 Ring = 0; Ring <= 6; Ring += 2)   // every other street ring, all outside the circuit's part of the grid
+	// Erlangen's main roads (Track::roadX/Y/Z, joined end to end), cut where they come near the timed circuit; each piece
+	// is driven there and back on the right-hand side, so it is a closed loop
+	const HoMoLap::Track& T = CityTrack;
+	if (T.N == 0)
 	{
-		const bool bReverse = Ring % 4 == 2;
-		const double Lane = bReverse ? -4 : 4;   // the right-hand side of the direction of travel
-		const double X0 = X[Ring] + Lane, Y0 = Y[Ring] + Lane, X1 = X[X.size() - 1 - Ring] - Lane, Y1 = Y[Y.size() - 1 - Ring] - Lane;
-		FTrafficPath Path;
-		Path.P = { { X0, Y0 }, { X1, Y0 }, { X1, Y1 }, { X0, Y1 }, { X0, Y0 } };
-		if (bReverse)
-		{
-			Algo::Reverse(Path.P);
-		}
-		Path.S.Add(0);
-		for (int32 i = 1; i < Path.P.Num(); ++i)
-		{
-			Path.S.Add(Path.S.Last() + FVector2D::Distance(Path.P[i - 1], Path.P[i]));
-		}
-		TrafficPaths.Add(MoveTemp(Path));
+		return;
 	}
+	const double Clear = T.HALF + 9.0, Lane = 2.2;
+	TArray<FVector> Run;
+	const auto Finish = [&]()
+	{
+		double Length = 0;
+		for (int32 i = 1; i < Run.Num(); ++i)
+		{
+			Length += FVector2D::Distance(FVector2D(Run[i - 1]), FVector2D(Run[i]));
+		}
+		if (Length >= 150)
+		{
+			FTrafficPath Path;
+			for (int32 Leg = 0; Leg < 2; ++Leg)   // there on the right, back on the other side
+			{
+				for (int32 k = 0; k < Run.Num(); ++k)
+				{
+					const int32 i = Leg ? Run.Num() - 1 - k : k;
+					const int32 Prev = FMath::Max(Leg ? i + 1 : i - 1, 0), Next = FMath::Min(Leg ? i - 1 : i + 1, Run.Num() - 1);
+					const FVector2D A(Run[FMath::Clamp(Prev, 0, Run.Num() - 1)]), B(Run[FMath::Clamp(Next, 0, Run.Num() - 1)]);
+					const FVector2D Along = (B - A).GetSafeNormal(), Right(-Along.Y, Along.X);   // y points south: (-y, x) is to the driver's right
+					Path.P.Add(FVector2D(Run[i]) + Right * Lane);
+					Path.Z.Add(Run[i].Z);
+				}
+			}
+			Path.S.Add(0);
+			for (int32 i = 1; i < Path.P.Num(); ++i)
+			{
+				Path.S.Add(Path.S.Last() + FVector2D::Distance(Path.P[i - 1], Path.P[i]));
+			}
+			TrafficPaths.Add(MoveTemp(Path));
+		}
+		Run.Reset();
+	};
+	for (size_t i = 0; i < T.roadX.size(); ++i)
+	{
+		const bool bBreak = T.roadX[i] > 1e8;
+		const bool bNearLap = !bBreak && T.NearestPoint(T.roadX[i], T.roadY[i]).d < Clear;
+		if (bBreak || bNearLap)
+		{
+			Finish();
+			continue;
+		}
+		Run.Add(FVector(T.roadX[i], T.roadY[i], T.roadZ.size() > i ? T.roadZ[i] : 0.0));
+	}
+	Finish();
+	double Total = 0;
+	for (const FTrafficPath& Path : TrafficPaths)
+	{
+		Total += Path.S.Last();
+	}
+	const double Spacing = FMath::Max(220.0, Total / 600);   // at most about 600 cars in the whole city
 	TrafficWalls = CityTrack.walls.size();
 	for (int32 p = 0; p < TrafficPaths.Num(); ++p)
 	{
-		for (double Along = 40; Along < TrafficPaths[p].S.Last() - 40; Along += 220)
+		for (double At = 40; At < TrafficPaths[p].S.Last() - 40; At += Spacing)
 		{
-			TrafficCars.Add({ p, Along, TrafficCars.Num() % 4 });
+			TrafficCars.Add({ p, At, TrafficCars.Num() % 4 });
 			CityTrack.walls.push_back({ 1e9, 1e9, 1e9, 1e9 });   // out of everyone's way until the first update
 		}
 	}
@@ -653,9 +755,10 @@ void AFSLapVehiclePawn::UpdateTraffic(float DeltaSeconds)
 		const double T = (Car.Along - Path.S[Seg]) / FMath::Max(Path.S[Seg + 1] - Path.S[Seg], 1e-9);
 		const FVector2D Direction = (Path.P[Seg + 1] - Path.P[Seg]).GetSafeNormal();
 		const FVector2D Pos = Path.P[Seg] + (Path.P[Seg + 1] - Path.P[Seg]) * T;
+		const double Height = Path.Z[Seg] + (Path.Z[Seg + 1] - Path.Z[Seg]) * T;
 		Car.Yaw = FMath::FixedTurn(Car.Yaw, FMath::RadiansToDegrees(FMath::Atan2(Direction.Y, Direction.X)), DeltaSeconds * 180);
 		const FRotator Rotation(0, Car.Yaw, 0);
-		const FVector Where(Pos.X * MetersToCentimeters, Pos.Y * MetersToCentimeters, 12);
+		const FVector Where(Pos.X * MetersToCentimeters, Pos.Y * MetersToCentimeters, Height * MetersToCentimeters + 12);
 		TrafficSets[Car.Set]->UpdateInstanceTransform(Car.Body, FTransform(Rotation, Where, FVector(4.4, 1.8, 0.75)), /*bWorldSpace=*/true, /*bMarkRenderStateDirty=*/false);
 		TrafficSets[4]->UpdateInstanceTransform(i, FTransform(Rotation, Where + FVector(0, 0, 75), FVector(2.2, 1.6, 0.55)), /*bWorldSpace=*/true, /*bMarkRenderStateDirty=*/false);
 		const double C = FMath::Abs(FMath::Cos(FMath::DegreesToRadians(Car.Yaw))), Sn = FMath::Abs(FMath::Sin(FMath::DegreesToRadians(Car.Yaw)));
@@ -1010,6 +1113,7 @@ void AFSLapVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction(TEXT("Handbrake"), IE_Released, this, &AFSLapVehiclePawn::HandbrakeReleased);
 	PlayerInputComponent->BindAction(TEXT("ResetCar"), IE_Pressed, this, &AFSLapVehiclePawn::ResetPressed);
 	PlayerInputComponent->BindAction(TEXT("CameraCycle"), IE_Pressed, this, &AFSLapVehiclePawn::CycleCamera);
+	PlayerInputComponent->BindAction(TEXT("MapToggle"), IE_Pressed, this, &AFSLapVehiclePawn::ToggleMap);
 	PlayerInputComponent->BindAction(TEXT("MenuUp"), IE_Pressed, this, &AFSLapVehiclePawn::MenuUp);
 	PlayerInputComponent->BindAction(TEXT("MenuDown"), IE_Pressed, this, &AFSLapVehiclePawn::MenuDown);
 	PlayerInputComponent->BindAction(TEXT("MenuLeft"), IE_Pressed, this, &AFSLapVehiclePawn::MenuLeft);
@@ -1576,10 +1680,7 @@ const TCHAR* AFSLapVehiclePawn::GetMenuNote(int32 Row)
 FRotator AFSLapVehiclePawn::GroundAttitude(double x, double y, double h) const
 {
 	double gx = 0, gy = 0;
-	if (RaceMode != HoMoLap::Mode::City)
-	{
-		ActiveTrack().Slope(x, y, gx, gy);
-	}
+	ActiveTrack().Slope(x, y, gx, gy, Simulation ? Simulation->c.z : HoMoLap::NoHint);
 	const double Along = gx * std::cos(h) + gy * std::sin(h), Across = -gx * std::sin(h) + gy * std::cos(h);   // up ahead, up to the car's right
 	return FRotator(FMath::RadiansToDegrees(std::atan(Along)), FMath::RadiansToDegrees(h), -FMath::RadiansToDegrees(std::atan(Across)));
 }
@@ -1741,9 +1842,13 @@ const AFSLapVehiclePawn::FBest& AFSLapVehiclePawn::CurrentBest() const
 FString AFSLapVehiclePawn::MakeBestKey() const
 {
 	FString Key = FString::FromInt(static_cast<int32>(RaceMode));
-	if (RaceMode == HoMoLap::Mode::Sim || RaceMode == HoMoLap::Mode::Arcade)
+	if (RaceMode == HoMoLap::Mode::Sim || RaceMode == HoMoLap::Mode::Arcade || RaceMode == HoMoLap::Mode::City)
 	{
-		Key += FString(TEXT("t")) + UTF8_TO_TCHAR(ActiveTrack().id);   // the track; laps on the mirrored FSG track before 2026-11-16 had none and stay hidden
+		Key += FString(TEXT("t")) + UTF8_TO_TCHAR(ActiveTrack().id);   // the city: Erlangen's laps apart from the generated city's before 2026-11-19   // the track; laps on the mirrored FSG track before 2026-11-16 had none and stay hidden
+		if (RaceMode == HoMoLap::Mode::City)
+		{
+			Key += FString::Printf(TEXT("_%dm"), FMath::RoundToInt32(ActiveTrack().LEN));   // a city's circuit comes from the map data: a new one starts its own best lap
+		}
 	}
 	for (const FSetupField& Field : SetupFields)
 	{

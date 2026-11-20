@@ -8,6 +8,7 @@
 #include "FSLapLts.h"
 #include "FSLapWheel.h"
 #include "FSLapSil.h"
+#include "FSLapTerrain.h"
 #include "FSLapVehiclePawn.generated.h"
 
 class UAudioComponent;
@@ -19,7 +20,7 @@ class UStaticMeshComponent;
 enum class EFSLapFlow : uint8 { Menu, Setup, Countdown, Race, Paused, Replay, Wheel, Settings };   // Wheel: the steering wheel setup, from the setup screen; Settings: display, sound and keys, from the menu
 
 // The driving actions whose key the settings screen can change (the order of its key rows and of the saved keys).
-namespace EFSLapKey { enum Type { Throttle, Brake, SteerLeft, SteerRight, Handbrake, Reset, Camera, Pause, Replay, Menu, Count }; }
+namespace EFSLapKey { enum Type { Throttle, Brake, SteerLeft, SteerRight, Handbrake, Reset, Camera, Pause, Replay, Menu, Map, Count }; }   // new ones last: saved keys are by index
 
 UCLASS()
 class FSLAPUE_API AFSLapVehiclePawn : public APawn
@@ -63,6 +64,9 @@ public:
 	bool IsOnboard() const { return CameraView == 1; }   // the cockpit view
 	int32 GetCameraView() const { return CameraView; }   // 0 chase, 1 cockpit, 2 hood, 3 nose
 	int32 GetHeldView() const { return HeldView; }   // numpad key held: 4 left, 6 right, 8 front; 0 none
+	void ToggleMap() { bMapShown = !bMapShown; }
+	void SetMapShown(bool bShown) { bMapShown = bShown; }
+	bool IsMapShown() const { return bMapShown; }   // the whole map over the screen (the HUD draws it)
 	// The setup screen's rows; in the Settings flow, the settings screen's (FSLapSettings.cpp): the HUD draws both the same way.
 	int32 GetSetupRowCount() const;
 	int32 GetSetupRow() const { return Flow == EFSLapFlow::Settings ? SettingsRow : SetupRow; }
@@ -214,16 +218,17 @@ private:
 	const HoMoLap::Track& MapTrack(int32 i) const { return i <= 0 || i > static_cast<int32>(Others.size()) ? Track : Others[i - 1]; }
 	const HoMoLap::Track& ActiveTrack() const { return RaceMode == HoMoLap::Mode::City ? CityTrack : MapTrack(Map); }
 	void ChooseMap(int32 Direction);   // the menu's TRACK row
-	// the ground under a point (m) and the car's attitude on it there (pitch nose up +, roll as Unreal's): 0 and level on a
-	// flat track and in the city
-	double GroundAt(double x, double y) const { return RaceMode == HoMoLap::Mode::City ? 0.0 : ActiveTrack().HeightAt(x, y); }
+	// the surface under a point (m) and the car's attitude on it there (pitch nose up +, roll as Unreal's): 0 and level on a
+	// flat track; on a bridge in the city, the deck the car is on (the surface nearest the car's height)
+	double GroundAt(double x, double y) const { return ActiveTrack().HeightAt(x, y, Simulation ? Simulation->c.z : HoMoLap::NoHint); }
 	FRotator GroundAttitude(double x, double y, double h) const;
 
 	HoMoLap::Track Track;
 	std::vector<HoMoLap::Track> Others;   // the other events' tracks (HoMoLap::MakeEventTrack 1, 2, ...)
 	int32 Map = 0, ChosenMap = 0;   // the track driven now; the one chosen in the menu (hot lap, SIL and arcade)
-	HoMoLap::Track CityTrack;
-	TArray<USceneComponent*> CityParts;   // what the city shows: ground, buildings, lamps, trees
+	HoMoLap::Track CityTrack;   // Erlangen (FSLapUE\Content\FS\Data\Erlangen.bin); N == 0 when the file is missing
+	TArray<USceneComponent*> CityParts;   // what the city shows besides its ground: buildings, roads, bridges, lamps, trees
+	FFSLapTerrain CityGround;
 	HoMoLap::Setup Setup;
 	TUniquePtr<HoMoLap::Simulation> Simulation;
 	USceneComponent* GhostBest = nullptr;
@@ -267,7 +272,7 @@ private:
 	float MotorTone = 0, SoundLevel = 0, SoundSqueal = 0, SoundGrass = 0;
 	int32 HeardLights = 0;
 
-	struct FTrafficPath { TArray<FVector2D> P; TArray<double> S; };   // a closed street loop in metres; S holds the distance at each point
+	struct FTrafficPath { TArray<FVector2D> P; TArray<double> S, Z; };   // a closed loop in metres; S the distance at each point, Z its height
 	struct FTrafficCar { int32 Path; double Along; int32 Set; int32 Body = -1; float Yaw = 0; };
 	TArray<FTrafficPath> TrafficPaths;
 	TArray<FTrafficCar> TrafficCars;
@@ -315,6 +320,7 @@ private:
 	int32 CameraView = 0;   // 0 chase, 1 cockpit (the driver's eyes), 2 hood, 3 nose
 	int32 HeldView = 0;   // while numpad 4, 6 or 8 is held: the car from its left, right or front
 	bool bCameraSnap = true;
+	bool bMapShown = false;
 	double CameraYaw = 0;
 	FVector CameraPosition = FVector::ZeroVector;
 };

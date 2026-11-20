@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `8e33a8f` on 2026-11-16.
+> Synced from development commit `f1c8ca5` on 2026-11-20.
 
 ---
 
@@ -35,7 +35,7 @@ This repository is the team's shared copy. It is updated from the development re
 - **Tracks:** FSG, FS Czech and FS France, chosen in the menu's **TRACK** row for hot lap, SIL and arcade (section 4c).
 - **SIL (VCU):** the car's VCU firmware drives the four motors through the team's SIL, on the ADTM (section 4d).
 - **Arcade:** the same track with more grip and power and a forgiving handling layer. No penalties.
-- **City:** a generated city about 3 km across with a timed circuit and moving traffic.
+- **Erlangen:** the whole city of Erlangen inside its official boundary, from official open data: the Bavarian 1 m terrain model and 3D buildings (© Bayerische Vermessungsverwaltung, CC BY 4.0), roads, bridges, land use and trees from OpenStreetMap (© OpenStreetMap contributors). A timed circuit of 2,674 m and moving traffic; drive anywhere in the city.
 - **Free roam:** an open paddock with a skidpad and an acceleration strip. 0–100 km/h and 75 m are timed from every standing start.
 - **Setup:** change the aero package, mass, power, tyres, brakes and chassis (18 parameters, section 4). Best laps are kept per mode and setup.
 - **Replay:** watch your best lap from roadside cameras.
@@ -110,12 +110,13 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 | Throttle / brake | W / S or Up / Down | right / left trigger |
 | Steer | A / D or Left / Right | left stick |
 | Handbrake | Space | A |
-| Back on track (pause menu: restart) | R | |
+| Back on track (pause menu: restart); in Erlangen onto the nearest street, facing the way you were going | R | |
 | Camera: chase, cockpit, hood, nose (each press goes to the next) | C | |
 | Look at the car from its left / right / front (while held; back to your camera on release; Num Lock on) | Numpad 4 / 6 / 8 | |
 | Pause | Esc or P | Start |
 | Replay of the best lap (in the pause menu) | B | Y |
 | Back to the menu (in the pause menu) | M | |
+| Whole map: the track, or all of Erlangen with its streets, and where the car is (press again to close) | Tab | |
 | Menu: choose / change / confirm | arrow keys, Enter | D-pad, A |
 | Menus with the mouse | point at a row and click; in **SETUP**, click raises a value and right-click lowers it; **BACK** at the top right; the pause menu's items are buttons | |
 | Close FS Lap | menu → **QUIT** | |
@@ -124,7 +125,7 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 **Settings (menu → SETTINGS):**
 - **Display:** window (borderless full screen or a window), resolution, graphics quality (low to epic; `custom` when the quality groups differ), VSync and a frame rate limit. Each change applies at once and is saved by the engine (`GameUserSettings.ini`); the game starts the way it was left, and on a first run in borderless full screen. Borderless full screen always uses the desktop's resolution; the resolution row sizes the window. Exclusive full screen is not offered: the game hangs in it when another window takes the focus.
 - **Sound:** master volume in steps of 10 %.
-- **Keys:** throttle, brake, steer left and right, handbrake, back on track / restart, camera, pause, replay and menu-from-pause. Select a key row, press **Enter**, then the new key; **Esc** keeps the old one. A key another row uses is refused, and so are the menu keys (arrows, Enter) and the numpad view keys. The arrow keys keep driving, **Esc** keeps pausing, and the gamepad keeps its buttons. The last row puts all keys back and takes the wheel buttons off. The key help on screen shows your keys.
+- **Keys:** throttle, brake, steer left and right, handbrake, back on track / restart, camera, pause, replay, menu-from-pause and the whole map. Select a key row, press **Enter**, then the new key; **Esc** keeps the old one. A key another row uses is refused, and so are the menu keys (arrows, Enter) and the numpad view keys. The arrow keys keep driving, **Esc** keeps pausing, and the gamepad keeps its buttons. The last row puts all keys back and takes the wheel buttons off. The key help on screen shows your keys.
 - **Wheel buttons:** while a key row waits for its new key, press a wheel button instead: it becomes that action's button next to its key, and the row shows `wheel button N`. Press the action's own button again to take it off; a button another action has is refused. Throttle, brake and the two steering rows take a button as full throttle, full brake or full lock while it is held; the other actions act on the press.
 - Volume and keys are saved with the best laps. The keyboard tests press the default keys and ignore saved keys.
 
@@ -193,7 +194,7 @@ The wheel steers the car without any smoothing; the keys and the gamepad are smo
 
 FS Lap only adds the LTS folders to the MATLAB path; it does not change the checkout. Jobs and results are in `FSLapUE\Saved\LTS\` (`queue\`, `runs\<job>\case_001.json`). If a job fails, the row says so and names the log file.
 
-**Lap data.** Every lap completed in Hot lap, Arcade or City is saved to `FSLapUE\Saved\Runs\<date>_<time>_<mode>\` as two files. Laps that are not completed are dropped.
+**Lap data.** Every lap completed in Hot lap, Arcade or Erlangen is saved to `FSLapUE\Saved\Runs\<date>_<time>_<mode>\` as two files. Laps that are not completed are dropped.
 - **`lap_NN.csv`:** every simulation step (600 Hz). Columns: `time_s, distance_m, x_m, y_m, heading_rad, vx_mps, vy_mps, speed_mps, yawRate_radps, ax_mps2, ay_mps2, steerInput, steer, roadWheelAngle_rad, throttle, brake, handbrake, power_kW, lateralOffset_m, slipFront, slipRear, grass`. `steerInput` is the driver's input and `steer` is what the car does with it, after the assists.
 - **`lap_NN.run.json`:** the same lap at 100 Hz in the LTS run format (`homo-lts.run.v1`), so the team's LTS tools can read it. `lap.curvature_1pm` and `lap.lateralAcceleration_mps2` follow the LTS sign convention, which is opposite to the game's. The block `fslap` adds the mode, the lap result (time, penalties, sectors), the setup, the reference in use and all channels in the game's own signs.
 
@@ -246,7 +247,7 @@ It stops if the car is more than 5 m off the path. For the stock AI lap: the ADT
 You can drive the team's Advanced Dual Track Model (ADTM) itself, live, with the wheel, instead of FS Lap's own model.
 
 **Using it:** Menu → **SETUP** → row **Vehicle model** → **Left / Right** switches between `FS Lap (single track)` and `ADTM (team, dual track)`.
-- **Modes:** it applies in hot lap and free roam. Arcade and city keep FS Lap's own model, because their handling layer belongs to FS Lap.
+- **Modes:** it applies in hot lap and free roam. Arcade and Erlangen keep FS Lap's own model, because their handling layer belongs to FS Lap.
 - **Records:** laps on the ADTM keep their own best laps and ghosts.
 - **Lap files:** `calculationKernel` names the ADTM and its source.
 
@@ -297,7 +298,7 @@ Without the generated folder, FS Lap builds as before and the row says `ADTM not
 
 ### 4c. The event tracks
 
-Menu → **TRACK** (LEFT / RIGHT or ENTER) chooses the track for hot lap, SIL and arcade; the menu's background drives it. The city and free roam keep their own. Best laps are kept per track.
+Menu → **TRACK** (LEFT / RIGHT or ENTER) chooses the track for hot lap, SIL and arcade; the menu's background drives it. Erlangen and free roam keep their own. Best laps are kept per track.
 
 | Track | Where it comes from | Length | Reference (gold ghost, "vs ... lap") |
 |---|---|---|---|
@@ -388,7 +389,7 @@ All tests run from PowerShell in the repository root. Close the Unreal Editor fi
 
 | Command | What it checks |
 |---|---|
-| `tools\validate.ps1` | Builds the vehicle model alone and runs the AI in sim, arcade, free roam and city mode. The lap times must match (sim 77.405 s, arcade 75.367 s, city 89.633 s) with no wall contacts. No Unreal needed. |
+| `tools\validate.ps1` | Builds the vehicle model alone and runs the AI in sim, arcade, free roam and city mode. The lap times must match (sim 77.398 s, arcade 75.359 s, Erlangen 73.959 s) with no wall contacts; in Erlangen also the bridges (right from above and below) and the R key (onto the nearest street). No Unreal needed. |
 | `tools\validate.ps1 -Game` | The above, plus the in-game tests below |
 | `tools\slice_test.ps1 -Mode sim` (or `arcade`, `city`, `free`) | Starts the real game, lets the AI drive a lap and takes photos from around the car. Results in `FSLapUE\Saved\SliceTest\<mode>\results.txt`: lap times, fps, average and 95th-percentile frame time, the longest frame and the number of frames over 100 ms (hitches). |
 | `tools\slice_test.ps1 -Mode czech` (or `france`) | The in-game hot lap on that event track, with the car's lap there as the reference (`reference=Sigma 2025 70.200`, `Tau 2026 83.996`). |
@@ -411,11 +412,11 @@ The assets in `FSLapUE/Content` are already built; you only need this to change 
 | Body, wheels, livery | `tools/export_ue.py`, `tools/bake_livery_uv.py` | the team's livery model in Blender |
 | CAD parts, steering wheel | `tools/cad/*` (NX), then `tools/cad_to_ue.py` (Blender), then `FSLAP_IMPORT=cad` | NX 2412 with a licence, a copy of the team CAD |
 | Tracks | `tools/logs/track_from_log.py`, then `tools/track_to_ue.py` | the FSG centreline from HoMo-LAP; for the others the car logs; for FS Czech the drawing's trace and internet access to CUZK's services |
-| City | `tools/city_to_ue.py` | nothing (generated) |
+| Erlangen | `tools/erlangen_fetch.py`, then `tools/erlangen_to_ue.py`, then `FSLAP_IMPORT=erlangen` (resumes: only tiles whose file changed) | internet (Bavarian open data, Geofabrik); about 9 minutes, the import about 30 s per tile |
 | Road textures | `tools/fetch_environment_assets.py` (CC0, Poly Haven) | internet |
 | Sound | `tools/extract_audio.py`, `tools/make_sound_loops.py`, `tools/import_sound_ue.py` | the test-day videos |
 
-The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_IMPORT_OK`. Set `FSLAP_IMPORT` to `cad`, `city`, `environment` or `tracks` (every track's ground) to import just that part.
+The Unreal imports run through `tools\run_editor_script.ps1 import_ue.py FSLAP_IMPORT_OK`. Set `FSLAP_IMPORT` to `cad`, `erlangen`, `environment` or `tracks` (every track's ground) to import just that part.
 
 ## 10. Limits and plans
 
@@ -443,6 +444,13 @@ Ask the simulator's maintainer if you need any of these.
 ## 12. Change log
 
 Newest first.
+
+- **2026-11-19 (Erlangen):**
+  - **The city mode is the whole of Erlangen** from official open data (section 1): real terrain, 61,270 buildings and structures, roads, 166 bridges you can drive over and under, land use, 165,000 trees, 636 traffic cars, and the city boundary as a barrier. It replaces the generated city.
+  - **Tab** shows the whole map (the track, or all of Erlangen), with the car on it.
+  - The Erlangen minimap turns with the car.
+  - **R in Erlangen** puts the car on the nearest street instead of back on the circuit.
+  - Best laps in Erlangen are kept per circuit.
 
 - **2026-11-16 (tracks):**
   - **FSG fixed:** the LTS's FSG track was mirrored (a wrong sign); it is mirrored back, lies as the real site does, and starts at the real start line (section 4c). The AI lap stays 77.40 s. Best laps driven on the mirrored track are kept in the save file but no longer shown, because their ghosts would leave the road.

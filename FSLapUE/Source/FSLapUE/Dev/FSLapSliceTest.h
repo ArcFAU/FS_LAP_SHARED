@@ -48,6 +48,7 @@ private:
 	int32 KeyFailures = 0;
 	int32 ShotIndex = 0;
 	bool bShotTaken = false;
+	FString ShotName;   // the photo being taken
 	TArray<double> FrameMs;
 	TArray<double> GpuMs;
 };

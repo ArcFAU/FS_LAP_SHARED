@@ -239,7 +239,7 @@ void AFSLapHUD::DrawTower(const AFSLapVehiclePawn& Vehicle, const HoMoLap::Simul
 	else if (Mode != HoMoLap::Mode::Sim)
 	{
 		Box(X + 300, Y + 10, 112, 28, Chip);
-		Label(Mode == HoMoLap::Mode::City ? TEXT("CITY") : TEXT("ARCADE"), X + 356, Y + 12, 18, Gold, true, true);
+		Label(Mode == HoMoLap::Mode::City ? TEXT("ERLANGEN") : TEXT("ARCADE"), X + 356, Y + 12, 18, Gold, true, true);
 	}
 	Label(LapTime(Sim.CurrentLapTime()), X + 18, Y + 38, 58, bActive && !bValid ? Signal : Paper, true);
 
@@ -315,17 +315,49 @@ void AFSLapHUD::DrawTower(const AFSLapVehiclePawn& Vehicle, const HoMoLap::Simul
 	}
 }
 
-void AFSLapHUD::DrawMinimap(const HoMoLap::Simulation& Sim)
+void AFSLapHUD::DrawMinimap(const HoMoLap::Simulation& Sim, bool bFull)
 {
 	const HoMoLap::Track& T = Sim.T;
-	const bool bGrid = !T.streetX.empty();   // the city maps show the whole city, not just the circuit
-	const double X0 = bGrid ? T.streetX.front() : (T.city ? T.APRON[0] : *std::min_element(T.x.begin(), T.x.end())), X1 = bGrid ? T.streetX.back() : (T.city ? T.APRON[2] : *std::max_element(T.x.begin(), T.x.end()));
-	const double Y0 = bGrid ? T.streetY.front() : (T.city ? T.APRON[1] : *std::min_element(T.y.begin(), T.y.end())), Y1 = bGrid ? T.streetY.back() : (T.city ? T.APRON[3] : *std::max_element(T.y.begin(), T.y.end()));
-	const float Width = 300, Height = 190, Left = ScreenW - Width - 42, Top = 42;
+	const bool bGrid = !T.streetX.empty();
+	const bool bAround = !bFull && T.city && !T.mapX.empty();   // a whole real city is too big for the panel: 1.8 km around the car
+	double X0 = bGrid ? T.streetX.front() : (T.city ? T.APRON[0] : *std::min_element(T.x.begin(), T.x.end())), X1 = bGrid ? T.streetX.back() : (T.city ? T.APRON[2] : *std::max_element(T.x.begin(), T.x.end()));
+	double Y0 = bGrid ? T.streetY.front() : (T.city ? T.APRON[1] : *std::min_element(T.y.begin(), T.y.end())), Y1 = bGrid ? T.streetY.back() : (T.city ? T.APRON[3] : *std::max_element(T.y.begin(), T.y.end()));
+	if (bFull && !T.mapX.empty())   // a real city: all of its ground
+	{
+		X0 = T.tx0; X1 = T.tx0 + (T.tnx - 1) * T.tstep; Y0 = T.ty0; Y1 = T.ty0 + (T.tny - 1) * T.tstep;
+	}
+	const float Width = bFull ? ScreenW - 160 : 300, Height = bFull ? ScreenH - 200 : 190, Left = bFull ? 80 : ScreenW - Width - 42, Top = bFull ? 110 : 42;
+	const float Thick = bFull ? 1.5f : 1.0f;   // lines and the car's arrow
+	const double HalfW = 900, HalfH = HalfW * Height / Width;
+	if (bAround)
+	{
+		X0 = Sim.c.x - HalfW; X1 = Sim.c.x + HalfW; Y0 = Sim.c.y - HalfH; Y1 = Sim.c.y + HalfH;
+	}
+	// around the car the map turns with it, its heading up (the screen's -y); the whole maps stay north up
+	const double Rot = bAround ? -UE_DOUBLE_HALF_PI - Sim.c.h : 0, CosR = FMath::Cos(Rot), SinR = FMath::Sin(Rot);
+	const auto Local = [&](double X, double Y) { const double Dx = X - Sim.c.x, Dy = Y - Sim.c.y; return FVector2D(Dx * CosR - Dy * SinR, Dx * SinR + Dy * CosR); };
+	const auto Shown = [&](double X, double Y) { const FVector2D L = Local(X, Y); return FMath::Abs(L.X) <= HalfW && FMath::Abs(L.Y) <= HalfH; };   // around the car only
 	const double Scale = FMath::Min(Width / (X1 - X0), Height / (Y1 - Y0));
 	const float OffsetX = Left + (Width - (X1 - X0) * Scale) / 2, OffsetY = Top + (Height - (Y1 - Y0) * Scale) / 2;
-	const auto Point = [&](double X, double Y) { return FVector2D((OffsetX + (X - X0) * Scale) * S, (OffsetY + (Y - Y0) * Scale) * S); };
-	Panel(Left - 14, Top - 14, Width + 28, Height + 62);
+	const auto Point = [&](double X, double Y)
+	{
+		if (bAround)
+		{
+			const FVector2D L = Local(X, Y);
+			return FVector2D((Left + Width / 2 + L.X * Scale) * S, (Top + Height / 2 + L.Y * Scale) * S);
+		}
+		return FVector2D((OffsetX + (X - X0) * Scale) * S, (OffsetY + (Y - Y0) * Scale) * S);
+	};
+	if (bFull)
+	{
+		Box(0, 0, ScreenW, ScreenH, FLinearColor(0.01f, 0.012f, 0.016f, 0.9f));
+		Label(FString::Printf(TEXT("%s  -  %s m lap"), UTF8_TO_TCHAR(T.name), *FString::FormatAsNumber(FMath::RoundToInt32(T.LEN))), 80, 40, 34, Paper, true);
+		Label(MapKey + TEXT("  close"), ScreenW - 240, 52, 20, Muted);
+	}
+	else
+	{
+		Panel(Left - 14, Top - 14, Width + 28, Height + 62);
+	}
 	for (const double X : T.streetX)
 	{
 		const FVector2D A = Point(X, Y0), B = Point(X, Y1);
@@ -340,32 +372,45 @@ void AFSLapHUD::DrawMinimap(const HoMoLap::Simulation& Sim)
 	{
 		for (size_t i = 0; i + 1 < Xs.size(); ++i)
 		{
-			if (Xs[i] < 1e8 && Xs[i + 1] < 1e8)   // 1e9 marks a break between lines
+			if (Xs[i] < 1e8 && Xs[i + 1] < 1e8 && (!bAround || (Shown(Xs[i], Ys[i]) && Shown(Xs[i + 1], Ys[i + 1]))))   // 1e9 marks a break between lines
 			{
 				const FVector2D A = Point(Xs[i], Ys[i]), B = Point(Xs[i + 1], Ys[i + 1]);
 				DrawLine(A.X, A.Y, B.X, B.Y, Color, Width * S);
 			}
 		}
 	};
-	Lines(T.roadX, T.roadY, Gold * 0.8f, 2.0f);   // the main roads
+	Lines(T.mapX, T.mapY, Muted * 0.5f, Thick);    // a real city's smaller streets
+	Lines(T.roadX, T.roadY, Gold * 0.8f, 2.0f * Thick);   // the main roads
 	const int32 Step = FMath::Max(1, T.N / 240);   // about 240 line pieces, whatever the lap length
 	for (int32 i = 0; i < T.N; i += Step)
 	{
 		const int32 Next = (i + Step) % T.N;
+		if (bAround && (!Shown(T.x[i], T.y[i]) || !Shown(T.x[Next], T.y[Next])))
+		{
+			continue;
+		}
 		const FVector2D A = Point(T.x[i], T.y[i]), B = Point(T.x[Next], T.y[Next]);
-		DrawLine(A.X, A.Y, B.X, B.Y, Paper, 2.0f * S);
+		DrawLine(A.X, A.Y, B.X, B.Y, Paper, 2.0f * Thick * S);
 	}
 	const FVector2D Start = Point(T.x[0], T.y[0]), Car = Point(Sim.c.x, Sim.c.y);
-	DrawRect(Gold, Start.X - 3 * S, Start.Y - 6 * S, 6 * S, 12 * S);
+	if (!bAround || Shown(T.x[0], T.y[0]))
+	{
+		DrawRect(Gold, Start.X - 3 * S, Start.Y - 6 * S, 6 * S, 12 * S);
+	}
 	// the car: an arrow along its heading (the map has x to the right and y down, as the world seen from above)
-	const FVector2D Ahead(FMath::Cos(Sim.c.h), FMath::Sin(Sim.c.h)), Side(-Ahead.Y, Ahead.X);
-	const FVector2D Tip = Car + Ahead * 15 * S, Notch = Car - Ahead * 4 * S, Tail = Car - Ahead * 9 * S;
-	FCanvasTriangleItem LeftHalf(Tip, Tail - Side * 9 * S, Notch, GWhiteTexture), RightHalf(Tip, Notch, Tail + Side * 9 * S, GWhiteTexture);
+	const FVector2D Ahead(FMath::Cos(Sim.c.h + Rot), FMath::Sin(Sim.c.h + Rot)), Side(-Ahead.Y, Ahead.X);
+	const float Arrow = Thick * S;
+	const FVector2D Tip = Car + Ahead * 15 * Arrow, Notch = Car - Ahead * 4 * Arrow, Tail = Car - Ahead * 9 * Arrow;
+	FCanvasTriangleItem LeftHalf(Tip, Tail - Side * 9 * Arrow, Notch, GWhiteTexture), RightHalf(Tip, Notch, Tail + Side * 9 * Arrow, GWhiteTexture);
 	LeftHalf.SetColor(Signal);
 	RightHalf.SetColor(Signal);
 	Canvas->DrawItem(LeftHalf);
 	Canvas->DrawItem(RightHalf);
-	Label(FString::Printf(TEXT("%s  -  %s m"), T.city ? TEXT("City circuit") : *(FString(UTF8_TO_TCHAR(T.name)) + TEXT(" endurance")), *FString::FormatAsNumber(FMath::RoundToInt32(T.LEN))), Left, Top + Height + 12, 16, Muted);
+	if (bFull)
+	{
+		return;
+	}
+	Label(FString::Printf(TEXT("%s  -  %s m"), T.city ? *(FString(UTF8_TO_TCHAR(T.name)) + TEXT(" circuit")) : *(FString(UTF8_TO_TCHAR(T.name)) + TEXT(" endurance")), *FString::FormatAsNumber(FMath::RoundToInt32(T.LEN))), Left, Top + Height + 12, 16, Muted);
 }
 
 void AFSLapHUD::DrawSpeedo(const HoMoLap::Simulation& Sim)
@@ -608,6 +653,11 @@ void AFSLapHUD::DrawHUD()
 			ShowMessage(TEXT("WRONG WAY"), TEXT("Turn around or press R"), Gold, 0.6f, false);
 		}
 	}
+	if (Vehicle->IsMapShown())
+	{
+		MapKey = Vehicle->GetKeyName(EFSLapKey::Map);
+		DrawMinimap(*Sim, true);
+	}
 	if (MessageTime > 0)
 	{
 		const float BannerH = bMessageSmall ? 112 : 164;
@@ -622,8 +672,8 @@ void AFSLapHUD::DrawHUD()
 	}
 	// the key help with the keys as the settings screen has them
 	const auto Key = [Vehicle](int32 Item) { return Vehicle->GetKeyName(Item); };
-	if (FMath::Abs(Sim->c.vx) < 2) Label(FString::Printf(TEXT("%s %s %s %s / ARROWS  drive     %s  handbrake     %s  camera     NUMPAD 4 6 8 (hold)  side / front     %s  back on track     ESC  pause"),
-		*Key(EFSLapKey::Throttle), *Key(EFSLapKey::SteerLeft), *Key(EFSLapKey::Brake), *Key(EFSLapKey::SteerRight), *Key(EFSLapKey::Handbrake), *Key(EFSLapKey::Camera), *Key(EFSLapKey::Reset)), ScreenW / 2, ScreenH - 36, 16, Muted, false, true);
+	if (FMath::Abs(Sim->c.vx) < 2) Label(FString::Printf(TEXT("%s %s %s %s / ARROWS  drive     %s  handbrake     %s  camera     NUMPAD 4 6 8 (hold)  side / front     %s  back on track     %s  map     ESC  pause"),
+		*Key(EFSLapKey::Throttle), *Key(EFSLapKey::SteerLeft), *Key(EFSLapKey::Brake), *Key(EFSLapKey::SteerRight), *Key(EFSLapKey::Handbrake), *Key(EFSLapKey::Camera), *Key(EFSLapKey::Reset), *Key(EFSLapKey::Map)), ScreenW / 2, ScreenH - 36, 16, Muted, false, true);
 
 	if (Vehicle->GetFlow() == EFSLapFlow::Countdown)
 	{

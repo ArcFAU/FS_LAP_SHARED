@@ -1,9 +1,10 @@
 // Headless acceptance test of the C++ physics: the AI lap must be 77.4 s +- 0.1 s on the stock car.
-//   ailap [arcade|free|city|events] [trace.csv]    exit code 0 = pass (events: the tracks after FSG)
+//   ailap [arcade|free|city|events] [trace.csv]    exit code 0 = pass (events: the tracks after FSG; city: Erlangen, from FSLAP_CITY)
 // The same core runs in the game, so what passes here is what drives the car there.
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 #include "HoMoLapCore.h"
@@ -89,7 +90,9 @@ int main(int argc, char** argv)
 		std::printf(ok ? "PASS\n" : "FAIL\n");
 		return ok ? 0 : 1;
 	}
-	const Track track = mode == Mode::City ? MakeCityTrack() : MakeFsgTrack();
+	const char* cityFile = std::getenv("FSLAP_CITY");   // run.bat: FSLapUE\Content\FS\Data\Erlangen.bin
+	const Track track = mode == Mode::City ? MakeCityTrack(cityFile ? cityFile : "Erlangen.bin") : MakeFsgTrack();
+	if (track.N == 0) { std::printf("no city data (%s)\nFAIL\n", cityFile ? cityFile : "FSLAP_CITY not set"); return 1; }
 	Simulation sim(track, Setup{}, mode);
 	int freeCones = 0;
 	for (const Cone& cone : track.cones) freeCones += cone.freeOnly ? 1 : 0;
@@ -110,13 +113,48 @@ int main(int argc, char** argv)
 
 	if (mode == Mode::City)
 	{
-		// the AI must lap without touching anything, and a car driven flat out into the scenery must stay outside it
+		// a bridge's deck is the surface for a car on it, the ground beneath for one under it
+		int overpasses = 0, decksOk = 0;
+		for (const Deck& d : track.decks)
+		{
+			const double mx = (d.x0 + d.x1) / 2, my = (d.y0 + d.y1) / 2, zd = (d.z0 + d.z1) / 2, zg = track.HeightAt(mx, my);
+			if (zd - zg < 3) continue;
+			++overpasses;
+			decksOk += std::abs(track.HeightAt(mx, my, zd) - zd) < 1e-6 && std::abs(track.HeightAt(mx, my, zg) - zg) < 1e-6 ? 1 : 0;
+		}
+		std::printf("city: %zu wall edges, %zu bridge deck pieces (%d over 3 m above the ground, %d of them right both ways), ground %d x %d at %.0f m\n",
+			track.edges.size(), track.decks.size(), overpasses, decksOk, track.tnx, track.tny, track.tstep);
+		// the AI must lap without touching anything, never jumping between surfaces, and a car driven flat out into the
+		// scenery must stay outside it
 		int contacts = 0;
+		double jump = 0, zPrev = sim.c.z;
 		for (long long k = 0; k < 200 * 600; ++k)
 		{
 			sim.Step(nullptr);
 			contacts += sim.c.hitWall ? 1 : 0;
+			static FILE* aiTrace = tracePath ? std::fopen(tracePath, "w") : nullptr;
+			if (aiTrace && k % 30 == 0) std::fprintf(aiTrace, "%.3f,%.3f,%.3f,%.1f,%.3f,%.2f,%d\n", sim.clock, sim.c.x, sim.c.y, sim.c.s, sim.c.lat, std::hypot(sim.c.vx, sim.c.vy), sim.c.hitWall ? 1 : 0);
+			jump = std::max(jump, std::abs(sim.c.z - zPrev));
+			zPrev = sim.c.z;
 		}
+		// inside a building: on the solid side of the nearest wall edge
+		const auto InsideEdges = [&track](double px, double py)
+		{
+			const int ci = static_cast<int>(std::floor((px - track.gridX0) / 8.0)), cj = static_cast<int>(std::floor((py - track.gridY0) / 8.0));
+			if (track.cellStart.empty() || ci < 0 || cj < 0 || ci >= track.gridW || cj >= track.gridH) return false;
+			const int cell = cj * track.gridW + ci;
+			double best = 1e9, side = 1;
+			for (int item = track.cellStart[cell]; item < track.cellStart[cell + 1]; ++item)
+			{
+				const Edge& e = track.edges[track.cellItems[item]];
+				const double ex = e.x1 - e.x0, ey = e.y1 - e.y0, len2 = ex * ex + ey * ey;
+				if (len2 < 1e-12) continue;
+				const double t = std::clamp(((px - e.x0) * ex + (py - e.y0) * ey) / len2, 0.0, 1.0);
+				const double d = std::hypot(px - e.x0 - ex * t, py - e.y0 - ey * t);
+				if (d < best) { best = d; side = (px - e.x0) * ey - (py - e.y0) * ex; }   // > 0: the edge's right, outside
+			}
+			return best < 1e8 && best > 0.05 && side < 0;
+		};
 		Simulation crash(track, Setup{}, mode);
 		Input full;
 		full.thr = 1;
@@ -130,11 +168,27 @@ int main(int argc, char** argv)
 			crashContacts += crash.c.hitWall ? 1 : 0;
 			finite = finite && std::isfinite(crash.c.x) && std::isfinite(crash.c.vx) && std::isfinite(crash.c.r);
 			for (const Wall& w : track.walls) inside = inside || (crash.c.x > w.x0 + 0.05 && crash.c.x < w.x1 - 0.05 && crash.c.y > w.y0 + 0.05 && crash.c.y < w.y1 - 0.05);
+			inside = inside || InsideEdges(crash.c.x, crash.c.y);
 			if (crashContacts) topAfter = std::max(topAfter, std::hypot(crash.c.vx, crash.c.vy));
 		}
+		// R, 1.5 km from the circuit in eight directions: onto the nearest street (in a forest a few hundred metres), not back to the circuit, stopped, outside the buildings
+		int resetsOk = 0;
+		double resetMax = 0;
+		for (int k = 0; k < 8; ++k)
+		{
+			Simulation lost(track, Setup{}, mode);
+			lost.c.x = track.x[0] + 1500 * std::cos(k * 0.785398); lost.c.y = track.y[0] + 1500 * std::sin(k * 0.785398);
+			const double x0 = lost.c.x, y0 = lost.c.y, toCircuit = std::abs(track.NearestPoint(x0, y0).lat);
+			lost.BackOnTrack();
+			const double moved = std::hypot(lost.c.x - x0, lost.c.y - y0);
+			resetMax = std::max(resetMax, moved);
+			resetsOk += moved < 0.5 * toCircuit && lost.c.vx == 0 && std::isfinite(lost.c.z) && !InsideEdges(lost.c.x, lost.c.y) ? 1 : 0;
+		}
 		for (const LapResult& lap : sim.laps) std::printf("lap %d: %.3f s (S1 %.3f, S2 %.3f, valid %d)\n", lap.n, lap.time, lap.split1, lap.split2, lap.valid ? 1 : 0);
-		std::printf("AI wall contacts %d; flat out from the grid: contacts %d, inside a wall %d, numbers finite %d, top speed after the first hit %.1f m/s\n", contacts, crashContacts, inside ? 1 : 0, finite ? 1 : 0, topAfter);
-		const bool ok = !sim.laps.empty() && sim.laps[0].valid && contacts == 0 && crashContacts > 0 && !inside && finite;
+		std::printf("AI wall contacts %d, biggest height step %.3f m; flat out from the grid: contacts %d, inside a wall %d, numbers finite %d, top speed after the first hit %.1f m/s\n",
+			contacts, jump, crashContacts, inside ? 1 : 0, finite ? 1 : 0, topAfter);
+		std::printf("R 1.5 km from the circuit: %d of 8 onto a street close by (farthest move %.0f m)\n", resetsOk, resetMax);
+		const bool ok = !sim.laps.empty() && sim.laps[0].valid && contacts == 0 && crashContacts > 0 && !inside && finite && jump < 0.1 && overpasses > 0 && decksOk == overpasses && resetsOk == 8;
 		std::printf(ok ? "PASS\n" : "FAIL\n");
 		return ok ? 0 : 1;
 	}

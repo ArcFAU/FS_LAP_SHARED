@@ -98,9 +98,10 @@ def lerp(material, a, a_out, b, b_out, alpha, y):
     return expression
 
 
-def build_facade(facade_texture):
-    """Windows laid out by world position, so one texture fits every building size; each building gets its own tint."""
-    material = new_master("M_Facade", False)
+def build_facade(facade_texture, name="M_Facade", tinted=False):
+    """Windows laid out by world position, so one texture fits every building size; each building gets its own tint
+    (tinted: the instance's Tint instead, for whole meshes of buildings such as Erlangen's tiles)."""
+    material = new_master(name, False)
     position = MAT.create_material_expression(material, ue.MaterialExpressionWorldPosition, -1500, -200)
     normal = MAT.create_material_expression(material, ue.MaterialExpressionVertexNormalWS, -1500, 100)
 
@@ -132,14 +133,17 @@ def build_facade(facade_texture):
     sample = texture_node(material, facade_texture, -250)
     MAT.connect_material_expressions(uv, "", sample, "UVs")
 
-    random = MAT.create_material_expression(material, ue.MaterialExpressionPerInstanceRandom, -700, 100)
-    warm, cool = MAT.create_material_expression(material, ue.MaterialExpressionConstant3Vector, -700, 200), MAT.create_material_expression(material, ue.MaterialExpressionConstant3Vector, -700, 300)
-    warm.set_editor_property("constant", ue.LinearColor(0.85, 0.72, 0.58, 1.0))
-    cool.set_editor_property("constant", ue.LinearColor(0.55, 0.62, 0.72, 1.0))
-    tint = MAT.create_material_expression(material, ue.MaterialExpressionLinearInterpolate, -500, 150)
-    MAT.connect_material_expressions(warm, "", tint, "A")
-    MAT.connect_material_expressions(cool, "", tint, "B")
-    MAT.connect_material_expressions(random, "", tint, "Alpha")
+    if tinted:
+        tint = node(material, ue.MaterialExpressionVectorParameter, -500, 150, "Tint", ue.LinearColor(1.0, 1.0, 1.0, 1.0))
+    else:
+        random = MAT.create_material_expression(material, ue.MaterialExpressionPerInstanceRandom, -700, 100)
+        warm, cool = MAT.create_material_expression(material, ue.MaterialExpressionConstant3Vector, -700, 200), MAT.create_material_expression(material, ue.MaterialExpressionConstant3Vector, -700, 300)
+        warm.set_editor_property("constant", ue.LinearColor(0.85, 0.72, 0.58, 1.0))
+        cool.set_editor_property("constant", ue.LinearColor(0.55, 0.62, 0.72, 1.0))
+        tint = MAT.create_material_expression(material, ue.MaterialExpressionLinearInterpolate, -500, 150)
+        MAT.connect_material_expressions(warm, "", tint, "A")
+        MAT.connect_material_expressions(cool, "", tint, "B")
+        MAT.connect_material_expressions(random, "", tint, "Alpha")
     wall = binary(ue.MaterialExpressionMultiply, sample, tint, -150, "RGB")
     roof_color = MAT.create_material_expression(material, ue.MaterialExpressionConstant3Vector, -500, 400)
     roof_color.set_editor_property("constant", ue.LinearColor(0.11, 0.11, 0.12, 1.0))
@@ -196,6 +200,41 @@ def build_ground(noise):
     MAT.connect_material_property(doubled, "", ue.MaterialProperty.MP_BASE_COLOR)
     MAT.connect_material_property(rough, "", ue.MaterialProperty.MP_ROUGHNESS)
     return ground
+
+
+def build_terrain(noise):
+    """The city's ground (FSLapTerrain.cpp): colour and wetness come with each vertex, in linear values; a smooth noise
+    over it at two scales (4 m and 36 m, so neither repeats visibly), +-25 % and +-15 %. Wet (water) is smooth and shiny."""
+    material = new_master("M_Terrain", False)
+    material.set_editor_property("used_with_nanite", False)
+    vertex = MAT.create_material_expression(material, ue.MaterialExpressionVertexColor, -1100, -200)
+    rgb = MAT.create_material_expression(material, ue.MaterialExpressionComponentMask, -900, -200)
+    for name in "rgb":
+        rgb.set_editor_property(name, True)
+    MAT.connect_material_expressions(vertex, "", rgb, "")
+    fine = named_texture_node(material, "Tex", noise, 0)
+    coords = MAT.create_material_expression(material, ue.MaterialExpressionTextureCoordinate, -1000, 300)
+    coords.set_editor_property("u_tiling", 0.11)
+    coords.set_editor_property("v_tiling", 0.11)
+    macro = named_texture_node(material, "Macro", noise, 300)
+    MAT.connect_material_expressions(coords, "", macro, "UVs")
+    fine_shade = MAT.create_material_expression(material, ue.MaterialExpressionLinearInterpolate, -400, 0)
+    MAT.connect_material_expressions(constant(material, 0.75, -50), "", fine_shade, "A")
+    MAT.connect_material_expressions(constant(material, 1.25, 0), "", fine_shade, "B")
+    MAT.connect_material_expressions(fine, "R", fine_shade, "Alpha")
+    macro_shade = MAT.create_material_expression(material, ue.MaterialExpressionLinearInterpolate, -400, 300)
+    MAT.connect_material_expressions(constant(material, 0.85, 250), "", macro_shade, "A")
+    MAT.connect_material_expressions(constant(material, 1.15, 300), "", macro_shade, "B")
+    MAT.connect_material_expressions(macro, "G", macro_shade, "Alpha")
+    grain = MAT.create_material_expression(material, ue.MaterialExpressionMultiply, -250, 100)
+    MAT.connect_material_expressions(fine_shade, "", grain, "A")
+    MAT.connect_material_expressions(macro_shade, "", grain, "B")
+    shade = MAT.create_material_expression(material, ue.MaterialExpressionMultiply, -100, -100)
+    MAT.connect_material_expressions(rgb, "", shade, "A")
+    MAT.connect_material_expressions(grain, "", shade, "B")
+    MAT.connect_material_property(shade, "", ue.MaterialProperty.MP_BASE_COLOR)
+    MAT.connect_material_property(lerp(material, constant(material, 0.92, 400), "", constant(material, 0.05, 500), "", vertex, 450), "", ue.MaterialProperty.MP_ROUGHNESS)
+    return material
 
 
 def build_pbr(base, normal, roughness):
@@ -261,6 +300,12 @@ def make_instance(name, spec, masters, textures):
     path = MATERIALS + "/MI_" + name
     instance = ASSETS.load_asset(path) if ASSETS.does_asset_exist(path) else TOOLS.create_asset("MI_" + name, MATERIALS, ue.MaterialInstanceConstant, ue.MaterialInstanceConstantFactoryNew())
     MAT.set_material_instance_parent(instance, masters[spec["kind"]])
+    if spec["kind"] == "wall":   # the facade with its own texture and tint
+        MAT.set_material_instance_texture_parameter_value(instance, "Tex", textures[spec["tex"]])
+        MAT.set_material_instance_vector_parameter_value(instance, "Tint", ue.LinearColor(*spec["tint"], 1.0))
+        MAT.update_material_instance(instance)
+        ASSETS.save_loaded_asset(instance)
+        return instance
     if spec["kind"] == "facade":   # everything is in the master
         MAT.update_material_instance(instance)
         ASSETS.save_loaded_asset(instance)
@@ -344,6 +389,54 @@ def cad_only():
     print("FSLAP_IMPORT_OK cad " + str(count))
 
 
+def erlangen_only():
+    """FSLAP_IMPORT=erlangen: the city's mesh tiles (tools\\erlangen_to_ue.py), their materials and the ground's
+    material. Resumable: a tile whose asset is newer than its GLB is left as it is."""
+    folder = os.path.join(DATA, "erlangen", "ue")
+    environment = os.path.join(DATA, "environment")
+    specs = json.load(open(os.path.join(folder, "materials.json")))
+
+    def texture(source, destination, srgb=True):
+        path = destination + "/" + os.path.splitext(os.path.basename(source))[0]
+        if ASSETS.does_asset_exist(path):
+            return ASSETS.load_asset(path)
+        asset = ASSETS.load_asset(import_file(source, destination)[0])
+        if not srgb:
+            asset.set_editor_property("srgb", False)
+            ASSETS.save_loaded_asset(asset)
+        return asset
+    textures = {file: texture(os.path.join(environment, file), DEST + "/Environment", file != "roof_rough.jpg") for file in ("roof_base.jpg", "roof_normal.jpg", "roof_rough.jpg")}
+    textures["T_ErlWall.png"] = texture(os.path.join(folder, "T_ErlWall.png"), DEST + "/Erlangen")
+    noise = texture(os.path.join(folder, "T_ErlNoise.png"), DEST + "/Erlangen", srgb=False)
+    masters = {"wall": keep_or_build("M_ErlWall", lambda: build_facade(textures["T_ErlWall.png"], "M_ErlWall", True)),
+               "pbr": ASSETS.load_asset(MATERIALS + "/M_PBR"), "flat": ASSETS.load_asset(MATERIALS + "/M_Flat")}
+    keep_or_build("M_Terrain", lambda: build_terrain(noise))
+    instances = {name: make_instance(name, spec, masters, textures) for name, spec in specs.items()}
+    instances.update({name: ASSETS.load_asset(MATERIALS + "/MI_" + name) for name in ("CityAsphalt", "CityLine", "CitySidewalk", "Barrier")})
+    content = os.path.join(ROOT, "FSLapUE", "Content", "FS", "Generated", "Erlangen")
+    files = sorted(f for f in os.listdir(folder) if f.startswith("SM_Erl_") and f.endswith(".glb"))
+    done = 0
+    for k, file in enumerate(files):
+        name = file[:-4]
+        asset = os.path.join(content, name, "StaticMeshes", name + ".uasset")
+        if os.path.exists(asset) and os.path.getmtime(asset) > os.path.getmtime(os.path.join(folder, file)):
+            continue
+        for path in import_file(os.path.join(folder, file), DEST + "/Erlangen"):
+            mesh = ASSETS.load_asset(path)
+            if not isinstance(mesh, ue.StaticMesh):
+                continue
+            if "_B_" in name:   # buildings and bridges: Nanite; the flat road tiles stay ordinary meshes the game culls by distance
+                settings = mesh.get_editor_property("nanite_settings")
+                settings.set_editor_property("enabled", True)
+                mesh.set_editor_property("nanite_settings", settings)
+            assign(path, instances)
+            ASSETS.delete_directory(path.rsplit("/", 2)[0] + "/Materials")
+        done += 1
+        if done % 25 == 0:
+            print(f"FSLAP_IMPORT erlangen {k + 1}/{len(files)}")
+    print(f"FSLAP_IMPORT_OK erlangen {done} imported, {len(files)} tiles")
+
+
 def event_grounds():
     """FSG's ground.glb and every ground_<id>.glb of the other event tracks (tools\\track_to_ue.py)"""
     return ["ground"] + sorted(f[:-4] for f in os.listdir(os.path.join(DATA, "track")) if f.startswith("ground_") and f.endswith(".glb"))
@@ -372,6 +465,9 @@ def main():
         return
     if os.environ.get("FSLAP_IMPORT") == "environment":
         environment_only()
+        return
+    if os.environ.get("FSLAP_IMPORT") == "erlangen":
+        erlangen_only()
         return
     if not os.path.isdir(os.path.join(DATA, "car")):
         raise RuntimeError("missing generated data\\car; run the export and bake tools first")

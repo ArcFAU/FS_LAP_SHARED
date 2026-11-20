@@ -51,8 +51,8 @@ namespace FSLapSliceTestLocal
 		const auto Menu = [](int32 Row) { return [Row](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Menu && C.GetMenuIndex() == Row; }; };
 		const auto FlowIs = [](EFSLapFlow Flow) { return [Flow](const Pawn& C) { return C.GetFlow() == Flow; }; };
 		const auto RowHas = [](int32 Row, const TCHAR* Text) { return [Row, Text](const Pawn& C) { return C.GetSetupRowText(Row).Contains(Text); }; };
-		// the settings' last key row (menu, from pause) is selected and reads so
-		const auto KeyRow = [](const TCHAR* Text) { return [Text](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Settings && C.GetSetupRow() == C.GetSetupRowCount() - 2 && C.GetSetupRowText(C.GetSetupRow()).Contains(Text); }; };
+		// the settings' key row for the menu, from pause (above the whole map's and the reset row) is selected and reads so
+		const auto KeyRow = [](const TCHAR* Text) { return [Text](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Settings && C.GetSetupRow() == C.GetSetupRowCount() - 3 && C.GetSetupRowText(C.GetSetupRow()).Contains(Text); }; };
 		const auto AssistIs = [](const TCHAR* Text) { return [Text](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 1 && C.GetSetupRowText(C.GetSetupRow()).Contains(Text); }; };
 		// the menu's rows from its table, so a new way to drive does not move every step
 		const int32 Quit = Pawn::GetMenuRowCount() - 1, Settings = Quit - 1, Setup = Quit - 2, TrackRow = Pawn::GetMenuTrackRow();
@@ -75,6 +75,7 @@ namespace FSLapSliceTestLocal
 			{ EKeys::Up, 0.2, TEXT("up to the window mode"), [](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Settings && C.GetSetupRow() == 0; } },
 			{ EKeys::Right, 2.5, TEXT("window mode: full screen again, borderless at the desktop size"), [](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Settings && C.GetSetupRowText(0).Contains(TEXT("full screen (borderless)")) && C.GetSetupRowText(1).Contains(TEXT("1920 x 1080")); } },
 			{ EKeys::Up, 0.2, TEXT("settings wrap to the keys' reset row"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 1; } },
+			{ EKeys::Up, 0.2, TEXT("up to the whole map's key"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 2 && C.GetSetupRowText(C.GetSetupRow()).EndsWith(TEXT("whole map:  TAB")); } },
 			{ EKeys::Up, 0.2, TEXT("up to the key that goes to the menu"), KeyRow(TEXT("menu, from pause:  M")) },
 			{ EKeys::Enter, 0.2, TEXT("enter waits for a key"), KeyRow(TEXT("press the new key")) },
 			{ EKeys::Up, 0.2, TEXT("an arrow key is refused and moves nothing"), KeyRow(TEXT("M   (UP is a menu or view key)")) },
@@ -133,8 +134,9 @@ namespace FSLapSliceTestLocal
 			{ EKeys::Up, 0.2, TEXT("menu wraps to quit"), Menu(Quit) },
 			{ EKeys::Up, 0.2, TEXT("menu up to settings"), Menu(Settings) },
 			{ EKeys::Enter, 0.2, TEXT("enter opens the settings"), FlowIs(EFSLapFlow::Settings) },
+			{ EKeys::Down, 0.2, TEXT("down to the whole map's key"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 2; } },
 			{ EKeys::Down, 0.2, TEXT("down to the keys' reset row"), [](const Pawn& C) { return C.GetSetupRow() == C.GetSetupRowCount() - 1; } },
-			{ EKeys::Enter, 0.2, TEXT("the reset row gives m back and takes the wheel button off"), [](const Pawn& C) { return C.GetSetupRowText(C.GetSetupRowCount() - 2).EndsWith(TEXT("menu, from pause:  M")); } },
+			{ EKeys::Enter, 0.2, TEXT("the reset row gives m back and takes the wheel button off"), [](const Pawn& C) { return C.GetSetupRowText(C.GetSetupRowCount() - 3).EndsWith(TEXT("menu, from pause:  M")); } },
 			{ EKeys::Escape, 0.2, TEXT("esc leaves the settings"), Menu(Settings) },
 			{ EKeys::Down, 0.2, TEXT("menu down to quit"), Menu(Quit) },
 			{ EKeys::Down, 0.2, TEXT("menu wraps to the top"), Menu(0) },
@@ -155,6 +157,8 @@ namespace FSLapSliceTestLocal
 			{ EKeys::NumPadEight, 0.5, TEXT("numpad 8 held shows the front"), [](const Pawn& C) { return C.GetHeldView() == 8; }, -2, TEXT("view_front.png") },
 			{ EKeys::Invalid, 0.2, TEXT("letting go goes back to the chase camera"), [](const Pawn& C) { return C.GetHeldView() == 0 && !C.IsOnboard(); } },
 			{ EKeys::Invalid, 5.0, TEXT("start lights finish"), FlowIs(EFSLapFlow::Race) },
+			{ EKeys::Tab, 0.5, TEXT("tab shows the whole map"), [](const Pawn& C) { return C.IsMapShown(); }, -2, TEXT("map.png") },
+			{ EKeys::Tab, 0.2, TEXT("tab closes it"), [](const Pawn& C) { return !C.IsMapShown(); } },
 			{ EKeys::W, 1.5, TEXT("w accelerates"), [](const Pawn& C) { return C.GetSimulation()->c.vx > 8; } },
 			{ EKeys::A, 0.5, TEXT("a steers left"), [](const Pawn& C) { return C.GetSimulation()->c.st < -0.5; } },
 			{ EKeys::D, 0.6, TEXT("d steers right"), [](const Pawn& C) { return C.GetSimulation()->c.st > 0.5; } },
@@ -542,16 +546,50 @@ void UFSLapSliceTest::Tick(float DeltaTime)
 	case EPhase::Shots:
 		if (bShotTaken && (ShotIndex < 0 || Now - PhaseStart >= ShotAfter))
 		{
-			const int32 Count = UE_ARRAY_COUNT(Shots);
+			// in the cities, more photos after the car's: the first traffic car, the highest bridge from beside, from a
+			// car on the ground beneath it and from 700 m (beyond the road tiles' culling), then the whole map
+			struct FExtra { const TCHAR* Name; FVector Position, Target; bool bMap; };
+			TArray<FExtra> Extras;
 			FVector Traffic;
-			const bool bTraffic = Car->GetTrafficCar(Traffic);   // in the cities, one more photo: the first traffic car
-			if (++ShotIndex >= Count + (bTraffic ? 1 : 0))
+			if (Car->GetTrafficCar(Traffic))
 			{
+				Extras.Add({ TEXT("traffic"), Traffic + FVector(-1400, -900, 900), Traffic, false });
+				const HoMoLap::Track& T = Car->GetSimulation()->T;
+				const HoMoLap::Deck* High = nullptr;
+				double Clear = 0;
+				for (const HoMoLap::Deck& D : T.decks)
+				{
+					const double Mx = (D.x0 + D.x1) / 2, My = (D.y0 + D.y1) / 2, Above = (D.z0 + D.z1) / 2 - T.HeightAt(Mx, My, -1e4);
+					if (Above > Clear) { Clear = Above; High = &D; }
+				}
+				if (High)
+				{
+					const FVector A(High->x0, High->y0, High->z0), B(High->x1, High->y1, High->z1), Mid = (A + B) * 50;   // cm
+					const FVector Across = FVector(-(B.Y - A.Y), B.X - A.X, 0).GetSafeNormal();
+					const double Ground = T.HeightAt(Mid.X / 100, Mid.Y / 100, -1e4) * 100;
+					Extras.Add({ TEXT("bridge_side"), Mid + Across * 4000 + FVector(0, 0, 600), Mid, false });
+					Extras.Add({ TEXT("bridge_under"), FVector(Mid.X, Mid.Y, Ground) + Across * 2500 + FVector(0, 0, 150), FVector(Mid.X, Mid.Y, Ground + 300), false });
+					Extras.Add({ TEXT("bridge_far"), Mid + Across * 50000 + FVector(0, 0, 40000), Mid, false });
+				}
+				Extras.Add({ TEXT("map"), FVector::ZeroVector, FVector::ZeroVector, true });
+			}
+			const int32 Count = UE_ARRAY_COUNT(Shots);
+			if (++ShotIndex >= Count + Extras.Num())
+			{
+				Car->SetMapShown(false);
 				Finish(Car);
 				break;
 			}
-			const FVector Target = ShotIndex < Count ? Car->GetActorTransform().TransformPosition(FVector(0, 0, 50)) : Traffic;
-			const FVector Position = ShotIndex < Count ? Car->GetActorTransform().TransformPosition(Shots[ShotIndex].Offset) : Traffic + FVector(-1400, -900, 900);
+			ShotName = ShotIndex < Count ? Shots[ShotIndex].Name : Extras[ShotIndex - Count].Name;
+			if (ShotIndex >= Count && Extras[ShotIndex - Count].bMap)
+			{
+				Car->SetMapShown(true);
+				bShotTaken = false;
+				PhaseStart = Now;
+				break;
+			}
+			const FVector Target = ShotIndex < Count ? Car->GetActorTransform().TransformPosition(FVector(0, 0, 50)) : Extras[ShotIndex - Count].Target;
+			const FVector Position = ShotIndex < Count ? Car->GetActorTransform().TransformPosition(Shots[ShotIndex].Offset) : Extras[ShotIndex - Count].Position;
 			FActorSpawnParameters Spawn;
 			Spawn.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			Player->SetViewTarget(GetWorld()->SpawnActor<ACameraActor>(Position, (Target - Position).Rotation(), Spawn));
@@ -560,7 +598,7 @@ void UFSLapSliceTest::Tick(float DeltaTime)
 		}
 		else if (!bShotTaken && Now - PhaseStart >= ShotSettle)
 		{
-			FScreenshotRequest::RequestScreenshot(OutputDir() / (FString(ShotIndex < static_cast<int32>(UE_ARRAY_COUNT(Shots)) ? Shots[ShotIndex].Name : TEXT("traffic")) + TEXT(".png")), false, false);
+			FScreenshotRequest::RequestScreenshot(OutputDir() / (ShotName + TEXT(".png")), false, false);
 			bShotTaken = true;
 			PhaseStart = Now;
 		}

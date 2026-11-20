@@ -67,7 +67,7 @@ namespace
 				c.vx = c.vy = c.r = 0;
 				Follow(c);
 			}
-			Window(x[x_x_V], x[x_y_V]);
+			Window(x[x_x_V], x[x_y_V], c.z);
 #ifdef HOMOLAP_ADTM_TRACE
 			std::printf("adtm t %.3f z %.3f ground %.3f phi %.1f theta %.1f vz %.2f wx %.2f wy %.2f\n", t, x[x_z_V], ground ? ground->HeightAt(x[x_x_V], x[x_y_V]) : 0.0,
 				x[x_phi] * 57.3, x[x_theta] * 57.3, x[x_v_z], x[17], x[18]);
@@ -121,7 +121,7 @@ namespace
 		// The road under the car (tools/adtm/adtm_road.m): 61 x 61 heights on the ADTM's 0.1 m grid, 3 m around the
 		// centre, column-major (x first). Moved when the car is 1 m from the centre; zeros on a flat track.
 		static constexpr int W = 61;
-		void Window(double cx, double cy)
+		void Window(double cx, double cy, double near)   // near: the height the car is at (on a bridge: its deck)
 		{
 			const double gx = std::round(cx * 10) - 30, gy = std::round(cy * 10) - 30;
 			if (std::abs(cx - (roadCorner[0] + 30) / 10) < 1 && std::abs(cy - (roadCorner[1] + 30) / 10) < 1 && windowFilled && windowGround == ground)
@@ -136,7 +136,7 @@ namespace
 			{
 				for (int i = 0; i < W; ++i)
 				{
-					rz[i + W * j] = bFlat ? 0.0 : ground->HeightAt((gx + i) / 10, (gy + j) / 10);
+					rz[i + W * j] = bFlat ? 0.0 : ground->HeightAt((gx + i) / 10, (gy + j) / 10, near);
 				}
 			}
 		}
@@ -153,7 +153,7 @@ namespace
 				for (int i = 0; i < W; ++i)
 				{
 					const double u = (i - 30) / 10.0, v = (j - 30) / 10.0;
-					local[i + W * j] = ground && !ground->terrain.empty() ? ground->HeightAt(c.x + ch * u - sh * v, c.y + sh * u + ch * v) : 0.0;
+					local[i + W * j] = ground && !ground->terrain.empty() ? ground->HeightAt(c.x + ch * u - sh * v, c.y + sh * u + ch * v, c.z) : 0.0;
 				}
 			}
 			adtm::adtm_init(car, local, origin, x);

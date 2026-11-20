@@ -32,6 +32,7 @@ namespace
 			{ TEXT("pause"), TEXT("Pause"), 0, EKeys::P },
 			{ TEXT("replay of the best lap"), TEXT("Replay"), 0, EKeys::B },
 			{ TEXT("menu, from pause"), TEXT("BackToMenu"), 0, EKeys::M },
+			{ TEXT("whole map"), TEXT("MapToggle"), 0, EKeys::Tab },
 		};
 		return Items[Item];
 	}
@@ -332,6 +333,7 @@ void AFSLapVehiclePawn::UpdateWheelButtons(const TArray<float>& Axes)
 			case EFSLapKey::Pause: if (bPress) { TogglePause(); } break;
 			case EFSLapKey::Replay: if (bPress) { ReplayPressed(); } break;
 			case EFSLapKey::Menu: if (bPress) { BackToMenu(); } break;
+			case EFSLapKey::Map: if (bPress) { ToggleMap(); } break;
 			default: break;
 			}
 		}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <vector>
 
 // HoMo-LAP's physics in plain C++: a line-for-line port of MATALB\+hotlap (physicsStep, aiDriver, planSpeeds,
@@ -49,6 +50,7 @@ namespace HoMoLap
 		double Tm[4] = {};
 		double steerT = 0;   // steering wheel torque (Nm, the ADTM's T_Steering; 0 on FS Lap's own model): force feedback
 		double wheelOmega[4] = {};   // wheel speeds (rad/s; FL, FR, RL, RR) of the ADTM; 0 on FS Lap's own model
+		double z = 0;   // the height of the surface under the car: the ground, or the deck of a bridge it is on
 	};
 
 	struct HOMOLAPPHYSICS_API Cone { double x, y; char col; bool big, freeOnly; };   // col: 'b' blue left, 'y' yellow right, 'o' orange start
@@ -57,6 +59,9 @@ namespace HoMoLap
 	struct CityBox { double x, y, hx, hy, h; };
 	struct CityPole { double x, y, z, sx, sy, sz; };
 	struct CitySphere { double x, y, z, r; };
+	struct Edge { double x0, y0, x1, y1; };   // a wall at any angle, solid on its left looking from (x0, y0) to (x1, y1)
+	struct Deck { double x0, y0, z0, x1, y1, z1, half; };   // a straight piece of a bridge's road, above the ground beneath
+	constexpr double NoHint = std::numeric_limits<double>::quiet_NaN();
 
 	struct HOMOLAPPHYSICS_API Pose { double x, y, h; };
 	struct HOMOLAPPHYSICS_API Nearest { double d, s, lat; int i; };
@@ -69,24 +74,40 @@ namespace HoMoLap
 		double APRON[4], WORLD_T[4], PADDOCK[4], WORLD_F[4];   // x0 y0 x1 y1
 		double ACC_X = 0, ACC_Y = 0;
 		std::vector<Cone> cones;
-		std::vector<Wall> walls;   // what the car can hit; empty on the FSG track
+		std::vector<Wall> walls;   // what the car can hit (boxes); empty on the FSG track
 		std::vector<CityBox> buildings, barriers;
-		std::vector<double> streetX, streetY, roadX, roadY;   // the big city's street grid, for the map; empty on the FSG track
+		std::vector<double> streetX, streetY, roadX, roadY;   // the map's street grid (none now) and main roads; empty on the FSG track
 		bool city = false;                  // an open city: leaving the circuit is not a fault
 		std::vector<CityPole> poles, canopies;   // canopies: FSG paddock tent roofs and the start gantry
 		std::vector<CitySphere> treeTops;
 		std::vector<double> ltsT, ltsS;   // the LTS reference lap; empty in the city
 		double ltsLap = 0, ltsSplit[2] = { 0, 0 }, ltsScale = 1;
 		const char* refName = "LTS";   // whose lap ltsT is: "LTS" on FSG, the car's on the other events ("Tau 2026", "Sigma 2025")
-		const char* id = "";           // "fsg", "fscz", "fsf"; "" for the city
+		const char* id = "";           // "fsg", "fscz", "fsf"; "erlangen" for the city
 		const char* name = "";         // "FSG", "FS Czech", ...
 		double refShift = 0;           // the start line lies this share of a lap into the reference lap as computed (FSG: the LTS lap)
 		// the ground's heights (m, above the track's lowest point) on a grid, rows along y; empty: flat (FSG, FS France)
 		std::vector<float> terrain;
 		int tnx = 0, tny = 0;
 		double tx0 = 0, ty0 = 0, tstep = 1;
-		double HeightAt(double px, double py) const;   // bilinear; 0 on a flat track; the edge's height beyond the grid
-		void Slope(double px, double py, double& dzdx, double& dzdy) const;   // the ground's gradient there
+		// the height of the surface at a point: the ground (bilinear; 0 on a flat track; the edge's height beyond the grid) or,
+		// where a bridge's deck is above it, whichever of the two is nearer `near` (the height the car was at); without a
+		// hint, the ground
+		double HeightAt(double px, double py, double near = NoHint) const;
+		void Slope(double px, double py, double& dzdx, double& dzdy, double near = NoHint) const;   // that surface's gradient
+		// a real city (MakeCityTrack): its land use on the terrain grid (the class in the low 4 bits; 128 where the game sinks
+		// its ground under a road mesh), and per class r, g, b (linear), wet, sink (m) and hard (1: road grip, 0: grass)
+		std::vector<unsigned char> land;
+		std::vector<float> palette;
+		int LandAt(double px, double py) const;   // the class at the nearest terrain sample; -1 without land data
+		std::vector<double> lineZ;               // the circuit's height at each point (its surface: the ground or a bridge)
+		std::vector<double> roadZ, mapX, mapY;   // roadX/Y/Z: the main roads with their heights, mapX/Y the smaller streets; 1e9 between lines
+		std::vector<Edge> edges;                 // building outlines and the city boundary, found through the grid below
+		std::vector<Deck> decks;
+		std::vector<int> cellStart, cellItems, deckStart, deckItems;   // by 8 m cell: cell c holds items [start[c], start[c + 1])
+		double gridX0 = 0, gridY0 = 0;
+		int gridW = 0, gridH = 0;
+		std::vector<int> meshTiles;   // i, j, has buildings, has roads: the game's mesh tiles SM_Erl_B_<i>_<j>, SM_Erl_R_<i>_<j>
 		// the reference lap as computed (distance and time from its own start, its track length, its lap time), moved to
 		// start at the start line (refShift); sets ltsS, ltsT, ltsLap, ltsScale and the sector splits
 		void SetReference(const double* s, const double* t, int n, double length, double lap);
@@ -96,7 +117,9 @@ namespace HoMoLap
 		double LtsTimeAt(double s) const;
 	};
 	HOMOLAPPHYSICS_API Track MakeFsgTrack();
-	HOMOLAPPHYSICS_API Track MakeCityTrack();   // the generated city
+	// the city mode's map: the whole city of Erlangen, from the file tools\erlangen_to_ue.py writes
+	// (FSLapUE\Content\FS\Data\Erlangen.bin); a track with N == 0 if it can't be read
+	HOMOLAPPHYSICS_API Track MakeCityTrack(const char* dataFile);
 	// the event tracks: 0 FSG (the LTS track), then the others rebuilt from the cars' logs (tools\logs\track_from_log.py)
 	HOMOLAPPHYSICS_API int EventTrackCount();
 	HOMOLAPPHYSICS_API const char* EventTrackId(int i);

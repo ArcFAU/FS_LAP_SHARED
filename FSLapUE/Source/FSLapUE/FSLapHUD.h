@@ -28,7 +28,7 @@ private:
 	void DrawSetup(const AFSLapVehiclePawn& Vehicle);
 	void DrawWheel(const AFSLapVehiclePawn& Vehicle);
 	void DrawTower(const AFSLapVehiclePawn& Vehicle, const HoMoLap::Simulation& Sim);
-	void DrawMinimap(const HoMoLap::Simulation& Sim);
+	void DrawMinimap(const HoMoLap::Simulation& Sim, bool bFull = false);   // bFull: the whole map over the screen
 	void DrawSpeedo(const HoMoLap::Simulation& Sim);
 	void DrawAero(const HoMoLap::Simulation& Sim);
 	void DrawLights(const AFSLapVehiclePawn& Vehicle);
@@ -48,6 +48,7 @@ private:
 	float S = 1;   // screen scale
 	float ScreenW = 1920, ScreenH = 1080;
 	float WrongWayTime = 0;
+	FString MapKey;   // the key that closes the whole map, for its caption
 
 	FString MessageTitle, MessageSub;
 	FLinearColor MessageColor = FLinearColor::White;

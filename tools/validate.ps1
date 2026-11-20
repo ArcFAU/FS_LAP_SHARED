@@ -32,6 +32,7 @@ if (-not (Test-Path -LiteralPath $physicsBinary)) {
 # other deterministic mode.  `ailap` uses no argument for sim; passing the
 # word "sim" would instead be treated as a trace-file name.
 $modes = @('sim', 'arcade', 'free', 'city')
+$env:FSLAP_CITY = Join-Path $root 'FSLapUE\Content\FS\Data\Erlangen.bin'   # city: Erlangen's data, as run.bat sets it
 foreach ($mode in $modes | Select-Object -Skip 1) {
     Write-Host "`n=== physics: $mode ==="
     & $physicsBinary $mode
