@@ -1587,7 +1587,7 @@ void AFSLapVehiclePawn::UpdateCamera(float DeltaSeconds)
 	if (HeldView)
 	{
 		// in the car's heading frame (x forward, y right): 4.8 m to the left or right, or 5.2 m ahead looking back
-		const FVector CarPoint(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, GroundAt(Car.x, Car.y) * MetersToCentimeters);
+		const FVector CarPoint(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, Car.z * MetersToCentimeters);
 		const FVector Offset = HeldView == 8 ? FVector(520, 0, 120) : FVector(0, HeldView == 4 ? -480 : 480, 110);
 		const FVector Position = CarPoint + FRotator(0, FMath::RadiansToDegrees(Car.h), 0).RotateVector(Offset);
 		ChaseCamera->SetWorldLocationAndRotation(Position, (CarPoint + FVector(0, 0, 50) - Position).Rotation());
@@ -1633,7 +1633,7 @@ void AFSLapVehiclePawn::UpdateCamera(float DeltaSeconds)
 		const FVector Forward(FMath::Cos(CameraYaw), FMath::Sin(CameraYaw), 0);
 		const double Distance = bArcadeCamera ? 5.0 + Speed * 0.05 : 5.4 + Speed * 0.045;
 		const double Height = bArcadeCamera ? 1.75 + Speed * 0.012 : 1.9 + Speed * 0.012;
-		const FVector CarPoint(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, GroundAt(Car.x, Car.y) * MetersToCentimeters);
+		const FVector CarPoint(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, Car.z * MetersToCentimeters);
 		FVector Wanted = CarPoint - Forward * Distance * MetersToCentimeters + FVector(0, 0, Height * MetersToCentimeters);
 		Wanted.Z = FMath::Max(Wanted.Z, GroundAt(Wanted.X / MetersToCentimeters, Wanted.Y / MetersToCentimeters) * MetersToCentimeters + 80);   // behind the car on a hill: never in the ground
 		CameraPosition = bCameraSnap ? Wanted : FMath::Lerp(CameraPosition, Wanted, 1 - FMath::Exp(-12.0 * DeltaSeconds));
@@ -2009,7 +2009,7 @@ void AFSLapVehiclePawn::UpdateVisuals()
 	Spring(BodyPitch, BodyPitchRate, PitchTarget);
 	Spring(BodyRoll, BodyRollRate, RollTarget);
 	SetActorLocationAndRotation(
-		FVector(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, GroundAt(Car.x, Car.y) * MetersToCentimeters),
+		FVector(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, Car.z * MetersToCentimeters),
 		GroundAttitude(Car.x, Car.y, Car.h));
 	Body->SetRelativeRotation(CameraView == 1 ? FRotator::ZeroRotator : FRotator(BodyPitch, 0, BodyRoll));   // the driver's view: the cockpit holds still around the eye too
 	SteeringWheel->SetRelativeRotation(FRotator(SteeringWheelTilt, 0, static_cast<float>(Car.st) * (Car.direct ? CarLock : SteeringWheelTravel)));

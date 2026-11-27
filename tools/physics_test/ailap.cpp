@@ -143,7 +143,7 @@ int main(int argc, char** argv)
 			const int ci = static_cast<int>(std::floor((px - track.gridX0) / 8.0)), cj = static_cast<int>(std::floor((py - track.gridY0) / 8.0));
 			if (track.cellStart.empty() || ci < 0 || cj < 0 || ci >= track.gridW || cj >= track.gridH) return false;
 			const int cell = cj * track.gridW + ci;
-			double best = 1e9, side = 1;
+			double best = 1e9, side = 1, across = 0;
 			for (int item = track.cellStart[cell]; item < track.cellStart[cell + 1]; ++item)
 			{
 				const Edge& e = track.edges[track.cellItems[item]];
@@ -151,7 +151,10 @@ int main(int argc, char** argv)
 				if (len2 < 1e-12) continue;
 				const double t = std::clamp(((px - e.x0) * ex + (py - e.y0) * ey) / len2, 0.0, 1.0);
 				const double d = std::hypot(px - e.x0 - ex * t, py - e.y0 - ey * t);
-				if (d < best) { best = d; side = (px - e.x0) * ey - (py - e.y0) * ex; }   // > 0: the edge's right, outside
+				const double cross = (px - e.x0) * ey - (py - e.y0) * ex;   // > 0: the edge's right, outside
+				// at a corner two edges are equally near: the one the point lies clearly beside decides (the other's line can
+				// pass within millimetres of an outside point)
+				if (d < best - 1e-9 || (d < best + 1e-9 && std::abs(cross) / std::sqrt(len2) > across)) { best = d; side = cross; across = std::abs(cross) / std::sqrt(len2); }
 			}
 			return best < 1e8 && best > 0.05 && side < 0;
 		};
@@ -224,12 +227,43 @@ int main(int argc, char** argv)
 			}
 		}
 		const bool bridgeFree = !Trapped(1217.5, 1013.1);
+		// the sharpest crest on the main roads (the ground's curvature over +-3 m along the road): flat out over it at 45 m/s
+		// the car must leave the ground, land again, never sink into the ground, and keep finite numbers
+		double crestK = 0, crestX = 0, crestY = 0, crestH = 0;
+		for (size_t i = 0; i + 1 < track.roadX.size(); ++i)
+		{
+			const double ax = track.roadX[i], ay = track.roadY[i], bx = track.roadX[i + 1], by = track.roadY[i + 1], len = std::hypot(bx - ax, by - ay);
+			if (ax > 1e8 || bx > 1e8 || len < 1e-3) continue;
+			const double ux = (bx - ax) / len, uy = (by - ay) / len;
+			for (double d = 0; d < len; d += 2)
+			{
+				const double px = ax + ux * d, py = ay + uy * d, z0 = track.HeightAt(px, py, track.roadZ[i]);
+				const double k = (track.HeightAt(px + 3 * ux, py + 3 * uy, z0) - 2 * z0 + track.HeightAt(px - 3 * ux, py - 3 * uy, z0)) / 9;
+				if (k < crestK) { crestK = k; crestX = px; crestY = py; crestH = std::atan2(uy, ux); }
+			}
+		}
+		Simulation fly(track, Setup{}, mode);
+		fly.c.x = crestX - 25 * std::cos(crestH); fly.c.y = crestY - 25 * std::sin(crestH); fly.c.h = crestH; fly.c.vx = 45;
+		fly.c.z = track.HeightAt(fly.c.x, fly.c.y, track.HeightAt(crestX, crestY));
+		bool flew = false, sank = false, flyFinite = true;
+		double airTime = 0;
+		for (int k = 0; k < 4 * 600; ++k)
+		{
+			fly.Step(&full);
+			flew = flew || fly.c.air;
+			airTime += fly.c.air ? HoMoLap::DT : 0;
+			sank = sank || fly.c.z < track.HeightAt(fly.c.x, fly.c.y, fly.c.z) - 1e-6;
+			flyFinite = flyFinite && std::isfinite(fly.c.z) && std::isfinite(fly.c.vz) && std::isfinite(fly.c.x);
+		}
+		const bool flightOk = flew && !fly.c.air && !sank && flyFinite;
+		std::printf("crest at (%.0f, %.0f), curvature %.3f 1/m: at 45 m/s %s, %.2f s in the air, %s\n", crestX, crestY, crestK,
+			flew ? "off the ground" : "STAYED ON THE GROUND", airTime, flightOk ? "landed" : "FAILED (did not land, sank or not finite)");
 		for (const LapResult& lap : sim.laps) std::printf("lap %d: %.3f s (S1 %.3f, S2 %.3f, valid %d)\n", lap.n, lap.time, lap.split1, lap.split2, lap.valid ? 1 : 0);
 		std::printf("AI wall contacts %d, biggest height step %.3f m; flat out from the grid: contacts %d, inside a wall %d, numbers finite %d, top speed after the first hit %.1f m/s\n",
 			contacts, jump, crashContacts, inside ? 1 : 0, finite ? 1 : 0, topAfter);
 		std::printf("R 1.5 km from the circuit: %d of 8 onto a street close by (farthest move %.0f m)\n", resetsOk, resetMax);
 		std::printf("R on the main roads: %d places, %d where the car could not drive away; the noise-wall bridge at (1217, 1013) %s\n", roadResets, roadTrapped, bridgeFree ? "free" : "TRAPPED");
-		const bool ok = !sim.laps.empty() && sim.laps[0].valid && contacts == 0 && crashContacts > 0 && !inside && finite && jump < 0.1 && overpasses > 0 && decksOk == overpasses && resetsOk == 8 && roadTrapped == 0 && bridgeFree;
+		const bool ok = !sim.laps.empty() && sim.laps[0].valid && contacts == 0 && crashContacts > 0 && !inside && finite && jump < 0.1 && overpasses > 0 && decksOk == overpasses && resetsOk == 8 && roadTrapped == 0 && bridgeFree && flightOk;
 		std::printf(ok ? "PASS\n" : "FAIL\n");
 		return ok ? 0 : 1;
 	}

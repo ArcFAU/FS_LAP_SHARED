@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `0200a3e` on 2026-11-27.
+> Synced from development commit `4b53053` on 2026-11-27.
 
 ---
 
@@ -389,7 +389,7 @@ All tests run from PowerShell in the repository root. Close the Unreal Editor fi
 
 | Command | What it checks |
 |---|---|
-| `tools\validate.ps1` | Builds the vehicle model alone and runs the AI in sim, arcade, free roam and city mode. The lap times must match (sim 77.398 s, arcade 75.359 s, Erlangen 73.959 s) with no wall contacts; in Erlangen also the bridges (right from above and below) and the R key (onto the nearest street; beside every 100 m of main road the car must be able to drive away). No Unreal needed. |
+| `tools\validate.ps1` | Builds the vehicle model alone and runs the AI in sim, arcade, free roam and city mode. The lap times must match (sim 77.398 s, arcade 75.359 s, Erlangen 73.972 s) with no wall contacts; in Erlangen also the bridges (right from above and below) and the R key (onto the nearest street; beside every 100 m of main road the car must be able to drive away), and the car must fly over the sharpest crest on the main roads and land again. No Unreal needed. |
 | `tools\validate.ps1 -Game` | The above, plus the in-game tests below |
 | `tools\slice_test.ps1 -Mode sim` (or `arcade`, `city`, `free`) | Starts the real game, lets the AI drive a lap and takes photos from around the car. Results in `FSLapUE\Saved\SliceTest\<mode>\results.txt`: lap times, fps, average and 95th-percentile frame time, the longest frame and the number of frames over 100 ms (hitches). |
 | `tools\slice_test.ps1 -Mode czech` (or `france`) | The in-game hot lap on that event track, with the car's lap there as the reference (`reference=Sigma 2025 70.200`, `Tau 2026 83.996`). |
@@ -448,6 +448,7 @@ Newest first.
 - **2026-11-27 (team event feedback):**
   - **Driver's view fixed to the car:** the cockpit camera no longer sways, rolls or turns into corners, so the cones stay steady in view. The old moving view is the next camera on **C**.
   - **Erlangen bridges:** a car on a bridge over walls (noise walls below it) is no longer held fast by them.
+  - **Crests (FS Lap's own model, e.g. Erlangen):** the car goes light over a crest and leaves the ground where the crest falls away faster than gravity and downforce can pull it down; it flies until it lands, without tyre grip. The ADTM is unchanged.
   - **Wheel rotation:** 220°, the car's own lock, is a choice now, and below it the row warns that the car can't reach full lock. At the event the R3 was set to 180° and every driver ran out of lock in the FSG hairpin; that was most of the "grip comes and goes" there.
 
 - **2026-11-19 (Erlangen):**

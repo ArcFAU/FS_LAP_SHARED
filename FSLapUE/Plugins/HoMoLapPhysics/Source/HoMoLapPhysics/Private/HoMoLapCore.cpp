@@ -571,7 +571,8 @@ void Simulation::PlaceAt(double s)
 	const Pose p = T.PoseAt(s);
 	c.x = p.x; c.y = p.y; c.h = p.h;
 	c.z = T.HeightAt(c.x, c.y, T.lineZ.empty() ? NoHint : T.lineZ[Idx(s, T.N)]);
-	c.vx = c.vy = c.r = c.st = c.thr = c.brk = c.delta = c.axp = c.ayp = 0;
+	c.vx = c.vy = c.r = c.st = c.thr = c.brk = c.delta = c.axp = c.ayp = c.vz = c.azGround = 0;
+	c.air = false;
 	const Nearest nr = T.NearestPoint(c.x, c.y);
 	c.s = nr.s; c.lat = nr.lat;
 	offCourse = false;
@@ -636,7 +637,7 @@ void Simulation::CollideWalls()
 	const double radius = 0.72, ch = std::cos(c.h), sh = std::sin(c.h);
 	// the outlines are flat: on a bridge the walls and buildings under it are not in the way (a car on a bridge over a
 	// road with noise walls was held fast by them)
-	const bool onBridge = !T.edges.empty() && c.z - T.HeightAt(c.x, c.y, std::nan("")) > kOverGround;
+	const bool onBridge = !T.edges.empty() && !c.air && c.z - T.HeightAt(c.x, c.y, std::nan("")) > kOverGround;   // a car in the air still hits them
 	for (const double arm : { 1.25, 0.2, -0.85 })
 	{
 		const double px = c.x + ch * arm, py = c.y + sh * arm;
@@ -750,13 +751,14 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 	double sf = 1;
 	if (c.grass) sf = Pick(arc, aGrass, 0.62);
 	if (arc) sf *= aGrip;
+	if (c.air && !external) sf = 0;   // in the air: no tyre forces
 	const double beta = std::atan2(c.vy, vxs);
 	const double ClAe = C.ClA * (1 - C.yawLoss * std::min(std::abs(beta) / DEG, 8.0));
 	const double q = 0.5 * C.rho * c.vx * c.vx;
 	double gzx, gzy;   // a hill (FS Czech): the ground's slope under the car; 0 on a flat track
 	T.Slope(c.x, c.y, gzx, gzy, c.z);
 	const double tilt = 1 / std::sqrt(1 + gzx * gzx + gzy * gzy);   // the ground's normal against the vertical: the load is W x tilt
-	const double Fdown = q * ClAe, Fdrag = q * C.CdA, W = C.m * G0 * tilt;
+	const double Fdown = q * ClAe, Fdrag = q * C.CdA, W = C.m * std::max(G0 * tilt + (external ? 0.0 : c.azGround), 0.0);   // over a crest the car goes light
 	const double axLoad = Pick(arc, aLoad, 1) * c.axp;   // arcade: less load transfer, so the rear stays planted under braking
 	double Fzf = W * C.b / C.L + Fdown * C.bal - C.m * axLoad * C.h / C.L;
 	double Fzr = W * C.a / C.L + Fdown * (1 - C.bal) + C.m * axLoad * C.h / C.L;
@@ -888,7 +890,7 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 		const double rCap = Pick(drift, 1.6, 1.2) * aLim / std::abs(c.vx), rx = c.r - Clamp(c.r, -rCap, rCap);
 		MZ -= Clamp(C.Iz * 14 * rx, -6000, 6000);
 	}
-	if (gzx != 0 || gzy != 0)
+	if ((gzx != 0 || gzy != 0) && !c.air)
 	{
 		// gravity along the ground, in the car's axes (x forward, y as vy)
 		const double gAlong = -G0 * tilt, ch = std::cos(c.h), sh = std::sin(c.h);
@@ -926,6 +928,34 @@ void Simulation::PhysicsStep(const Input& In, double Dt)
 	c.slipR = std::abs(ar) > C.ap * 1.25 || lockR;
 }
 
+// The car's height on FS Lap's own model: on the surface, whose shape over +-3 m along the way the car moves asks a vertical
+// acceleration of speed^2 x curvature (over a crest the tyres unload, PhysicsStep). Where that is more than gravity and the
+// downforce can pull, the car leaves the ground and flies until it lands (the team event's drivers missed it, 2026-11-21).
+// The 3 m span is wider than the 2 m ground grid, whose bilinear kinks are not crests.
+void Simulation::FollowGround()
+{
+	const double ch = std::cos(c.h), sh = std::sin(c.h);
+	const double wx = c.vx * ch - c.vy * sh, wy = c.vx * sh + c.vy * ch, v = std::hypot(wx, wy);
+	const double pull = 9.81 + c.Fdown / C.m;   // what holds the car down
+	if (c.air)
+	{
+		c.vz -= pull * DT;
+		c.z += c.vz * DT;
+		const double zg = T.HeightAt(c.x, c.y, c.z);
+		if (c.z <= zg) { c.z = zg; c.vz = 0; c.air = false; }
+		c.azGround = 0;
+		return;
+	}
+	const double zg = T.HeightAt(c.x, c.y, c.z);
+	c.z = zg;
+	if (v < 1) { c.vz = c.azGround = 0; return; }
+	const double ux = wx / v, uy = wy / v, d = 3.0;
+	const double zf = T.HeightAt(c.x + ux * d, c.y + uy * d, zg), zb = T.HeightAt(c.x - ux * d, c.y - uy * d, zg);
+	c.azGround = v * v * (zf - 2 * zg + zb) / (d * d);
+	c.vz = v * (zf - zb) / (2 * d);
+	c.air = c.azGround < -pull;
+}
+
 void Simulation::KeepInWorld(double Dt)
 {
 	const double* w = isFree ? T.WORLD_F : T.WORLD_T;
@@ -949,7 +979,8 @@ void Simulation::Step(const Input* Human)
 	}
 	PhysicsStep(held, DT);
 	if ((!T.walls.empty() || !T.edges.empty()) && !isFree) CollideWalls();   // free roam has its own open paddock, without this scenery
-	c.z = T.HeightAt(c.x, c.y, c.z);   // the same surface as before: on a bridge, its deck; under it, the ground
+	if (external || T.terrain.empty()) c.z = T.HeightAt(c.x, c.y, c.z);   // the same surface as before: on a bridge, its deck; under it, the ground
+	else FollowGround();
 	if (isFree) UpdateFreeTiming();
 	if (k % 4 == 3)
 	{

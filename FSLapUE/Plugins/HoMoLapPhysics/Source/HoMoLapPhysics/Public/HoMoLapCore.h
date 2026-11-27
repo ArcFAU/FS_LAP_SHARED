@@ -50,7 +50,10 @@ namespace HoMoLap
 		double Tm[4] = {};
 		double steerT = 0;   // steering wheel torque (Nm, the ADTM's T_Steering; 0 on FS Lap's own model): force feedback
 		double wheelOmega[4] = {};   // wheel speeds (rad/s; FL, FR, RL, RR) of the ADTM; 0 on FS Lap's own model
-		double z = 0;   // the height of the surface under the car: the ground, or the deck of a bridge it is on
+		double z = 0;   // the car's height: the surface under it (the ground, or the deck of a bridge it is on), or in the air
+		double vz = 0;   // its vertical speed (FS Lap's own model)
+		double azGround = 0;   // the vertical acceleration the surface's shape asks of the car (< 0 over a crest: the tyres unload)
+		bool air = false;   // off the ground over a crest, no tyre forces until it lands (FS Lap's own model)
 	};
 
 	struct HOMOLAPPHYSICS_API Cone { double x, y; char col; bool big, freeOnly; };   // col: 'b' blue left, 'y' yellow right, 'o' orange start
@@ -187,6 +190,7 @@ namespace HoMoLap
 		void PlaceFreeStart();
 		void UpdateFreeTiming();
 		void CollideWalls();
+		void FollowGround();
 		void KeepInWorld(double Dt);
 
 		std::vector<double> vPlan, vPlanA;
