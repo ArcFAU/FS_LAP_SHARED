@@ -6,7 +6,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `5f6b4ae` on 2026-11-27.
+> Synced from development commit `5e868ca` on 2026-11-27.
 
 ---
 
@@ -463,6 +463,7 @@ Newest first.
 - **2026-11-27 (team event feedback):**
   - **Drive without Unreal Engine:** a ready-to-run zip of the game is on the [Releases](https://github.com/ArcFAU/FS_LAP_SHARED/releases/latest) page (section 2, "Just drive it"). Unzip and start `FSLapUE.exe`; `Submit runs.bat` works from it too.
   - **Logo:** FS Lap has its own logo, also as the game's Windows icon.
+  - **Erlangen:** one block of buildings (tile `SM_Erl_B_10_5`) kept the importer's own materials and was drawn grey in the stand-alone game. It uses the city's materials now, and the import stops if a tile keeps its own again. The release zip was replaced.
   - **Driver's view fixed to the car:** the cockpit camera no longer sways, rolls or turns into corners, so the cones stay steady in view. The old moving view is the next camera on **C**.
   - **Erlangen bridges:** a car on a bridge over walls (noise walls below it) is no longer held fast by them. The bridges' sides and undersides are no longer drawn with a smeared texture.
   - **Crests (FS Lap's own model, e.g. Erlangen):** the car goes light over a crest and leaves the ground where the crest falls away faster than gravity and downforce can pull it down; it flies until it lands, without tyre grip. The ADTM is unchanged.

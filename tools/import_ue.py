@@ -434,6 +434,10 @@ def erlangen_only():
         done += 1
         if done % 25 == 0:
             print(f"FSLAP_IMPORT erlangen {k + 1}/{len(files)}")
+    # a tile that kept its importer materials is drawn with the default material in a packaged game (SM_Erl_B_10_5 until 2026-11-27)
+    leftover = [d for d in os.listdir(content) if os.path.isdir(os.path.join(content, d, "Materials"))]
+    if leftover:
+        raise RuntimeError("tiles with their own materials: " + ", ".join(leftover))
     print(f"FSLAP_IMPORT_OK erlangen {done} imported, {len(files)} tiles")
 
 
