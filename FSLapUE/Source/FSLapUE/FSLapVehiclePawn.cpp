@@ -987,7 +987,10 @@ FString AFSLapVehiclePawn::GetSetupRowText(int32 Row) const
 	if (Row == GetSetupRowCount() - 3)
 	{
 		const int32 Rotation = SaveData ? SaveData->WheelRotation : 0;
+		// a wheel that turns less than the car's steering wheel stops short of the car's lock (the team event's R3 at 180°
+		// reached 82 % and ran out of lock in the FSG hairpin, 2026-11-21)
 		return Rotation == 0 ? FString(TEXT("Wheel rotation:  off (full lock where you calibrated)"))
+			: Rotation < 2 * CarLock ? FString::Printf(TEXT("Wheel rotation:  %d°, only %.0f %% of the car's lock: set the wheel to %.0f° or more"), Rotation, 100 * Rotation / (2 * CarLock), 2 * CarLock)
 			: FString::Printf(TEXT("Wheel rotation:  %d°, 1:1 with the car's %.0f°"), Rotation, 2 * CarLock);
 	}
 	if (Row == GetSetupRowCount() - 4)
@@ -1027,9 +1030,12 @@ void AFSLapVehiclePawn::ChangeSetup(int32 Direction)
 	{
 		if (SaveData)
 		{
-			// off, then 180° to 1080° in steps of 90°: the wheel's rotation as its driver sets it (Moza Pit House, Fanatec)
-			const int32 Next = SaveData->WheelRotation + Direction * 90;
-			SaveData->WheelRotation = Next < 180 ? (Direction > 0 ? 180 : 0) : FMath::Min(Next, 1080);
+			// the wheel's rotation as its driver sets it (Moza Pit House, Fanatec): off, 180°, the car's own 220°, then 270° to
+			// 1080° in steps of 90°
+			static constexpr int32 Steps[] = { 0, 180, static_cast<int32>(2 * CarLock), 270, 360, 450, 540, 630, 720, 810, 900, 990, 1080 };
+			int32 At = 0;
+			while (At + 1 < UE_ARRAY_COUNT(Steps) && Steps[At + 1] <= SaveData->WheelRotation) ++At;   // a saved value between steps counts as the step below it
+			SaveData->WheelRotation = Steps[FMath::Clamp(At + Direction, 0, static_cast<int32>(UE_ARRAY_COUNT(Steps)) - 1)];
 			UGameplayStatics::SaveGameToSlot(SaveData, SaveSlot, 0);
 		}
 	}

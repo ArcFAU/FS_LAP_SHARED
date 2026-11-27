@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `40d950d` on 2026-11-27.
+> Synced from development commit `0200a3e` on 2026-11-27.
 
 ---
 
@@ -135,7 +135,7 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 3. Follow the six steps, pressing **Enter** after each: hands off the wheel and feet off the pedals; turn the wheel right as far as you want full steering lock; press the throttle fully; press the brake fully; hold the wheel button you want for **back on track** (the R key); hold the wheel button you want for the **camera** (the C key). On the two button steps, **Enter** with nothing held means no button. **No pedals connected:** press **Enter** on the throttle and brake steps without pressing anything; then **W / S** (or a gamepad's triggers) are throttle and brake while the wheel steers. **Wheel buttons as pedals (temporary):** on the throttle step, hold the wheel button you want for throttle and press **Enter**; the same on the brake step. A button gives full throttle or full brake, nothing in between. The screen lists the buttons held.
 4. **Esc** goes back. The setup is saved and used from then on. The keyboard and gamepad keep working and win while they are pressed.
 
-**Wheel rotation (steering 1:1 with the car):** setup row **Wheel rotation**, off by default. Set it to the rotation your wheel's software uses, lock to lock (Moza Pit House, Fanatec), from 180° to 1080° in steps of 90°. Then your wheel angle is the car's steering wheel angle: the car reaches full lock at ±110° (220° lock to lock, the ADTM's value), at any speed, with a fixed ratio and no steering assist. On the ADTM the angle goes straight into the model. On FS Lap's own model, full lock gives the setup's maximum road wheel angle. Best: set the wheel's software to 220° too, so its end stop is the car's lock.
+**Wheel rotation (steering 1:1 with the car):** setup row **Wheel rotation**, off by default. Set it to the rotation your wheel's software uses, lock to lock (Moza Pit House, Fanatec), 180°, 220° (the car's own), then 270° to 1080° in steps of 90°. Then your wheel angle is the car's steering wheel angle: the car reaches full lock at ±110° (220° lock to lock, the ADTM's value), at any speed, with a fixed ratio and no steering assist. On the ADTM the angle goes straight into the model. On FS Lap's own model, full lock gives the setup's maximum road wheel angle. Best: set the wheel's software and this row to 220°, so the wheel's end stop is the car's lock. **Below 220° the car never reaches full lock** (the row says how much it reaches): at the team event an R3 at 180° reached 82 %, 20.5° of the 25°, and ran out of lock in the FSG hairpin in every lap.
 
 With **Wheel rotation off**, the calibrated right turn is full steering lock, and FS Lap's speed-dependent lock (and the steering assist, when it is on) shape the steering, as before.
 
@@ -448,6 +448,7 @@ Newest first.
 - **2026-11-27 (team event feedback):**
   - **Driver's view fixed to the car:** the cockpit camera no longer sways, rolls or turns into corners, so the cones stay steady in view. The old moving view is the next camera on **C**.
   - **Erlangen bridges:** a car on a bridge over walls (noise walls below it) is no longer held fast by them.
+  - **Wheel rotation:** 220°, the car's own lock, is a choice now, and below it the row warns that the car can't reach full lock. At the event the R3 was set to 180° and every driver ran out of lock in the FSG hairpin; that was most of the "grip comes and goes" there.
 
 - **2026-11-19 (Erlangen):**
   - **The city mode is the whole of Erlangen** from official open data (section 1): real terrain, 61,270 buildings and structures, roads, 166 bridges you can drive over and under, land use, 165,000 trees, 636 traffic cars, and the city boundary as a barrier. It replaces the generated city.
