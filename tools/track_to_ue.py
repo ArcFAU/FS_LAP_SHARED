@@ -36,6 +36,19 @@ def quad(x0, y0, x1, y1, z, tile):
     return *flat([(x0, z, y0), (x0, z, y1), (x1, z, y0), (x1, z, y1)], tile), [0, 1, 2, 1, 3, 2]
 
 
+# used by tools\city_to_ue.py (the generated city's roads); the event tracks draw no road strip
+def ribbon(x, y, nx, ny, width, z, tile):
+    n = len(x)
+    pts = np.empty((2 * n, 3))
+    pts[0::2] = np.c_[x - nx * width, np.full(n, z), y - ny * width]
+    pts[1::2] = np.c_[x + nx * width, np.full(n, z), y + ny * width]
+    idx = []
+    for i in range(n):
+        j = (i + 1) % n
+        idx += [2 * i, 2 * i + 1, 2 * j, 2 * i + 1, 2 * j + 1, 2 * j]
+    return *flat(pts, tile), idx
+
+
 def lathe(profile, material, segments=16):
     """Surface of revolution around the up axis; profile is [(radius, height), ...], bottom to top."""
     rings = len(profile)

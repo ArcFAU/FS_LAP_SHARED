@@ -1120,7 +1120,10 @@ def main():
         solid = building_prims(cell['b']) if cell['b'] else []
         for line_d, zl, hf in deck_tiles.get((i, j), []):
             p, nn, di = deck_mesh(line_d, zl, hf)
-            solid.append(('CitySidewalk', p, nn, np.c_[p[:, 0] + p[:, 2], p[:, 1]] / 4.0, fix_winding(p, nn, di)))
+            # the sides take the texture along the bridge and up, the flat faces (parapet tops, underside) from above:
+            # along-and-up on a flat face is one texture row smeared along the whole bridge
+            uv = np.where(np.abs(nn[:, 1:2]) > 0.5, p[:, [0, 2]], np.c_[p[:, 0] + p[:, 2], p[:, 1]]) / 4.0
+            solid.append(('CitySidewalk', p, nn, uv, fix_winding(p, nn, di)))
         if (i, j) == bkey:
             p, nn, bi = barrier_mesh(boundary, ter)
             solid.append(('Barrier', p, nn, np.zeros((len(p), 2)), bi))
