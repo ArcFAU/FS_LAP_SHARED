@@ -1,10 +1,12 @@
 # FS Lap — driver-in-the-loop simulator for the FAUmax
 
+<img src="Docs/logo.png" alt="FS Lap logo" width="120">
+
 FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in Unreal Engine 5 for the vehicle dynamics team. You drive the FAUmax τ (2026) on the FSG endurance track, an open paddock or a city circuit, with a keyboard, a gamepad or a steering wheel such as the Moza R3. A 600 Hz vehicle model runs underneath. It is checked against the team's lap time simulation (LTS).
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `a44dd4d` on 2026-11-27.
+> Synced from development commit `5f6b4ae` on 2026-11-27.
 
 ---
 
@@ -44,6 +46,19 @@ This repository is the team's shared copy. It is updated from the development re
 - **The team's ADTM as the car:** drive the team's Advanced Dual Track Model live instead of FS Lap's own model, compiled into the game (section 4b).
 
 ## 2. Getting started
+
+### Just drive it: no Unreal Engine needed
+
+1. **Download** the newest `FSLap-<date>-Win64.zip` from [Releases](https://github.com/ArcFAU/FS_LAP_SHARED/releases/latest).
+2. **Unzip** it to a folder you can write to, e.g. `Documents\FS Lap` (not `Program Files`: the game saves your laps and settings in its own folder).
+3. **Double-click `FSLapUE.exe`.** If Windows says a DLL such as `MSVCP140.dll` is missing, install Microsoft's C++ runtime once ([vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe)), then start it again.
+
+That is all: no Epic Games Launcher, no Unreal Engine, no Git. You need a 64-bit Windows 10/11 PC with a DirectX 12 graphics card (table below). For a wheel, install its own driver (Moza Pit House for the R3) and set its rotation to 220°, the car's own lock, in both the driver and the game's **Wheel rotation** row.
+
+- **Your laps and settings** are in `FSLapUE\Saved` inside that folder. **To update**, unzip the new version into a new folder and copy `FSLapUE\Saved` over from the old one; deleting the old folder deletes the laps you have not sent.
+- **Sending your laps:** `Submit runs.bat` is in the zip too. It needs [Git for Windows](https://git-scm.com/download/win) with Git LFS and a GitHub account with write access (see "Send your laps to the team" below).
+
+The rest of this section is for building FS Lap from its source: the vehicle dynamics team, and anyone who changes it.
 
 ### What you need
 
@@ -98,10 +113,10 @@ Every lap you complete is saved in `FSLapUE\Saved\Runs\<session>\` (a session st
 ### Make a stand-alone build
 
 ```powershell
-& "<UE>\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun "-project=$PWD\FSLapUE\FSLapUE.uproject" -noP4 -platform=Win64 -clientconfig=Development -build -cook -stage -pak -archive "-archivedirectory=$PWD\dist"
+& "<UE>\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun "-project=$PWD\FSLapUE\FSLapUE.uproject" -noP4 -platform=Win64 -clientconfig=Development -build -cook -stage -pak -archive -nodebuginfo "-archivedirectory=$PWD\dist"
 ```
 
-Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. That PC needs no engine.
+Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. That PC needs no engine. `tools\make_release.ps1` zips it for the Releases page, with `Submit runs.bat`.
 
 ## 3. Driving
 
@@ -446,6 +461,8 @@ Ask the simulator's maintainer if you need any of these.
 Newest first.
 
 - **2026-11-27 (team event feedback):**
+  - **Drive without Unreal Engine:** a ready-to-run zip of the game is on the [Releases](https://github.com/ArcFAU/FS_LAP_SHARED/releases/latest) page (section 2, "Just drive it"). Unzip and start `FSLapUE.exe`; `Submit runs.bat` works from it too.
+  - **Logo:** FS Lap has its own logo, also as the game's Windows icon.
   - **Driver's view fixed to the car:** the cockpit camera no longer sways, rolls or turns into corners, so the cones stay steady in view. The old moving view is the next camera on **C**.
   - **Erlangen bridges:** a car on a bridge over walls (noise walls below it) is no longer held fast by them. The bridges' sides and undersides are no longer drawn with a smeared texture.
   - **Crests (FS Lap's own model, e.g. Erlangen):** the car goes light over a crest and leaves the ground where the crest falls away faster than gravity and downforce can pull it down; it flies until it lands, without tyre grip. The ADTM is unchanged.

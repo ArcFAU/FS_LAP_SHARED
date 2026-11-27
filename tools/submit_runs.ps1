@@ -48,6 +48,7 @@ if (-not (Test-Path (Join-Path $Outbox '.git')))
 {
 	Write-Host 'First submission: setting up FSLapUE\Saved\RunsUpload ...'
 	if (-not $Remote) { $Remote = (& git.exe -C $Root remote get-url origin) }
+	if (-not $Remote) { $Remote = 'https://github.com/ArcFAU/FS_LAP_SHARED.git' }   # the stand-alone build (zip) is no git clone
 	Invoke-Git clone --quiet --branch runs --single-branch --depth 1 $Remote $Outbox
 	Invoke-Git -C $Outbox lfs install --local   # the hook that uploads the laps on push
 }
