@@ -36,18 +36,6 @@ def quad(x0, y0, x1, y1, z, tile):
     return *flat([(x0, z, y0), (x0, z, y1), (x1, z, y0), (x1, z, y1)], tile), [0, 1, 2, 1, 3, 2]
 
 
-def ribbon(x, y, nx, ny, width, z, tile):
-    n = len(x)
-    pts = np.empty((2 * n, 3))
-    pts[0::2] = np.c_[x - nx * width, np.full(n, z), y - ny * width]
-    pts[1::2] = np.c_[x + nx * width, np.full(n, z), y + ny * width]
-    idx = []
-    for i in range(n):
-        j = (i + 1) % n
-        idx += [2 * i, 2 * i + 1, 2 * j, 2 * i + 1, 2 * j + 1, 2 * j]
-    return *flat(pts, tile), idx
-
-
 def lathe(profile, material, segments=16):
     """Surface of revolution around the up axis; profile is [(radius, height), ...], bottom to top."""
     rings = len(profile)
@@ -119,8 +107,9 @@ def terrain_mesh(ter, apron):
 
 
 def write_ground(path, name, x, y, ter=None):
-    """grass, the apron around the track, the road, and the line across the track at s = 0 (as in the web game);
-    with a terrain the ground follows its heights"""
+    """grass, the apron around the track and the line across the track at s = 0; with a terrain the ground follows its
+    heights. No road strip: as at a real event the course is open tarmac marked only by its cones (the team event's
+    drivers, 2026-11-21: "the tracks does not have those cones lying in the way. instead the road itself changes the path")"""
     dx, dy = np.roll(x, -1) - np.roll(x, 1), np.roll(y, -1) - np.roll(y, 1)
     length = np.hypot(dx, dy)
     nx, ny = -dy / length, dx / length
@@ -135,15 +124,11 @@ def write_ground(path, name, x, y, ter=None):
         glb.write(path, name, [
             ('Grass', *quad(cx - 700, cy - 700, cx + 700, cy + 700, -0.05, 8.0)),
             ('Apron', *quad(x0, y0, x1, y1, 0.0, 4.0)),
-            ('Road', *ribbon(x, y, nx, ny, HALF + 0.3, 0.01, 4.0)),
             ('Line', line, np.tile(UP, (4, 1)), np.zeros((4, 2)), [0, 1, 2, 1, 3, 2]),
         ])
         return
-    road = ribbon(x, y, nx, ny, HALF + 0.3, 0.0, 4.0)
-    road[0][:, 1] = ter.at(road[0][:, 0], road[0][:, 2]) + 0.03   # a little above the terrain's triangles
     line[:, 1] = ter.at(line[:, 0], line[:, 2]) + 0.045
     glb.write(path, name, terrain_mesh(ter, (x0, y0, x1, y1)) + [
-        ('Road', *road),
         ('Line', line, np.tile(UP, (4, 1)), np.zeros((4, 2)), [0, 1, 2, 1, 3, 2]),
     ])
 

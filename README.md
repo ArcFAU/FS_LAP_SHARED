@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `4b53053` on 2026-11-27.
+> Synced from development commit `bf35f78` on 2026-11-27.
 
 ---
 
@@ -449,6 +449,7 @@ Newest first.
   - **Driver's view fixed to the car:** the cockpit camera no longer sways, rolls or turns into corners, so the cones stay steady in view. The old moving view is the next camera on **C**.
   - **Erlangen bridges:** a car on a bridge over walls (noise walls below it) is no longer held fast by them.
   - **Crests (FS Lap's own model, e.g. Erlangen):** the car goes light over a crest and leaves the ground where the crest falls away faster than gravity and downforce can pull it down; it flies until it lands, without tyre grip. The ADTM is unchanged.
+  - **Open tarmac:** FSG, FS Czech and FS France have no darker road strip any more. As at a real event the course is open tarmac marked only by its cones.
   - **Wheel rotation:** 220°, the car's own lock, is a choice now, and below it the row warns that the car can't reach full lock. At the event the R3 was set to 180° and every driver ran out of lock in the FSG hairpin; that was most of the "grip comes and goes" there.
 
 - **2026-11-19 (Erlangen):**
