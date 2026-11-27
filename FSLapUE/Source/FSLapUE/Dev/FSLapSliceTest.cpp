@@ -148,8 +148,9 @@ namespace FSLapSliceTestLocal
 			{ EKeys::Left, 0.3, TEXT("back on FSG"), [](const Pawn& C) { return C.GetChosenMap() == 0 && C.GetMap() == 0; } },
 			{ EKeys::Invalid, 0.3, TEXT("the mouse chooses arcade"), Menu(Arcade), -2, nullptr, FVector2f(200, RowY(Arcade)) },
 			{ EKeys::Enter, 0.2, TEXT("enter starts arcade"), [](const Pawn& C) { return C.GetFlow() == EFSLapFlow::Countdown && C.GetRaceMode() == HoMoLap::Mode::Arcade; } },
-			{ EKeys::C, 0.2, TEXT("c switches to the cockpit"), [](const Pawn& C) { return C.IsOnboard(); } },
-			{ EKeys::C, 0.2, TEXT("c switches to the hood"), [](const Pawn& C) { return C.GetCameraView() == 2; } },
+			{ EKeys::C, 0.2, TEXT("c switches to the cockpit"), [](const Pawn& C) { return C.GetCameraView() == 1; } },
+			{ EKeys::C, 0.2, TEXT("c switches to the cockpit with head movement"), [](const Pawn& C) { return C.GetCameraView() == 4 && C.IsOnboard(); } },
+			{ EKeys::C, 0.2, TEXT("c switches to the hood"),[](const Pawn& C) { return C.GetCameraView() == 2; } },
 			{ EKeys::C, 0.2, TEXT("c switches to the nose"), [](const Pawn& C) { return C.GetCameraView() == 3; } },
 			{ EKeys::C, 0.2, TEXT("c switches to chase"), [](const Pawn& C) { return C.GetCameraView() == 0; } },
 			{ EKeys::NumPadFour, 0.5, TEXT("numpad 4 held shows the left side"), [](const Pawn& C) { return C.GetHeldView() == 4; }, -2, TEXT("view_left.png") },
@@ -461,12 +462,13 @@ void UFSLapSliceTest::Tick(float DeltaTime)
 				FScreenshotRequest::RequestScreenshot(OutputDir() / TEXT("onboard.png"), false, false);
 				OnboardStep = 2;
 			}
-			else if (OnboardStep >= 2 && OnboardStep <= 6 && Now - PhaseStart >= 46.0 + (OnboardStep - 2) * 2.5)
+			else if (OnboardStep >= 2 && OnboardStep <= 8 && Now - PhaseStart >= 46.0 + (OnboardStep - 2) * 2.5)
 			{
-				// 2: to the hood, 3: its photo, 4: to the nose, 5: its photo, 6: back to chase
-				if (OnboardStep == 3 || OnboardStep == 5)
+				// 2: to the driver's view with head movement, 3: its photo, 4: to the hood, 5: its photo, 6: to the nose,
+				// 7: its photo, 8: back to chase
+				if (OnboardStep % 2)
 				{
-					FScreenshotRequest::RequestScreenshot(OutputDir() / (OnboardStep == 3 ? TEXT("hood.png") : TEXT("nose.png")), false, false);
+					FScreenshotRequest::RequestScreenshot(OutputDir() / (OnboardStep == 3 ? TEXT("onboard_head.png") : OnboardStep == 5 ? TEXT("hood.png") : TEXT("nose.png")), false, false);
 				}
 				else
 				{
@@ -570,6 +572,12 @@ void UFSLapSliceTest::Tick(float DeltaTime)
 					Extras.Add({ TEXT("bridge_side"), Mid + Across * 4000 + FVector(0, 0, 600), Mid, false });
 					Extras.Add({ TEXT("bridge_under"), FVector(Mid.X, Mid.Y, Ground) + Across * 2500 + FVector(0, 0, 150), FVector(Mid.X, Mid.Y, Ground + 300), false });
 					Extras.Add({ TEXT("bridge_far"), Mid + Across * 50000 + FVector(0, 0, 40000), Mid, false });
+				}
+				if (T.mapX.size())   // Erlangen: a canopy (LoD2 DEBY_LOD2_3037850, 1,229 m², roof 7.7 m up), from beside and beneath
+				{
+					const FVector Canopy(132740, -84500, T.HeightAt(1327.4, -845.0, -1e4) * 100);
+					Extras.Add({ TEXT("canopy_side"), Canopy + FVector(3500, 2500, 800), Canopy + FVector(0, 0, 400), false });
+					Extras.Add({ TEXT("canopy_under"), Canopy + FVector(600, 400, 170), Canopy + FVector(-2000, -1000, 450), false });
 				}
 				Extras.Add({ TEXT("map"), FVector::ZeroVector, FVector::ZeroVector, true });
 			}

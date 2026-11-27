@@ -140,6 +140,7 @@ double Track::LtsTimeAt(double s) const
 }
 
 constexpr double kCell = 8.0;   // m: the grid that finds the walls and bridge decks near a point
+constexpr double kOverGround = 0.5;   // m: a car this high over the bare ground stands on a bridge's deck (CollideWalls)
 
 double Track::HeightAt(double px, double py, double near) const
 {
@@ -633,6 +634,9 @@ void Simulation::BackOnTrack()
 void Simulation::CollideWalls()
 {
 	const double radius = 0.72, ch = std::cos(c.h), sh = std::sin(c.h);
+	// the outlines are flat: on a bridge the walls and buildings under it are not in the way (a car on a bridge over a
+	// road with noise walls was held fast by them)
+	const bool onBridge = !T.edges.empty() && c.z - T.HeightAt(c.x, c.y, std::nan("")) > kOverGround;
 	for (const double arm : { 1.25, 0.2, -0.85 })
 	{
 		const double px = c.x + ch * arm, py = c.y + sh * arm;
@@ -667,7 +671,7 @@ void Simulation::CollideWalls()
 			Contact(dx / norm, dy / norm, radius - d);
 		}
 		const int ci = static_cast<int>(std::floor((px - T.gridX0) / kCell)), cj = static_cast<int>(std::floor((py - T.gridY0) / kCell));
-		if (T.cellStart.empty() || ci < 0 || cj < 0 || ci >= T.gridW || cj >= T.gridH) continue;
+		if (T.cellStart.empty() || ci < 0 || cj < 0 || ci >= T.gridW || cj >= T.gridH || onBridge) continue;
 		const int cell = cj * T.gridW + ci;
 		for (int item = T.cellStart[cell]; item < T.cellStart[cell + 1]; ++item)
 		{

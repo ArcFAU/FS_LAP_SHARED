@@ -61,8 +61,8 @@ public:
 	bool CanReplay() const { return CurrentBest().Ghost.size() > 30; }
 	void StartReplay();   // the best lap of this mode and setup, seen from roadside cameras
 	void StopReplay();
-	bool IsOnboard() const { return CameraView == 1; }   // the cockpit view
-	int32 GetCameraView() const { return CameraView; }   // 0 chase, 1 cockpit, 2 hood, 3 nose
+	bool IsOnboard() const { return CameraView == 1 || CameraView == 4; }   // a cockpit view
+	int32 GetCameraView() const { return CameraView; }   // 0 chase, 1 cockpit (fixed), 2 hood, 3 nose, 4 cockpit (moving head)
 	int32 GetHeldView() const { return HeldView; }   // numpad key held: 4 left, 6 right, 8 front; 0 none
 	void ToggleMap() { bMapShown = !bMapShown; }
 	void SetMapShown(bool bShown) { bMapShown = bShown; }
@@ -317,7 +317,7 @@ private:
 	double FixedAccumulator = 0;
 	float WheelRotation = 0;
 	float BodyPitch = 0, BodyRoll = 0, BodyPitchRate = 0, BodyRollRate = 0;
-	int32 CameraView = 0;   // 0 chase, 1 cockpit (the driver's eyes), 2 hood, 3 nose
+	int32 CameraView = 0;   // 0 chase, 1 cockpit (the driver's eyes, fixed to the car), 2 hood, 3 nose, 4 cockpit (moving head)
 	int32 HeldView = 0;   // while numpad 4, 6 or 8 is held: the car from its left, right or front
 	bool bCameraSnap = true;
 	bool bMapShown = false;

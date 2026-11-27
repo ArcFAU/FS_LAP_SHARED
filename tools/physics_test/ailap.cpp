@@ -168,7 +168,7 @@ int main(int argc, char** argv)
 			crashContacts += crash.c.hitWall ? 1 : 0;
 			finite = finite && std::isfinite(crash.c.x) && std::isfinite(crash.c.vx) && std::isfinite(crash.c.r);
 			for (const Wall& w : track.walls) inside = inside || (crash.c.x > w.x0 + 0.05 && crash.c.x < w.x1 - 0.05 && crash.c.y > w.y0 + 0.05 && crash.c.y < w.y1 - 0.05);
-			inside = inside || InsideEdges(crash.c.x, crash.c.y);
+			inside = inside || (InsideEdges(crash.c.x, crash.c.y) && crash.c.z - track.HeightAt(crash.c.x, crash.c.y, std::nan("")) < 0.5);   // on a bridge, over the outlines, is fine
 			if (crashContacts) topAfter = std::max(topAfter, std::hypot(crash.c.vx, crash.c.vy));
 		}
 		// R, 1.5 km from the circuit in eight directions: onto the nearest street (in a forest a few hundred metres), not back to the circuit, stopped, outside the buildings
@@ -184,11 +184,52 @@ int main(int argc, char** argv)
 			resetMax = std::max(resetMax, moved);
 			resetsOk += moved < 0.5 * toCircuit && lost.c.vx == 0 && std::isfinite(lost.c.z) && !InsideEdges(lost.c.x, lost.c.y) ? 1 : 0;
 		}
+		// R beside every 100 m of the main roads, then flat out the way the car faces and turned round: it must get away
+		// (on the bridge at (1217, 1013), over a road with noise walls, their flat outlines held a car fast)
+		const auto Trapped = [&track, mode](double px, double py)
+		{
+			double moved = 0;
+			for (const double turn : { 0.0, 3.14159265 })
+			{
+				Simulation r(track, Setup{}, mode);
+				r.c.x = px; r.c.y = py;
+				r.BackOnTrack();
+				r.c.h += turn;
+				const double x0 = r.c.x, y0 = r.c.y;
+				Input full;
+				full.thr = 1;
+				full.human = true;
+				for (int k = 0; k < 3 * 600; ++k) r.Step(&full);
+				moved = std::max(moved, std::hypot(r.c.x - x0, r.c.y - y0));
+			}
+			return moved < 10;
+		};
+		int roadResets = 0, roadTrapped = 0;
+		double run = 1e9;
+		for (size_t i = 0; i + 1 < track.roadX.size(); ++i)
+		{
+			const double ax = track.roadX[i], ay = track.roadY[i], bx = track.roadX[i + 1], by = track.roadY[i + 1], len = std::hypot(bx - ax, by - ay);
+			if (ax > 1e8 || bx > 1e8) { run = 1e9; continue; }
+			for (double d = 0; d < len; d += 1)
+			{
+				if ((run += 1) < 100) continue;
+				run = 0;
+				++roadResets;
+				const double px = ax + (bx - ax) * d / len, py = ay + (by - ay) * d / len;
+				if (Trapped(px + 3 * (by - ay) / len, py - 3 * (bx - ax) / len))
+				{
+					++roadTrapped;
+					std::printf("trapped after R near (%.0f, %.0f)\n", px, py);
+				}
+			}
+		}
+		const bool bridgeFree = !Trapped(1217.5, 1013.1);
 		for (const LapResult& lap : sim.laps) std::printf("lap %d: %.3f s (S1 %.3f, S2 %.3f, valid %d)\n", lap.n, lap.time, lap.split1, lap.split2, lap.valid ? 1 : 0);
 		std::printf("AI wall contacts %d, biggest height step %.3f m; flat out from the grid: contacts %d, inside a wall %d, numbers finite %d, top speed after the first hit %.1f m/s\n",
 			contacts, jump, crashContacts, inside ? 1 : 0, finite ? 1 : 0, topAfter);
 		std::printf("R 1.5 km from the circuit: %d of 8 onto a street close by (farthest move %.0f m)\n", resetsOk, resetMax);
-		const bool ok = !sim.laps.empty() && sim.laps[0].valid && contacts == 0 && crashContacts > 0 && !inside && finite && jump < 0.1 && overpasses > 0 && decksOk == overpasses && resetsOk == 8;
+		std::printf("R on the main roads: %d places, %d where the car could not drive away; the noise-wall bridge at (1217, 1013) %s\n", roadResets, roadTrapped, bridgeFree ? "free" : "TRAPPED");
+		const bool ok = !sim.laps.empty() && sim.laps[0].valid && contacts == 0 && crashContacts > 0 && !inside && finite && jump < 0.1 && overpasses > 0 && decksOk == overpasses && resetsOk == 8 && roadTrapped == 0 && bridgeFree;
 		std::printf(ok ? "PASS\n" : "FAIL\n");
 		return ok ? 0 : 1;
 	}

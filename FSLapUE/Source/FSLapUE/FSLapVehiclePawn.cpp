@@ -1537,7 +1537,8 @@ void AFSLapVehiclePawn::MouseClick(int32 Target, bool bRightButton)
 
 void AFSLapVehiclePawn::CycleCamera()
 {
-	CameraView = (CameraView + 1) % 4;
+	static constexpr int32 Next[] = { 1, 4, 3, 0, 2 };   // chase, driver (fixed), driver (moving head), hood, nose
+	CameraView = Next[CameraView];
 	bCameraSnap = true;
 }
 
@@ -1592,8 +1593,16 @@ void AFSLapVehiclePawn::UpdateCamera(float DeltaSeconds)
 		FRotator Look;
 		if (CameraView == 1)
 		{
-			// the driver's head: pushed around by the g-forces, and holding the horizon better than the car does;
+			// the driver's view, fixed to the chassis on the ground: no head sway, body roll or look into the corner (the
+			// team event's drivers, 2026-11-21, found the moving view annoying and need the corner's cones steady in view);
 			// moved to the driver's own seat position by the settings (mm)
+			Eye = DriverEye + (SaveData ? FVector(SaveData->EyeForward, 0, SaveData->EyeHeight) / 10.0 : FVector::ZeroVector);
+			Look = (GetActorQuat() * FRotator(-5.0f, 0, 0).Quaternion()).Rotator();
+		}
+		else if (CameraView == 4)
+		{
+			// the driver's head as before (kept by request): pushed around by the g-forces, holding the horizon better than
+			// the car does, looking a little into the corner
 			Eye = DriverEye + FVector(FMath::Clamp(-Car.axp * 0.25, -3.0, 6.0), FMath::Clamp(-Car.ayp * 0.3, -6.0, 6.0), 0)
 				+ (SaveData ? FVector(SaveData->EyeForward, 0, SaveData->EyeHeight) / 10.0 : FVector::ZeroVector);
 			Look = FRotator(BodyPitch * 0.5f - 5.0f, FMath::RadiansToDegrees(Car.h + Car.delta * 0.18), BodyRoll * 0.5f);
@@ -1604,7 +1613,7 @@ void AFSLapVehiclePawn::UpdateCamera(float DeltaSeconds)
 			Eye = CameraView == 2 ? HoodCamera : NoseCamera;
 			Look = FRotator(BodyPitch - (CameraView == 2 ? 6.0f : 1.0f), FMath::RadiansToDegrees(Car.h), BodyRoll);
 		}
-		ChaseCamera->SetWorldLocationAndRotation(Body->GetComponentTransform().TransformPosition(Eye), Look);
+		ChaseCamera->SetWorldLocationAndRotation((CameraView == 1 ? GetActorTransform() : Body->GetComponentTransform()).TransformPosition(Eye), Look);
 		// a rig sets the angle its screen really covers (setup row Onboard view angle); otherwise it widens a little with speed
 		VerticalFov = SaveData && SaveData->OnboardFov > 0 ? SaveData->OnboardFov : 60.0f + 3.0f * FMath::Clamp(static_cast<float>(Speed) / 34.0f, 0.0f, 1.0f);
 	}
@@ -1996,7 +2005,7 @@ void AFSLapVehiclePawn::UpdateVisuals()
 	SetActorLocationAndRotation(
 		FVector(Car.x * MetersToCentimeters, Car.y * MetersToCentimeters, GroundAt(Car.x, Car.y) * MetersToCentimeters),
 		GroundAttitude(Car.x, Car.y, Car.h));
-	Body->SetRelativeRotation(FRotator(BodyPitch, 0, BodyRoll));
+	Body->SetRelativeRotation(CameraView == 1 ? FRotator::ZeroRotator : FRotator(BodyPitch, 0, BodyRoll));   // the driver's view: the cockpit holds still around the eye too
 	SteeringWheel->SetRelativeRotation(FRotator(SteeringWheelTilt, 0, static_cast<float>(Car.st) * (Car.direct ? CarLock : SteeringWheelTravel)));
 	WheelFL->SetRelativeRotation(FRotator(WheelRotation, SteerAngle, 0));
 	WheelFR->SetRelativeRotation(FRotator(WheelRotation, SteerAngle, 0));

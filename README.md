@@ -4,7 +4,7 @@ FS Lap is High Voltage Motorsports' driver-in-the-loop (DIL) simulator, built in
 
 This repository is the team's shared copy. It is updated from the development repository each time work is committed there. This document is updated with it.
 
-> Synced from development commit `f1c8ca5` on 2026-11-20.
+> Synced from development commit `40d950d` on 2026-11-27.
 
 ---
 
@@ -111,7 +111,7 @@ Copy the whole `dist\Windows` folder to the simulator PC and run `FSLapUE.exe`. 
 | Steer | A / D or Left / Right | left stick |
 | Handbrake | Space | A |
 | Back on track (pause menu: restart); in Erlangen onto the nearest street, facing the way you were going | R | |
-| Camera: chase, cockpit, hood, nose (each press goes to the next) | C | |
+| Camera: chase, cockpit (fixed to the car), cockpit with head movement, hood, nose (each press goes to the next) | C | |
 | Look at the car from its left / right / front (while held; back to your camera on release; Num Lock on) | Numpad 4 / 6 / 8 | |
 | Pause | Esc or P | Start |
 | Replay of the best lap (in the pause menu) | B | Y |
@@ -389,7 +389,7 @@ All tests run from PowerShell in the repository root. Close the Unreal Editor fi
 
 | Command | What it checks |
 |---|---|
-| `tools\validate.ps1` | Builds the vehicle model alone and runs the AI in sim, arcade, free roam and city mode. The lap times must match (sim 77.398 s, arcade 75.359 s, Erlangen 73.959 s) with no wall contacts; in Erlangen also the bridges (right from above and below) and the R key (onto the nearest street). No Unreal needed. |
+| `tools\validate.ps1` | Builds the vehicle model alone and runs the AI in sim, arcade, free roam and city mode. The lap times must match (sim 77.398 s, arcade 75.359 s, Erlangen 73.959 s) with no wall contacts; in Erlangen also the bridges (right from above and below) and the R key (onto the nearest street; beside every 100 m of main road the car must be able to drive away). No Unreal needed. |
 | `tools\validate.ps1 -Game` | The above, plus the in-game tests below |
 | `tools\slice_test.ps1 -Mode sim` (or `arcade`, `city`, `free`) | Starts the real game, lets the AI drive a lap and takes photos from around the car. Results in `FSLapUE\Saved\SliceTest\<mode>\results.txt`: lap times, fps, average and 95th-percentile frame time, the longest frame and the number of frames over 100 ms (hitches). |
 | `tools\slice_test.ps1 -Mode czech` (or `france`) | The in-game hot lap on that event track, with the car's lap there as the reference (`reference=Sigma 2025 70.200`, `Tau 2026 83.996`). |
@@ -444,6 +444,10 @@ Ask the simulator's maintainer if you need any of these.
 ## 12. Change log
 
 Newest first.
+
+- **2026-11-27 (team event feedback):**
+  - **Driver's view fixed to the car:** the cockpit camera no longer sways, rolls or turns into corners, so the cones stay steady in view. The old moving view is the next camera on **C**.
+  - **Erlangen bridges:** a car on a bridge over walls (noise walls below it) is no longer held fast by them.
 
 - **2026-11-19 (Erlangen):**
   - **The city mode is the whole of Erlangen** from official open data (section 1): real terrain, 61,270 buildings and structures, roads, 166 bridges you can drive over and under, land use, 165,000 trees, 636 traffic cars, and the city boundary as a barrier. It replaces the generated city.
